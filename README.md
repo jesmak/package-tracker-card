@@ -32,9 +32,9 @@ Hey dude! Help me out for a couple of :beers: or a :coffee:!
 | show_latest_event_message  | boolean | **Optional** | Show latest event messages                        | `true`              |
 | show_latest_event_location | boolean | **Optional** | Show latest event location                        | `true`              |
 
-### How to install
+## How to install
 
-## Manually
+### Manually
 
 1. Download package-tracker-card.js from dist and copy it to config/www folder on your Home Assistant installation.
 2. In Home Assistant settings, open dashboards, click the 3 dots button on the top right of the screen and open resources
