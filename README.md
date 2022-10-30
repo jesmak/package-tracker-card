@@ -36,7 +36,7 @@ Hey dude! Help me out for a couple of :beers: or a :coffee:!
 
 ### Manually
 
-1. Download package-tracker-card.js from dist and copy it to config/www folder on your Home Assistant installation.
+1. Download package-tracker-card.js from latest release and copy it to config/www folder on your Home Assistant installation.
 2. In Home Assistant settings, open dashboards, click the 3 dots button on the top right of the screen and open resources
 3. Add a new resource with path /local/package-tracker-card.js (type JavaScript)
 4. Refresh your browser
