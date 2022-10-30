@@ -12,7 +12,7 @@ A Home Assistant Lovelace custom card for tracking packages being delivered by P
 ## What is it?
 
 A custom Lovelace card that allows for easy tracking of packages delivered. Currently there are two custom integrations created by
-me that can be used. One for Finnish Posti and one for Matkahuolto.
+me that can be used. One for Finnish Posti and one for [Matkahuolto](https://github.com/jesmak/matkahuolto_tracking).
 
 ## Support
 
