@@ -2,7 +2,18 @@
   "common": {
     "version": "Version",
     "invalid_configuration": "Invalid configuration",
-    "show_warning": "Show Warning",
-    "show_error": "Show Error"
+    "description": "Package tracker card for tracking parcels",
+    "name": "Package tracker card",
+    "no_packages": "No packages to track at the moment"
+  },
+  "statuses": {
+    "0": "Delivered",
+    "1": "Info received",
+    "2": "Pending",
+    "3": "In transit",
+    "4": "Being delivered",
+    "5": "Ready for pickup",
+    "6": "Returned to sender",
+    "7": "Exception"
   }
 }
