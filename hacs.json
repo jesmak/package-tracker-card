@@ -1,5 +1,5 @@
 {
-    "name": "Boilerplate Card",
+    "name": "Package tracker card",
     "render_readme": true,
-    "filename": "boilerplate-card.js"
+    "filename": "package-tracker-card.js"
 }
