@@ -4,7 +4,6 @@ export interface PackageTrackerCardConfig extends LovelaceCardConfig {
   type: string;
   entity: string;
   name?: string;
-  show_origin?: boolean;
   show_destination?: boolean;
   show_latest_event?: boolean;
   show_latest_event_message?: boolean;
