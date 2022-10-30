@@ -1,0 +1,19 @@
+{
+  "common": {
+    "version": "Versio",
+    "invalid_configuration": "Virheellinen konfiguraatio",
+    "description": "Kortti pakettilähetysten seuraamiseen",
+    "name": "Lähetysten seuranta",
+    "no_packages": "Ei seurattavia paketteja tällä hetkellä"
+  },
+  "statuses": {
+    "0": "Toimitettu",
+    "1": "Tieto vastaanotettu",
+    "2": "Odottaa",
+    "3": "Kuljetuksessa",
+    "4": "Toimituksessa",
+    "5": "Noudettavissa",
+    "6": "Palautettu lähettäjälle",
+    "7": "Poikkeama"
+  }
+}

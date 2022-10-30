@@ -1,19 +1,24 @@
 import * as en from './languages/en.json';
-import * as nb from './languages/nb.json';
+import * as fi from './languages/fi.json';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const languages: any = {
   en: en,
-  nb: nb,
+  fi: fi,
 };
 
 export function localize(string: string, search = '', replace = ''): string {
-  const lang = (localStorage.getItem('selectedLanguage') || 'en').replace(/['"]+/g, '').replace('-', '_');
+  let lang = localStorage.getItem('selectedLanguage')?.replace(/['"]+/g, '').replace('-', '_');
+  if (!lang) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const hass = (document.querySelector('home-assistant') as any).hass;
+    lang = hass.selectedLanguage || hass.language || 'en';
+  }
 
   let translated: string;
 
   try {
-    translated = string.split('.').reduce((o, i) => o[i], languages[lang]);
+    translated = string.split('.').reduce((o, i) => o[i], languages[lang as string]);
   } catch (e) {
     translated = string.split('.').reduce((o, i) => o[i], languages['en']);
   }

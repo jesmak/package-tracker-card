@@ -1,21 +1,27 @@
-import { ActionConfig, LovelaceCard, LovelaceCardConfig, LovelaceCardEditor } from 'custom-card-helpers';
+import { LovelaceCardConfig } from 'custom-card-helpers';
 
-declare global {
-  interface HTMLElementTagNameMap {
-    'boilerplate-card-editor': LovelaceCardEditor;
-    'hui-error-card': LovelaceCard;
-  }
+export interface PackageTrackerCardConfig extends LovelaceCardConfig {
+  type: string;
+  entity: string;
+  name?: string;
+  show_origin?: boolean;
+  show_destination?: boolean;
+  show_latest_event?: boolean;
+  show_latest_event_message?: boolean;
+  show_latest_event_location?: boolean;
 }
 
-// TODO Add your configuration elements here for type-checking
-export interface BoilerplateCardConfig extends LovelaceCardConfig {
-  type: string;
-  name?: string;
-  show_warning?: boolean;
-  show_error?: boolean;
-  test_gui?: boolean;
-  entity?: string;
-  tap_action?: ActionConfig;
-  hold_action?: ActionConfig;
-  double_tap_action?: ActionConfig;
+export interface Shipment {
+  origin: string;
+  origin_city: string;
+  destination: string;
+  destination_city: string;
+  shipment_number: string;
+  shipment_date: string;
+  status: number;
+  raw_status: string;
+  latest_event: string;
+  latest_event_country: string;
+  latest_event_city: string;
+  latest_event_date: string;
 }
