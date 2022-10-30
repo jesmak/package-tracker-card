@@ -9,6 +9,11 @@ A Home Assistant Lovelace custom card for tracking packages being delivered by P
 ![Project Maintenance][maintenance-shield]
 [![GitHub Activity][commits-shield]][commits]
 
+## What is it?
+
+A custom Lovelace card that allows for easy tracking of packages delivered. Currently there are two custom integrations created by
+me that can be used. One for Finnish Posti and one for Matkahuolto.
+
 ## Support
 
 Hey dude! Help me out for a couple of :beers: or a :coffee:!
@@ -19,7 +24,7 @@ Hey dude! Help me out for a couple of :beers: or a :coffee:!
 
 | Name                       | Type    | Requirement  | Description                                       | Default             |
 | -------------------------- | ------- | ------------ | ------------------------------------------------- | ------------------- |
-| type                       | string  | **Required** | `custom:boilerplate-card`                         |                     |
+| type                       | string  | **Required** | `custom:package-tracker-card`                     |                     |
 | entity                     | string  | **Required** | Target entity created by a compatible integration |                     |
 | name                       | string  | **Optional** | Title shown on top of card                        |                     |
 | show_destination           | boolean | **Optional** | Show destination rows                             | `true`              |
