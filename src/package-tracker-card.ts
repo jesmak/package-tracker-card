@@ -30,7 +30,7 @@ function formatDateTime(timestamp: Date) {
   return (
     timestamp.getFullYear() +
     '-' +
-    pad(timestamp.getMonth()) +
+    pad(timestamp.getMonth() + 1) +
     '-' +
     pad(timestamp.getDate()) +
     ' ' +
