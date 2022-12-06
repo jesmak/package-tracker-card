@@ -12,7 +12,9 @@ A Home Assistant Lovelace custom card for tracking packages being delivered by P
 ## What is it?
 
 A custom Lovelace card that allows for easy tracking of packages delivered. Currently there are two custom integrations created by
-me that can be used. One for Finnish Posti and one for Matkahuolto.
+me that can be used. One for [Finnish Posti](https://github.com/jesmak/posti_tracking) and one for [Matkahuolto](https://github.com/jesmak/matkahuolto_tracking).
+
+![image](https://user-images.githubusercontent.com/54674286/198891277-9f601d55-2214-4559-832e-b207b110769c.png)
 
 ## Support
 
@@ -36,7 +38,7 @@ Hey dude! Help me out for a couple of :beers: or a :coffee:!
 
 ### Manually
 
-1. Download package-tracker-card.js from dist and copy it to config/www folder on your Home Assistant installation.
+1. Download package-tracker-card.js from latest release and copy it to config/www folder on your Home Assistant installation.
 2. In Home Assistant settings, open dashboards, click the 3 dots button on the top right of the screen and open resources
 3. Add a new resource with path /local/package-tracker-card.js (type JavaScript)
 4. Refresh your browser
