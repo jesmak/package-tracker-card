@@ -2,7 +2,8 @@ import { LovelaceCardConfig } from 'custom-card-helpers';
 
 export interface PackageTrackerCardConfig extends LovelaceCardConfig {
   type: string;
-  entity: string;
+  entity: string | string[];
+  max_events?: number;
   name?: string;
   show_destination?: boolean;
   show_latest_event?: boolean;

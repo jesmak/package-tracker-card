@@ -9,7 +9,7 @@ const languages: any = {
 
 export function localize(string: string, search = '', replace = ''): string {
   let lang = localStorage.getItem('selectedLanguage')?.replace(/['"]+/g, '').replace('-', '_');
-  if (!lang) {
+  if (!lang || lang === 'null') {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const hass = (document.querySelector('home-assistant') as any).hass;
     lang = hass.selectedLanguage || hass.language || 'en';
