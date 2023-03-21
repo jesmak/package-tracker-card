@@ -80,8 +80,27 @@ export class PackageTrackerCard extends LitElement {
   }
 
   protected render(): TemplateResult | void {
-    const stateObj = this.hass.states[this.config.entity];
-    const packages: Shipment[] = stateObj.attributes['packages'];
+    let packages: Shipment[] = [];
+
+    if (typeof this.config.entity === 'string') {
+      packages = this.hass.states[this.config.entity as string].attributes['packages'];
+    } else {
+      this.config.entity.forEach((entity) => {
+        packages = packages.concat(this.hass.states[entity].attributes['packages']);
+      });
+    }
+
+    packages.sort((a, b) => {
+      if ((a.status !== 0 && b.status !== 0) || (a.status === 0 && b.status === 0)) {
+        return new Date(a.latest_event_date) < new Date(b.latest_event_date) ? -1 : 1;
+      } else {
+        return a.status !== 0 ? -1 : 1;
+      }
+    });
+
+    if (this.config.max_events && this.config.max_events < packages.length) {
+      packages = packages.slice(0, this.config.max_events);
+    }
 
     return html`
       <ha-card>
