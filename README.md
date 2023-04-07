@@ -5,8 +5,6 @@ A Home Assistant Lovelace custom card for tracking packages being delivered by P
 [![GitHub Release][releases-shield]][releases]
 [![License][license-shield]](LICENSE.md)
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/custom-components/hacs)
-
-![Project Maintenance][maintenance-shield]
 [![GitHub Activity][commits-shield]][commits]
 
 ## What is it?
@@ -27,7 +25,7 @@ Hey dude! Help me out for a couple of :beers: or a :coffee:!
 | Name                       | Type    | Requirement  | Description                                       | Default             |
 | -------------------------- | ------- | ------------ | ------------------------------------------------- | ------------------- |
 | type                       | string  | **Required** | `custom:package-tracker-card`                     |                     |
-| entity                     | string  | **Required** | Target entity created by a compatible integration |                     |
+| entity                     | string[]| **Required** | Target entity (or entities) created by a compatible integration |                     |
 | name                       | string  | **Optional** | Title shown on top of card                        |                     |
 | show_destination           | boolean | **Optional** | Show destination rows                             | `true`              |
 | show_latest_event          | boolean | **Optional** | Show latest event rows                            | `true`              |
