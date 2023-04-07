@@ -92,7 +92,7 @@ export class PackageTrackerCard extends LitElement {
 
     packages.sort((a, b) => {
       if ((a.status !== 0 && b.status !== 0) || (a.status === 0 && b.status === 0)) {
-        return new Date(a.latest_event_date) < new Date(b.latest_event_date) ? -1 : 1;
+        return new Date(a.latest_event_date) > new Date(b.latest_event_date) ? -1 : 1;
       } else {
         return a.status !== 0 ? -1 : 1;
       }
