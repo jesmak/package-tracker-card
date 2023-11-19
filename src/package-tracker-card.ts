@@ -59,6 +59,7 @@ export class PackageTrackerCard extends LitElement {
 
   @property() public hass!: HomeAssistant;
   @state() private config!: PackageTrackerCardConfig;
+  private latestTimestap = '1970-01-01';
 
   public setConfig(config: PackageTrackerCardConfig): void {
     if (!config || !config.entity) {
@@ -76,7 +77,23 @@ export class PackageTrackerCard extends LitElement {
       return false;
     }
 
-    return hasConfigOrEntityChanged(this, changedProps, false);
+    let shouldUpdate = false;
+
+    if (typeof this.config.entity === 'string') {
+      if (this.hass.states[this.config.entity as string].last_changed > this.latestTimestap) {
+        this.latestTimestap = this.hass.states[this.config.entity as string].last_changed;
+        shouldUpdate = true;
+      }
+    } else {
+      this.config.entity.forEach((entity) => {
+        if (this.hass.states[entity].last_changed > this.latestTimestap) {
+          this.latestTimestap = this.hass.states[entity].last_changed;
+          shouldUpdate = true;
+        }
+      });
+    }
+
+    return shouldUpdate || hasConfigOrEntityChanged(this, changedProps, false);
   }
 
   protected render(): TemplateResult | void {
