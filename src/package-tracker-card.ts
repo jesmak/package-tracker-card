@@ -136,7 +136,7 @@ export class PackageTrackerCard extends LitElement {
                 </div>
                 <div class="row secondary ${this.config.show_latest_event === false ? 'hidden' : ''}">
                   <ha-icon icon="mdi:calendar"></ha-icon>
-                  <div>
+                  <div class="text-content">
                     ${localize('statuses.' + item.status)} (${formatDateTime(new Date(item.latest_event_date))})
                   </div>
                 </div>
@@ -148,7 +148,7 @@ export class PackageTrackerCard extends LitElement {
                     : ''}"
                 >
                   <ha-icon icon="mdi:text-box"></ha-icon>
-                  <div>${item.latest_event}</div>
+                  <div class="text-content">${item.latest_event}</div>
                 </div>
                 <div
                   class="row secondary ${this.config.show_latest_event_location === false ||
@@ -158,15 +158,17 @@ export class PackageTrackerCard extends LitElement {
                     : ''}"
                 >
                   <ha-icon icon="mdi:map-marker"></ha-icon>
-                  <div>${item.latest_event_city}</div>
+                  <div class="text-content">${item.latest_event_city}</div>
                 </div>
                 <div class="row secondary ${this.config.show_origin === false ? 'hidden' : ''}">
                   <ha-icon icon="mdi:arrow-up-bold-box"></ha-icon>
-                  <div>${item.origin || item.origin_city} (${formatDateTime(new Date(item.shipment_date))})</div>
+                  <div class="text-content">
+                    ${item.origin || item.origin_city} (${formatDateTime(new Date(item.shipment_date))})
+                  </div>
                 </div>
                 <div class="row secondary ${this.config.show_destination === false ? 'hidden' : ''}">
                   <ha-icon icon="mdi:arrow-down-bold-box"></ha-icon>
-                  <div>${item.destination || item.destination_city}</div>
+                  <div class="text-content">${item.destination || item.destination_city}</div>
                 </div>
               </div>
             `,
@@ -246,6 +248,11 @@ export class PackageTrackerCard extends LitElement {
 
       .item {
         margin: 10px;
+      }
+
+      .text-content {
+        max-width: calc(100% - 50px);
+        margin-left: 4px;
       }
     `;
   }
