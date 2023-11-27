@@ -212,12 +212,12 @@ export class PackageTrackerCard extends LitElement {
 
       .status-0,
       .row.secondary {
-        color: grey;
+        color: var(--secondary-text-color);
       }
 
       .status-1,
       .status-2 {
-        color: conrflowerblue;
+        color: cornflowerblue;
       }
 
       .status-3,
