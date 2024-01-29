@@ -37,7 +37,7 @@ Hey dude! Help me out for a couple of :beers: or a :coffee:!
 ### With HACS
 
 1. Add this repository to HACS custom repositories
-2. Search for package-tracker-card in HACS and install
+2. Search for Package tracker card in HACS and install with type Lovelace
 3. Refresh your browser
 
 ### Manually
