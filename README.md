@@ -34,6 +34,12 @@ Hey dude! Help me out for a couple of :beers: or a :coffee:!
 
 ## How to install
 
+### With HACS
+
+1. Add this repository to HACS custom repositories
+2. Search for package-tracker-card in HACS and install
+3. Refresh your browser
+
 ### Manually
 
 1. Download package-tracker-card.js from latest release and copy it to config/www folder on your Home Assistant installation.
@@ -44,6 +50,5 @@ Hey dude! Help me out for a couple of :beers: or a :coffee:!
 [commits-shield]: https://img.shields.io/github/commit-activity/y/jesmak/package-tracker-card.svg?style=for-the-badge
 [commits]: https://github.com/jesmak/package-tracker-card/commits/master
 [license-shield]: https://img.shields.io/github/license/jesmak/package-tracker-card.svg?style=for-the-badge
-[maintenance-shield]: https://img.shields.io/maintenance/yes/2022.svg?style=for-the-badge
 [releases-shield]: https://img.shields.io/github/release/jesmak/package-tracker-card.svg?style=for-the-badge
 [releases]: https://github.com/jesmak/package-tracker-card/releases
