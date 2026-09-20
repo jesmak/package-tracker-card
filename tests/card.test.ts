@@ -253,3 +253,153 @@ describe('where a package came from', () => {
     expect(root.querySelector('.source')?.textContent?.trim()).toBe('Posti');
   });
 });
+
+describe('the destination line', () => {
+  const waiting = (extra: Partial<Shipment> = {}): Shipment => ({
+    ...WAITING,
+    status: 5,
+    pickup_deadline: '2026-09-23T20:59:00Z',
+    estimated_delivery: '2026-09-17T07:00:00Z',
+    pickup_point: { name: 'K-Market Keskusta', city: 'TAMPERE' },
+    ...extra,
+  });
+
+  // The package's own line is the last of the secondary rows.
+  const line = (root: ShadowRoot | DocumentFragment): Element => {
+    const rows = root.querySelectorAll('.row.secondary');
+    return rows[rows.length - 1];
+  };
+
+  it('shows the pickup point and the deadline once a package is waiting', async () => {
+    const root = shadow(await card(hass({ [POSTI]: [waiting()] })));
+    expect(line(root).textContent).toContain('K-Market Keskusta, TAMPERE');
+    expect(line(root).textContent).toContain('Nouda viimeistään 2026-09-23');
+    expect(line(root).textContent).not.toContain('Arvio');
+  });
+
+  it('shows the estimate while the package is still on its way', async () => {
+    const root = shadow(await card(hass({ [POSTI]: [waiting({ status: 3 })] })));
+    expect(line(root).textContent).toContain('Arvio 2026-09-17');
+    expect(line(root).textContent).not.toContain('Nouda viimeistään');
+  });
+
+  it('never shows the estimate once the package is at the pickup point', async () => {
+    // Posti gives no deadline, so there is simply no time to show.
+    const root = shadow(await card(hass({ [POSTI]: [waiting({ pickup_deadline: null })] })));
+    expect(line(root).textContent).toContain('K-Market Keskusta');
+    expect(line(root).textContent).not.toContain('2026-09-17');
+  });
+
+  it('falls back to the destination when there is no pickup point', async () => {
+    const root = shadow(await card(hass({ [POSTI]: [waiting({ pickup_point: null })] })));
+    expect(line(root).textContent).toContain('Postin automaatti');
+    expect(line(root).textContent).toContain('Nouda viimeistään');
+  });
+
+  it('shows the time alone when the place is hidden', async () => {
+    const state = hass({ [POSTI]: [waiting()] });
+    const root = shadow(await card(state, { show_destination: false }));
+    expect(line(root).textContent).not.toContain('K-Market Keskusta');
+    expect(line(root).textContent).toContain('Nouda viimeistään');
+  });
+
+  it('keeps the place but drops the time for a delivered package, and when it is hidden', async () => {
+    const delivered = shadow(await card(hass({ [POSTI]: [waiting({ status: 0 })] })));
+    expect(line(delivered).textContent).toContain('K-Market Keskusta');
+    expect(line(delivered).textContent).not.toContain('Nouda viimeistään');
+    const hidden = shadow(await card(hass({ [POSTI]: [waiting()] }), { show_pickup: false }));
+    expect(line(hidden).textContent).toContain('K-Market Keskusta');
+    expect(line(hidden).textContent).not.toContain('Nouda viimeistään');
+  });
+});
+
+describe('the pickup code', () => {
+  const withCode: Shipment = {
+    ...WAITING,
+    status: 5,
+    pickup_point: { name: 'K-Market Keskusta' },
+    pickup_code: '12345678',
+  };
+
+  it('is not shown by default', async () => {
+    const root = shadow(await card(hass({ [POSTI]: [withCode] })));
+    expect(root.querySelector('.code')).toBeNull();
+  });
+
+  it('is shown outright when asked for', async () => {
+    const root = shadow(await card(hass({ [POSTI]: [withCode] }), { pickup_code: 'always' }));
+    expect(root.querySelector('.code')?.textContent).toContain('12345678');
+  });
+
+  // The row an icon belongs to.
+  const rowOf = (root: ShadowRoot | DocumentFragment, icon: string): Element | null =>
+    root.querySelector(`ha-icon[icon="${icon}"]`)?.parentElement ?? null;
+
+  it('sits with the message that says the package can be collected', async () => {
+    const root = shadow(await card(hass({ [POSTI]: [withCode] }), { pickup_code: 'always' }));
+    expect(rowOf(root, 'mdi:text-box')?.querySelector('.code')).not.toBeNull();
+    expect(rowOf(root, 'mdi:map-marker-radius')?.querySelector('.code')).toBeNull();
+  });
+
+  it('moves to the destination line when that message is hidden', async () => {
+    const root = shadow(
+      await card(hass({ [POSTI]: [withCode] }), {
+        pickup_code: 'always',
+        show_latest_event_message: false,
+      }),
+    );
+    expect(rowOf(root, 'mdi:map-marker-radius')?.querySelector('.code')).not.toBeNull();
+  });
+
+  it('is covered until clicked, and covers again when clicked once more', async () => {
+    const element = await card(hass({ [POSTI]: [withCode] }), { pickup_code: 'toggle' });
+    const root = shadow(element);
+    const field = () => root.querySelector('.code') as HTMLElement;
+    expect(field().textContent).toContain('••••');
+    expect(field().textContent).not.toContain('12345678');
+
+    field().dispatchEvent(new Event('click'));
+    await element.updateComplete;
+    expect(field().textContent).toContain('12345678');
+
+    field().dispatchEvent(new Event('click'));
+    await element.updateComplete;
+    expect(field().textContent).toContain('••••');
+  });
+
+  it('does not open the carrier page when the code is clicked', async () => {
+    const openWindow = vi.spyOn(window, 'open').mockImplementation(() => null);
+    const element = await card(hass({ [POSTI]: [withCode] }), { pickup_code: 'toggle' });
+    const code = shadow(element).querySelector('.code') as HTMLElement;
+
+    code.dispatchEvent(new Event('click', { bubbles: true }));
+    await element.updateComplete;
+
+    expect(openWindow).not.toHaveBeenCalled();
+    openWindow.mockRestore();
+  });
+});
+
+describe('the weight and parcels', () => {
+  const heavy: Shipment = { ...WAITING, weight: 2.4, package_count: 2 };
+
+  it('are left out by default', async () => {
+    const root = shadow(await card(hass({ [POSTI]: [heavy] })));
+    expect(root.textContent).not.toContain('kg');
+  });
+
+  it('are shown when asked for', async () => {
+    const root = shadow(await card(hass({ [POSTI]: [heavy] }), { show_details: true }));
+    const text = root.textContent?.replace(/\s+/g, ' ');
+    expect(text).toContain('2,4 kg');
+    expect(text).toContain('2 kollia');
+  });
+
+  it('leave out a single parcel, which says nothing', async () => {
+    const one = { ...heavy, package_count: 1 };
+    const root = shadow(await card(hass({ [POSTI]: [one] }), { show_details: true }));
+    const text = root.textContent?.replace(/\s+/g, ' ');
+    expect(text).toContain('2,4 kg');
+    expect(text).not.toContain('kollia');
+  });
+});

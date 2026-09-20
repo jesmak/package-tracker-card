@@ -5,7 +5,11 @@
     "description": "Package tracker card for tracking parcels",
     "name": "Package tracker card",
     "no_packages": "No packages to track at the moment",
-    "no_entity": "There is no entity"
+    "no_entity": "There is no entity",
+    "pickup_by": "Pick up by",
+    "estimated": "Estimated",
+    "show_code": "Show the pickup code",
+    "parcels": "parcels"
   },
   "statuses": {
     "0": "Delivered",
@@ -33,6 +37,16 @@
     "show_latest_event_message": "Latest event",
     "show_latest_event_location": "Where it last was",
     "show_origin": "Sender",
-    "show_destination": "Destination"
+    "show_destination": "Destination",
+    "show_destination_helper": "Where the package is going — the pickup point when the carrier names one.",
+    "show_pickup": "Pickup time",
+    "show_pickup_helper": "Adds the pickup deadline to that row, or the estimated delivery while the package is still on its way.",
+    "show_details": "Weight and parcels",
+    "show_details_helper": "The package's weight and how many parcels it has.",
+    "pickup_code": "Pickup code",
+    "pickup_code_helper": "The code that collects the package. It comes from the integration's own setting, which is off by default.",
+    "pickup_code_hidden": "Never shown",
+    "pickup_code_always": "Always shown",
+    "pickup_code_toggle": "Revealed when clicked"
   }
 }
