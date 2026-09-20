@@ -11,7 +11,7 @@ import type { CSSResultGroup, PropertyValues, TemplateResult } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
 
-import { CARD_VERSION, FINISHED } from './const';
+import { AT_PICKUP_POINT, CARD_VERSION, FINISHED } from './const';
 import './editor';
 import type { HomeAssistant } from './hass';
 import { browserLanguage, translate } from './localize/localize';
@@ -25,7 +25,7 @@ import {
   sortPackages,
   trackingUrl,
 } from './packages';
-import type { PackageTrackerCardConfig, Shipment } from './types';
+import type { PackageTrackerCardConfig, PickupPoint, Shipment } from './types';
 
 console.info(
   `%c  PACKAGE-TRACKER-CARD \n%c  ${CARD_VERSION}    `,
@@ -55,6 +55,8 @@ registry.customCards.push({
 export class PackageTrackerCard extends LitElement {
   @property({ attribute: false }) public hass?: HomeAssistant;
   @state() private config?: PackageTrackerCardConfig;
+  /** The packages whose pickup code has been revealed by clicking it. */
+  @state() private revealed = new Set<string>();
 
   public static getConfigElement(): HTMLElement {
     return document.createElement('package-tracker-card-editor');
@@ -148,6 +150,9 @@ export class PackageTrackerCard extends LitElement {
 
   private shipment(item: Shipment): TemplateResult {
     const moving = !FINISHED.includes(item.status);
+    // The code goes with the message that says the package can be collected; without that row
+    // it rides along with the place it is collected from.
+    const message = this.config?.show_latest_event_message !== false && moving && !!item.latest_event;
     const url = trackingUrl(item);
     return html`
       <div
@@ -160,16 +165,20 @@ export class PackageTrackerCard extends LitElement {
           <span class="number">${item.shipment_number}</span>
           ${item.source ? html`<span class="source">${item.source}</span>` : nothing}
         </div>
-        ${this.progress(item)}
-        ${this.row('mdi:text-box', this.config?.show_latest_event_message, moving, [item.latest_event])}
+        ${this.progress(item)} ${this.details(item)}
+        ${this.row(
+          'mdi:text-box',
+          this.config?.show_latest_event_message,
+          moving,
+          [item.latest_event],
+          message ? this.code(item) : nothing,
+        )}
         ${this.row('mdi:map-marker', this.config?.show_latest_event_location, moving, [item.latest_event_city])}
         ${this.row('mdi:arrow-up-bold-box', this.config?.show_origin, true, [
           item.origin || item.origin_city,
           item.shipment_date ? ` (${formatDateTime(item.shipment_date)})` : '',
         ])}
-        ${this.row('mdi:arrow-down-bold-box', this.config?.show_destination, true, [
-          item.destination || item.destination_city,
-        ])}
+        ${this.destination(item, !message)}
       </div>
     `;
   }
@@ -205,12 +214,108 @@ export class PackageTrackerCard extends LitElement {
     `;
   }
 
+  /**
+   * Where the package is going, and by when.
+   *
+   * The pickup point stands in for the destination whenever the integration sends one: they are
+   * the same place said twice. A package waiting at a pickup point shows how long it is kept
+   * there; one still on its way shows the estimated delivery instead, because the estimate is of
+   * no more use once it has arrived.
+   */
+  private destination(item: Shipment, withCode: boolean): TemplateResult | typeof nothing {
+    const place =
+      this.config?.show_destination === false
+        ? ''
+        : placeOf(item.pickup_point) || item.destination || item.destination_city || '';
+    const waiting = AT_PICKUP_POINT.includes(item.status);
+    const time =
+      this.config?.show_pickup === false || FINISHED.includes(item.status)
+        ? ''
+        : waiting
+          ? item.pickup_deadline
+          : item.estimated_delivery;
+    const label = waiting ? this.text('common.pickup_by') : this.text('common.estimated');
+    if (!place && !time) {
+      return nothing;
+    }
+    return html`
+      <div class="row secondary">
+        <ha-icon icon="${item.pickup_point ? 'mdi:map-marker-radius' : 'mdi:arrow-down-bold-box'}"></ha-icon>
+        <div class="text-content">
+          ${[place, time ? `${label} ${formatDateTime(time)}` : ''].filter(Boolean).join(' · ')}
+        </div>
+        ${withCode ? this.code(item) : nothing}
+      </div>
+    `;
+  }
+
+  /** The code that collects the package: never, always, or once the field is clicked. */
+  private code(item: Shipment): TemplateResult | typeof nothing {
+    const setting = this.config?.pickup_code ?? 'hidden';
+    if (setting === 'hidden' || !item.pickup_code) {
+      return nothing;
+    }
+    const shown = setting === 'always' || this.revealed.has(item.shipment_number);
+    return html`
+      <span
+        class="code ${shown ? '' : 'covered'}"
+        title="${shown ? '' : this.text('common.show_code')}"
+        @click=${(event: Event) => this.reveal(event, item)}
+      >
+        <ha-icon icon="mdi:key-variant"></ha-icon>
+        ${shown ? item.pickup_code : '••••'}
+      </span>
+    `;
+  }
+
+  private reveal(event: Event, item: Shipment): void {
+    if ((this.config?.pickup_code ?? 'hidden') !== 'toggle') {
+      return;
+    }
+    // The code is its own thing to click; the package under it stays put.
+    event.stopPropagation();
+    const revealed = new Set(this.revealed);
+    if (revealed.has(item.shipment_number)) {
+      revealed.delete(item.shipment_number);
+    } else {
+      revealed.add(item.shipment_number);
+    }
+    this.revealed = revealed;
+  }
+
+  /** What the package weighs, and how many parcels it has. */
+  private details(item: Shipment): TemplateResult | typeof nothing {
+    if (this.config?.show_details !== true) {
+      return nothing;
+    }
+    const parts = [
+      item.weight ? `${this.number(item.weight, 3)} kg` : '',
+      item.package_count && item.package_count > 1
+        ? `${item.package_count} ${this.text('common.parcels')}`
+        : '',
+    ].filter(Boolean);
+    if (parts.length === 0) {
+      return nothing;
+    }
+    return html`
+      <div class="row secondary">
+        <ha-icon icon="mdi:weight-kilogram"></ha-icon>
+        <div class="text-content">${parts.join(' · ')}</div>
+      </div>
+    `;
+  }
+
+  private number(value: number, digits: number): string {
+    return new Intl.NumberFormat(this.language(), { maximumFractionDigits: digits }).format(value);
+  }
+
   /** A line of the package, left out when the configuration hides it or there is nothing to write. */
   private row(
     icon: string,
     shown: boolean | undefined,
     relevant: boolean,
     parts: Array<string | null | undefined>,
+    extra: TemplateResult | typeof nothing = nothing,
   ): TemplateResult | typeof nothing {
     const text = parts.filter((part) => part !== null && part !== undefined && part !== '').join('');
     if (shown === false || !relevant || text === '') {
@@ -220,6 +325,7 @@ export class PackageTrackerCard extends LitElement {
       <div class="row secondary">
         <ha-icon icon="${icon}"></ha-icon>
         <div class="text-content">${text}</div>
+        ${extra}
       </div>
     `;
   }
@@ -377,6 +483,32 @@ export class PackageTrackerCard extends LitElement {
         justify-content: center;
       }
 
+      /* The code sits at the end of the pickup line, covered until it is asked for. */
+      .code {
+        margin-left: auto;
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.02em;
+      }
+
+      .code ha-icon {
+        --mdc-icon-size: 14px;
+        width: 14px;
+        height: 14px;
+      }
+
+      .code.covered {
+        cursor: pointer;
+        opacity: 0.7;
+      }
+
+      .code.covered:hover {
+        opacity: 1;
+      }
+
       .text-content {
         min-width: 0;
         white-space: nowrap;
@@ -422,6 +554,16 @@ export class PackageTrackerCard extends LitElement {
       }
     `;
   }
+}
+
+/** The pickup point as one line: its name, and the city when they differ. */
+function placeOf(point: PickupPoint | null | undefined): string {
+  if (!point) {
+    return '';
+  }
+  const name = point.name ?? '';
+  const city = point.city ?? '';
+  return [name, city && city.toLowerCase() !== name.toLowerCase() ? city : ''].filter(Boolean).join(', ');
 }
 
 declare global {

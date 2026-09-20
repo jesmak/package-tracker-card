@@ -720,6 +720,7 @@ var IN_DELIVERY = 4;
 var READY_FOR_PICKUP = 5;
 var RETURNED = 6;
 var UNKNOWN = 7;
+var AT_PICKUP_POINT = [READY_FOR_PICKUP, DELIVERED, RETURNED];
 var FINISHED = [DELIVERED, RETURNED];
 var PROGRESS = {
   [WAITING]: 0.08,
@@ -744,7 +745,11 @@ var en_default = {
     description: "Package tracker card for tracking parcels",
     name: "Package tracker card",
     no_packages: "No packages to track at the moment",
-    no_entity: "There is no entity"
+    no_entity: "There is no entity",
+    pickup_by: "Pick up by",
+    estimated: "Estimated",
+    show_code: "Show the pickup code",
+    parcels: "parcels"
   },
   statuses: {
     "0": "Delivered",
@@ -772,7 +777,17 @@ var en_default = {
     show_latest_event_message: "Latest event",
     show_latest_event_location: "Where it last was",
     show_origin: "Sender",
-    show_destination: "Destination"
+    show_destination: "Destination",
+    show_destination_helper: "Where the package is going \u2014 the pickup point when the carrier names one.",
+    show_pickup: "Pickup time",
+    show_pickup_helper: "Adds the pickup deadline to that row, or the estimated delivery while the package is still on its way.",
+    show_details: "Weight and parcels",
+    show_details_helper: "The package's weight and how many parcels it has.",
+    pickup_code: "Pickup code",
+    pickup_code_helper: "The code that collects the package. It comes from the integration's own setting, which is off by default.",
+    pickup_code_hidden: "Never shown",
+    pickup_code_always: "Always shown",
+    pickup_code_toggle: "Revealed when clicked"
   }
 };
 
@@ -784,7 +799,11 @@ var fi_default = {
     description: "Kortti pakettil\xE4hetysten seuraamiseen",
     name: "L\xE4hetysten seuranta",
     no_packages: "Ei seurattavia paketteja t\xE4ll\xE4 hetkell\xE4",
-    no_entity: "Entiteetti\xE4 ei ole:"
+    no_entity: "Entiteetti\xE4 ei ole:",
+    pickup_by: "Nouda viimeist\xE4\xE4n",
+    estimated: "Arvio",
+    show_code: "N\xE4yt\xE4 noutokoodi",
+    parcels: "kollia"
   },
   statuses: {
     "0": "Toimitettu",
@@ -812,7 +831,17 @@ var fi_default = {
     show_latest_event_message: "Viimeisin tapahtuma",
     show_latest_event_location: "Miss\xE4 viimeksi",
     show_origin: "L\xE4hett\xE4j\xE4",
-    show_destination: "M\xE4\xE4r\xE4np\xE4\xE4"
+    show_destination: "M\xE4\xE4r\xE4np\xE4\xE4",
+    show_destination_helper: "Minne paketti on menossa \u2013 noutopaikka, jos kuljetusyhti\xF6 kertoo sen.",
+    show_pickup: "Noutoaika",
+    show_pickup_helper: "Lis\xE4\xE4 samalle riville noudon m\xE4\xE4r\xE4ajan, tai arvioidun toimituksen kun paketti on viel\xE4 matkalla.",
+    show_details: "Paino ja kollit",
+    show_details_helper: "Paketin paino ja kollien m\xE4\xE4r\xE4.",
+    pickup_code: "Noutokoodi",
+    pickup_code_helper: "Koodi, jolla paketin noutaa. Se tulee integraation omasta asetuksesta, joka on oletuksena pois p\xE4\xE4lt\xE4.",
+    pickup_code_hidden: "Ei n\xE4ytet\xE4",
+    pickup_code_always: "N\xE4ytet\xE4\xE4n aina",
+    pickup_code_toggle: "Paljastuu napsauttamalla"
   }
 };
 
@@ -839,6 +868,9 @@ function browserLanguage() {
 // src/editor.ts
 var DEFAULTS = {
   show_progress: true,
+  show_pickup: true,
+  show_details: false,
+  pickup_code: "hidden",
   show_latest_event: true,
   show_latest_event_message: true,
   show_latest_event_location: true,
@@ -849,7 +881,7 @@ var DEFAULTS = {
 function trackingEntities(hass) {
   return Object.keys(hass.states).filter((id) => Array.isArray(hass.states[id]?.attributes?.packages)).sort();
 }
-function schema(hass) {
+function schema(hass, text) {
   return [
     {
       name: "entity",
@@ -873,15 +905,30 @@ function schema(hass) {
       ]
     },
     {
+      name: "pickup_code",
+      selector: {
+        select: {
+          mode: "dropdown",
+          options: [
+            { value: "hidden", label: text("editor.pickup_code_hidden") },
+            { value: "always", label: text("editor.pickup_code_always") },
+            { value: "toggle", label: text("editor.pickup_code_toggle") }
+          ]
+        }
+      }
+    },
+    {
       type: "grid",
       name: "",
       schema: [
         { name: "show_progress", selector: { boolean: {} } },
+        { name: "show_details", selector: { boolean: {} } },
         { name: "show_latest_event", selector: { boolean: {} } },
         { name: "show_latest_event_message", selector: { boolean: {} } },
         { name: "show_latest_event_location", selector: { boolean: {} } },
         { name: "show_origin", selector: { boolean: {} } },
         { name: "show_destination", selector: { boolean: {} } },
+        { name: "show_pickup", selector: { boolean: {} } },
         { name: "hide_when_nothing_to_show", selector: { boolean: {} } }
       ]
     }
@@ -904,7 +951,7 @@ var PackageTrackerCardEditor = class extends i4 {
       <ha-form
         .hass=${this.hass}
         .data=${{ ...DEFAULTS, ...this.config, entity }}
-        .schema=${schema(this.hass)}
+        .schema=${schema(this.hass, (key) => this.text(key))}
         .computeLabel=${(entry) => this.text(`editor.${entry.name}`)}
         .computeHelper=${(entry) => this.helper(entry.name)}
         @value-changed=${this.valueChanged}
@@ -1031,6 +1078,10 @@ registry.customCards.push({
   preview: true
 });
 var PackageTrackerCard = class extends i4 {
+  constructor() {
+    super(...arguments);
+    this.revealed = /* @__PURE__ */ new Set();
+  }
   static getConfigElement() {
     return document.createElement("package-tracker-card-editor");
   }
@@ -1105,6 +1156,7 @@ var PackageTrackerCard = class extends i4 {
   }
   shipment(item) {
     const moving = !FINISHED.includes(item.status);
+    const message = this.config?.show_latest_event_message !== false && moving && !!item.latest_event;
     const url = trackingUrl(item);
     return b2`
       <div
@@ -1117,16 +1169,20 @@ var PackageTrackerCard = class extends i4 {
           <span class="number">${item.shipment_number}</span>
           ${item.source ? b2`<span class="source">${item.source}</span>` : A}
         </div>
-        ${this.progress(item)}
-        ${this.row("mdi:text-box", this.config?.show_latest_event_message, moving, [item.latest_event])}
+        ${this.progress(item)} ${this.details(item)}
+        ${this.row(
+      "mdi:text-box",
+      this.config?.show_latest_event_message,
+      moving,
+      [item.latest_event],
+      message ? this.code(item) : A
+    )}
         ${this.row("mdi:map-marker", this.config?.show_latest_event_location, moving, [item.latest_event_city])}
         ${this.row("mdi:arrow-up-bold-box", this.config?.show_origin, true, [
       item.origin || item.origin_city,
       item.shipment_date ? ` (${formatDateTime(item.shipment_date)})` : ""
     ])}
-        ${this.row("mdi:arrow-down-bold-box", this.config?.show_destination, true, [
-      item.destination || item.destination_city
-    ])}
+        ${this.destination(item, !message)}
       </div>
     `;
   }
@@ -1152,8 +1208,87 @@ var PackageTrackerCard = class extends i4 {
       </div>
     `;
   }
+  /**
+   * Where the package is going, and by when.
+   *
+   * The pickup point stands in for the destination whenever the integration sends one: they are
+   * the same place said twice. A package waiting at a pickup point shows how long it is kept
+   * there; one still on its way shows the estimated delivery instead, because the estimate is of
+   * no more use once it has arrived.
+   */
+  destination(item, withCode) {
+    const place = this.config?.show_destination === false ? "" : placeOf(item.pickup_point) || item.destination || item.destination_city || "";
+    const waiting = AT_PICKUP_POINT.includes(item.status);
+    const time = this.config?.show_pickup === false || FINISHED.includes(item.status) ? "" : waiting ? item.pickup_deadline : item.estimated_delivery;
+    const label = waiting ? this.text("common.pickup_by") : this.text("common.estimated");
+    if (!place && !time) {
+      return A;
+    }
+    return b2`
+      <div class="row secondary">
+        <ha-icon icon="${item.pickup_point ? "mdi:map-marker-radius" : "mdi:arrow-down-bold-box"}"></ha-icon>
+        <div class="text-content">
+          ${[place, time ? `${label} ${formatDateTime(time)}` : ""].filter(Boolean).join(" \xB7 ")}
+        </div>
+        ${withCode ? this.code(item) : A}
+      </div>
+    `;
+  }
+  /** The code that collects the package: never, always, or once the field is clicked. */
+  code(item) {
+    const setting = this.config?.pickup_code ?? "hidden";
+    if (setting === "hidden" || !item.pickup_code) {
+      return A;
+    }
+    const shown = setting === "always" || this.revealed.has(item.shipment_number);
+    return b2`
+      <span
+        class="code ${shown ? "" : "covered"}"
+        title="${shown ? "" : this.text("common.show_code")}"
+        @click=${(event) => this.reveal(event, item)}
+      >
+        <ha-icon icon="mdi:key-variant"></ha-icon>
+        ${shown ? item.pickup_code : "\u2022\u2022\u2022\u2022"}
+      </span>
+    `;
+  }
+  reveal(event, item) {
+    if ((this.config?.pickup_code ?? "hidden") !== "toggle") {
+      return;
+    }
+    event.stopPropagation();
+    const revealed = new Set(this.revealed);
+    if (revealed.has(item.shipment_number)) {
+      revealed.delete(item.shipment_number);
+    } else {
+      revealed.add(item.shipment_number);
+    }
+    this.revealed = revealed;
+  }
+  /** What the package weighs, and how many parcels it has. */
+  details(item) {
+    if (this.config?.show_details !== true) {
+      return A;
+    }
+    const parts = [
+      item.weight ? `${this.number(item.weight, 3)} kg` : "",
+      item.package_count && item.package_count > 1 ? `${item.package_count} ${this.text("common.parcels")}` : ""
+    ].filter(Boolean);
+    if (parts.length === 0) {
+      return A;
+    }
+    return b2`
+      <div class="row secondary">
+        <ha-icon icon="mdi:weight-kilogram"></ha-icon>
+        <div class="text-content">${parts.join(" \xB7 ")}</div>
+      </div>
+    `;
+  }
+  number(value, digits) {
+    return new Intl.NumberFormat(this.language(), { maximumFractionDigits: digits }).format(value);
+  }
   /** A line of the package, left out when the configuration hides it or there is nothing to write. */
-  row(icon, shown, relevant, parts) {
+  row(icon, shown, relevant, parts, extra = A) {
     const text = parts.filter((part) => part !== null && part !== void 0 && part !== "").join("");
     if (shown === false || !relevant || text === "") {
       return A;
@@ -1162,6 +1297,7 @@ var PackageTrackerCard = class extends i4 {
       <div class="row secondary">
         <ha-icon icon="${icon}"></ha-icon>
         <div class="text-content">${text}</div>
+        ${extra}
       </div>
     `;
   }
@@ -1315,6 +1451,32 @@ var PackageTrackerCard = class extends i4 {
         justify-content: center;
       }
 
+      /* The code sits at the end of the pickup line, covered until it is asked for. */
+      .code {
+        margin-left: auto;
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.02em;
+      }
+
+      .code ha-icon {
+        --mdc-icon-size: 14px;
+        width: 14px;
+        height: 14px;
+      }
+
+      .code.covered {
+        cursor: pointer;
+        opacity: 0.7;
+      }
+
+      .code.covered:hover {
+        opacity: 1;
+      }
+
       .text-content {
         min-width: 0;
         white-space: nowrap;
@@ -1367,9 +1529,20 @@ __decorateClass([
 __decorateClass([
   r5()
 ], PackageTrackerCard.prototype, "config", 2);
+__decorateClass([
+  r5()
+], PackageTrackerCard.prototype, "revealed", 2);
 PackageTrackerCard = __decorateClass([
   t3("package-tracker-card")
 ], PackageTrackerCard);
+function placeOf(point) {
+  if (!point) {
+    return "";
+  }
+  const name = point.name ?? "";
+  const city = point.city ?? "";
+  return [name, city && city.toLowerCase() !== name.toLowerCase() ? city : ""].filter(Boolean).join(", ");
+}
 export {
   PackageTrackerCard
 };

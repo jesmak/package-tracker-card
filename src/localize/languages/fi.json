@@ -5,7 +5,11 @@
     "description": "Kortti pakettilähetysten seuraamiseen",
     "name": "Lähetysten seuranta",
     "no_packages": "Ei seurattavia paketteja tällä hetkellä",
-    "no_entity": "Entiteettiä ei ole:"
+    "no_entity": "Entiteettiä ei ole:",
+    "pickup_by": "Nouda viimeistään",
+    "estimated": "Arvio",
+    "show_code": "Näytä noutokoodi",
+    "parcels": "kollia"
   },
   "statuses": {
     "0": "Toimitettu",
@@ -33,6 +37,16 @@
     "show_latest_event_message": "Viimeisin tapahtuma",
     "show_latest_event_location": "Missä viimeksi",
     "show_origin": "Lähettäjä",
-    "show_destination": "Määränpää"
+    "show_destination": "Määränpää",
+    "show_destination_helper": "Minne paketti on menossa – noutopaikka, jos kuljetusyhtiö kertoo sen.",
+    "show_pickup": "Noutoaika",
+    "show_pickup_helper": "Lisää samalle riville noudon määräajan, tai arvioidun toimituksen kun paketti on vielä matkalla.",
+    "show_details": "Paino ja kollit",
+    "show_details_helper": "Paketin paino ja kollien määrä.",
+    "pickup_code": "Noutokoodi",
+    "pickup_code_helper": "Koodi, jolla paketin noutaa. Se tulee integraation omasta asetuksesta, joka on oletuksena pois päältä.",
+    "pickup_code_hidden": "Ei näytetä",
+    "pickup_code_always": "Näytetään aina",
+    "pickup_code_toggle": "Paljastuu napsauttamalla"
   }
 }

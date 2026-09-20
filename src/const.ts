@@ -13,6 +13,9 @@ export const READY_FOR_PICKUP = 5;
 export const RETURNED = 6;
 export const UNKNOWN = 7;
 
+/** Waiting for pickup: from here on the estimated delivery is of no use. */
+export const AT_PICKUP_POINT = [READY_FOR_PICKUP, DELIVERED, RETURNED];
+
 /** A package that is finished is done with, and sorts below the rest. */
 export const FINISHED = [DELIVERED, RETURNED];
 

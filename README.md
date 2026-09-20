@@ -38,8 +38,11 @@ hand.
 | `height`                     | number         | Optional     | A fixed height in pixels; the packages scroll inside it     | follows the packages |
 | `max_height`                 | number         | Optional     | A height the card never grows past, in pixels               | none                 |
 | `show_progress`              | boolean        | Optional     | Show how far the package has got, as a bar                  | `true`               |
+| `show_pickup`                | boolean        | Optional     | Add the pickup deadline, or the estimate, to that line      | `true`               |
+| `show_details`               | boolean        | Optional     | Show the weight and how many parcels the shipment has       | `false`              |
+| `pickup_code`                | string         | Optional     | `hidden`, `always`, or `toggle` to reveal it when clicked   | `hidden`             |
 | `show_origin`                | boolean        | Optional     | Show where the package was sent from                        | `true`               |
-| `show_destination`           | boolean        | Optional     | Show where it is going                                      | `true`               |
+| `show_destination`           | boolean        | Optional     | Show where it is going, or where it is picked up            | `true`               |
 | `show_latest_event`          | boolean        | Optional     | Show the status and when it last changed                    | `true`               |
 | `show_latest_event_message`  | boolean        | Optional     | Show what the tracking service last said                    | `true`               |
 | `show_latest_event_location` | boolean        | Optional     | Show where that happened                                    | `true`               |
@@ -69,6 +72,30 @@ Under that are the lines you have left on: what the carrier last said, where tha
 is going. A chip names the service the package came from, which matters when one card lists both.
 
 Clicking a package opens it on Posti's or Matkahuolto's own tracking page, whichever sent it.
+
+## The destination line
+
+One line says where the package is going and by when. The **pickup point** stands in for the destination whenever the
+tracking integration sends one — they are the same place said twice — and the integration only sends it when its own
+**Pickup point and code** setting is on.
+
+A package that is still on its way shows its **estimated delivery**; one waiting at a pickup point shows **how long it
+is kept** instead, because the estimate is of no more use once it has arrived. Matkahuolto gives that deadline and
+Posti does not, so a Posti package waiting for pickup shows its place alone. A delivered package shows the place only.
+
+`show_destination` hides the place and `show_pickup` the time, so turning off one leaves the other on its own line.
+
+The pickup code collects the package, so it is never shown unless asked for. It sits beside the tracking service's
+own message — the one that says the package can be collected — and falls back to the destination line when that
+message is hidden:
+
+| `pickup_code` | What it does                                                     |
+| ------------- | ---------------------------------------------------------------- |
+| `hidden`      | Never shown, whatever the integration sends                      |
+| `always`      | Shown beside the status message                                  |
+| `toggle`      | Covered with dots; clicking reveals it, clicking again covers it |
+
+It needs the integration's setting as well, so switching it on takes both.
 
 ## The size of the card
 

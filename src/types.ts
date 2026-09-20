@@ -1,5 +1,8 @@
 import type { LovelaceCardConfig } from './hass';
 
+/** `hidden` never shows the code, `always` shows it, `toggle` reveals it when clicked. */
+export type PickupCode = 'hidden' | 'always' | 'toggle';
+
 export interface PackageTrackerCardConfig extends LovelaceCardConfig {
   /** One sensor of a tracking integration, or several whose packages are shown together. */
   entity: string | string[];
@@ -13,6 +16,12 @@ export interface PackageTrackerCardConfig extends LovelaceCardConfig {
   /** A height the card never grows past, in pixels. The list scrolls once it is reached. */
   max_height?: number;
   show_progress?: boolean;
+  /** The pickup place and the time that goes with it. */
+  show_pickup?: boolean;
+  /** The weight and how many parcels the shipment has. */
+  show_details?: boolean;
+  /** `hidden`, `always`, or `toggle` for a field that reveals the code when clicked. */
+  pickup_code?: PickupCode;
   show_origin?: boolean;
   show_destination?: boolean;
   show_latest_event?: boolean;
@@ -38,4 +47,24 @@ export interface Shipment {
   latest_event_date?: string | null;
   /** Which service the package came from, when the sensor says so. */
   source?: string | null;
+  /** When the package is expected, before it is ready for pickup. */
+  estimated_delivery?: string | null;
+  /** How long a package waiting for pickup is kept. Posti never tells, Matkahuolto does. */
+  pickup_deadline?: string | null;
+  /** Kilograms, and how many parcels the shipment has. */
+  weight?: number | null;
+  package_count?: number | null;
+  /** Where it is picked up, and the code that collects it. Both need the integration's own setting. */
+  pickup_point?: PickupPoint | null;
+  pickup_code?: string | null;
+}
+
+/** The pickup point of a package, as the tracking integrations write it. */
+export interface PickupPoint {
+  name?: string | null;
+  street?: string | null;
+  postal_code?: string | null;
+  city?: string | null;
+  type?: string | null;
+  available?: string | null;
 }

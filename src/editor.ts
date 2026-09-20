@@ -16,6 +16,9 @@ interface SchemaEntry {
 
 const DEFAULTS: Record<string, unknown> = {
   show_progress: true,
+  show_pickup: true,
+  show_details: false,
+  pickup_code: 'hidden',
   show_latest_event: true,
   show_latest_event_message: true,
   show_latest_event_location: true,
@@ -31,7 +34,7 @@ export function trackingEntities(hass: HomeAssistant): string[] {
     .sort();
 }
 
-function schema(hass: HomeAssistant) {
+function schema(hass: HomeAssistant, text: (key: string) => string) {
   return [
     {
       name: 'entity',
@@ -55,15 +58,30 @@ function schema(hass: HomeAssistant) {
       ],
     },
     {
+      name: 'pickup_code',
+      selector: {
+        select: {
+          mode: 'dropdown',
+          options: [
+            { value: 'hidden', label: text('editor.pickup_code_hidden') },
+            { value: 'always', label: text('editor.pickup_code_always') },
+            { value: 'toggle', label: text('editor.pickup_code_toggle') },
+          ],
+        },
+      },
+    },
+    {
       type: 'grid',
       name: '',
       schema: [
         { name: 'show_progress', selector: { boolean: {} } },
+        { name: 'show_details', selector: { boolean: {} } },
         { name: 'show_latest_event', selector: { boolean: {} } },
         { name: 'show_latest_event_message', selector: { boolean: {} } },
         { name: 'show_latest_event_location', selector: { boolean: {} } },
         { name: 'show_origin', selector: { boolean: {} } },
         { name: 'show_destination', selector: { boolean: {} } },
+        { name: 'show_pickup', selector: { boolean: {} } },
         { name: 'hide_when_nothing_to_show', selector: { boolean: {} } },
       ],
     },
@@ -89,7 +107,7 @@ export class PackageTrackerCardEditor extends LitElement {
       <ha-form
         .hass=${this.hass}
         .data=${{ ...DEFAULTS, ...this.config, entity }}
-        .schema=${schema(this.hass)}
+        .schema=${schema(this.hass, (key) => this.text(key))}
         .computeLabel=${(entry: SchemaEntry) => this.text(`editor.${entry.name}`)}
         .computeHelper=${(entry: SchemaEntry) => this.helper(entry.name)}
         @value-changed=${this.valueChanged}

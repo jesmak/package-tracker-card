@@ -81,6 +81,9 @@ describe('the visual editor', () => {
     expect(names).toContain('height');
     expect(names).toContain('max_height');
     expect(names).toContain('show_progress');
+    expect(names).toContain('show_pickup');
+    expect(names).toContain('show_details');
+    expect(names).toContain('pickup_code');
   });
 
   it('shows one sensor as a list, the way the picker works', async () => {
@@ -112,6 +115,29 @@ describe('the visual editor', () => {
       entity: ['sensor.posti_omaposti'],
       max_height: 300,
       show_origin: false,
+    });
+  });
+
+  it('keeps the pickup defaults out, and a chosen code setting in', async () => {
+    const element = await editor();
+    const changes = changesOf(element);
+    form(element).dispatchEvent(
+      new CustomEvent('value-changed', {
+        detail: {
+          value: {
+            type: 'custom:package-tracker-card',
+            entity: ['sensor.posti_omaposti'],
+            show_pickup: true,
+            show_details: false,
+            pickup_code: 'toggle',
+          },
+        },
+      }),
+    );
+    expect(changes[0]).toEqual({
+      type: 'custom:package-tracker-card',
+      entity: ['sensor.posti_omaposti'],
+      pickup_code: 'toggle',
     });
   });
 });
