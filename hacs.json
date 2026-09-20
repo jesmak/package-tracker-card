@@ -1,5 +1,5 @@
 {
-    "name": "Package tracker card",
-    "render_readme": true,
-    "filename": "package-tracker-card.js"
+  "name": "Package tracker card",
+  "render_readme": true,
+  "filename": "package-tracker-card.js"
 }
