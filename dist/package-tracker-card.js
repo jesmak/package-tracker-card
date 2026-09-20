@@ -1,174 +1,1375 @@
-function t(t,e,i,s){var n,o=arguments.length,r=o<3?e:null===s?s=Object.getOwnPropertyDescriptor(e,i):s;if("object"==typeof Reflect&&"function"==typeof Reflect.decorate)r=Reflect.decorate(t,e,i,s);else for(var a=t.length-1;a>=0;a--)(n=t[a])&&(r=(o<3?n(r):o>3?n(e,i,r):n(e,i))||r);return o>3&&r&&Object.defineProperty(e,i,r),r
-/**
- * @license
- * Copyright 2019 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */}const e=window,i=e.ShadowRoot&&(void 0===e.ShadyCSS||e.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,s=Symbol(),n=new WeakMap;class o{constructor(t,e,i){if(this._$cssResult$=!0,i!==s)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=t,this.t=e}get styleSheet(){let t=this.o;const e=this.t;if(i&&void 0===t){const i=void 0!==e&&1===e.length;i&&(t=n.get(e)),void 0===t&&((this.o=t=new CSSStyleSheet).replaceSync(this.cssText),i&&n.set(e,t))}return t}toString(){return this.cssText}}const r=(t,...e)=>{const i=1===t.length?t[0]:e.reduce(((e,i,s)=>e+(t=>{if(!0===t._$cssResult$)return t.cssText;if("number"==typeof t)return t;throw Error("Value passed to 'css' function must be a 'css' function result: "+t+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(i)+t[s+1]),t[0]);return new o(i,t,s)},a=i?t=>t:t=>t instanceof CSSStyleSheet?(t=>{let e="";for(const i of t.cssRules)e+=i.cssText;return(t=>new o("string"==typeof t?t:t+"",void 0,s))(e)})(t):t
-/**
- * @license
- * Copyright 2017 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */;var l;const c=window,h=c.trustedTypes,d=h?h.emptyScript:"",u=c.reactiveElementPolyfillSupport,p={toAttribute(t,e){switch(e){case Boolean:t=t?d:null;break;case Object:case Array:t=null==t?t:JSON.stringify(t)}return t},fromAttribute(t,e){let i=t;switch(e){case Boolean:i=null!==t;break;case Number:i=null===t?null:Number(t);break;case Object:case Array:try{i=JSON.parse(t)}catch(t){i=null}}return i}},v=(t,e)=>e!==t&&(e==e||t==t),f={attribute:!0,type:String,converter:p,reflect:!1,hasChanged:v};class m extends HTMLElement{constructor(){super(),this._$Ei=new Map,this.isUpdatePending=!1,this.hasUpdated=!1,this._$El=null,this.u()}static addInitializer(t){var e;null!==(e=this.h)&&void 0!==e||(this.h=[]),this.h.push(t)}static get observedAttributes(){this.finalize();const t=[];return this.elementProperties.forEach(((e,i)=>{const s=this._$Ep(i,e);void 0!==s&&(this._$Ev.set(s,i),t.push(s))})),t}static createProperty(t,e=f){if(e.state&&(e.attribute=!1),this.finalize(),this.elementProperties.set(t,e),!e.noAccessor&&!this.prototype.hasOwnProperty(t)){const i="symbol"==typeof t?Symbol():"__"+t,s=this.getPropertyDescriptor(t,i,e);void 0!==s&&Object.defineProperty(this.prototype,t,s)}}static getPropertyDescriptor(t,e,i){return{get(){return this[e]},set(s){const n=this[t];this[e]=s,this.requestUpdate(t,n,i)},configurable:!0,enumerable:!0}}static getPropertyOptions(t){return this.elementProperties.get(t)||f}static finalize(){if(this.hasOwnProperty("finalized"))return!1;this.finalized=!0;const t=Object.getPrototypeOf(this);if(t.finalize(),this.elementProperties=new Map(t.elementProperties),this._$Ev=new Map,this.hasOwnProperty("properties")){const t=this.properties,e=[...Object.getOwnPropertyNames(t),...Object.getOwnPropertySymbols(t)];for(const i of e)this.createProperty(i,t[i])}return this.elementStyles=this.finalizeStyles(this.styles),!0}static finalizeStyles(t){const e=[];if(Array.isArray(t)){const i=new Set(t.flat(1/0).reverse());for(const t of i)e.unshift(a(t))}else void 0!==t&&e.push(a(t));return e}static _$Ep(t,e){const i=e.attribute;return!1===i?void 0:"string"==typeof i?i:"string"==typeof t?t.toLowerCase():void 0}u(){var t;this._$E_=new Promise((t=>this.enableUpdating=t)),this._$AL=new Map,this._$Eg(),this.requestUpdate(),null===(t=this.constructor.h)||void 0===t||t.forEach((t=>t(this)))}addController(t){var e,i;(null!==(e=this._$ES)&&void 0!==e?e:this._$ES=[]).push(t),void 0!==this.renderRoot&&this.isConnected&&(null===(i=t.hostConnected)||void 0===i||i.call(t))}removeController(t){var e;null===(e=this._$ES)||void 0===e||e.splice(this._$ES.indexOf(t)>>>0,1)}_$Eg(){this.constructor.elementProperties.forEach(((t,e)=>{this.hasOwnProperty(e)&&(this._$Ei.set(e,this[e]),delete this[e])}))}createRenderRoot(){var t;const s=null!==(t=this.shadowRoot)&&void 0!==t?t:this.attachShadow(this.constructor.shadowRootOptions);return((t,s)=>{i?t.adoptedStyleSheets=s.map((t=>t instanceof CSSStyleSheet?t:t.styleSheet)):s.forEach((i=>{const s=document.createElement("style"),n=e.litNonce;void 0!==n&&s.setAttribute("nonce",n),s.textContent=i.cssText,t.appendChild(s)}))})(s,this.constructor.elementStyles),s}connectedCallback(){var t;void 0===this.renderRoot&&(this.renderRoot=this.createRenderRoot()),this.enableUpdating(!0),null===(t=this._$ES)||void 0===t||t.forEach((t=>{var e;return null===(e=t.hostConnected)||void 0===e?void 0:e.call(t)}))}enableUpdating(t){}disconnectedCallback(){var t;null===(t=this._$ES)||void 0===t||t.forEach((t=>{var e;return null===(e=t.hostDisconnected)||void 0===e?void 0:e.call(t)}))}attributeChangedCallback(t,e,i){this._$AK(t,i)}_$EO(t,e,i=f){var s;const n=this.constructor._$Ep(t,i);if(void 0!==n&&!0===i.reflect){const o=(void 0!==(null===(s=i.converter)||void 0===s?void 0:s.toAttribute)?i.converter:p).toAttribute(e,i.type);this._$El=t,null==o?this.removeAttribute(n):this.setAttribute(n,o),this._$El=null}}_$AK(t,e){var i;const s=this.constructor,n=s._$Ev.get(t);if(void 0!==n&&this._$El!==n){const t=s.getPropertyOptions(n),o="function"==typeof t.converter?{fromAttribute:t.converter}:void 0!==(null===(i=t.converter)||void 0===i?void 0:i.fromAttribute)?t.converter:p;this._$El=n,this[n]=o.fromAttribute(e,t.type),this._$El=null}}requestUpdate(t,e,i){let s=!0;void 0!==t&&(((i=i||this.constructor.getPropertyOptions(t)).hasChanged||v)(this[t],e)?(this._$AL.has(t)||this._$AL.set(t,e),!0===i.reflect&&this._$El!==t&&(void 0===this._$EC&&(this._$EC=new Map),this._$EC.set(t,i))):s=!1),!this.isUpdatePending&&s&&(this._$E_=this._$Ej())}async _$Ej(){this.isUpdatePending=!0;try{await this._$E_}catch(t){Promise.reject(t)}const t=this.scheduleUpdate();return null!=t&&await t,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){var t;if(!this.isUpdatePending)return;this.hasUpdated,this._$Ei&&(this._$Ei.forEach(((t,e)=>this[e]=t)),this._$Ei=void 0);let e=!1;const i=this._$AL;try{e=this.shouldUpdate(i),e?(this.willUpdate(i),null===(t=this._$ES)||void 0===t||t.forEach((t=>{var e;return null===(e=t.hostUpdate)||void 0===e?void 0:e.call(t)})),this.update(i)):this._$Ek()}catch(t){throw e=!1,this._$Ek(),t}e&&this._$AE(i)}willUpdate(t){}_$AE(t){var e;null===(e=this._$ES)||void 0===e||e.forEach((t=>{var e;return null===(e=t.hostUpdated)||void 0===e?void 0:e.call(t)})),this.hasUpdated||(this.hasUpdated=!0,this.firstUpdated(t)),this.updated(t)}_$Ek(){this._$AL=new Map,this.isUpdatePending=!1}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$E_}shouldUpdate(t){return!0}update(t){void 0!==this._$EC&&(this._$EC.forEach(((t,e)=>this._$EO(e,this[e],t))),this._$EC=void 0),this._$Ek()}updated(t){}firstUpdated(t){}}
-/**
- * @license
- * Copyright 2017 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */
-var _;m.finalized=!0,m.elementProperties=new Map,m.elementStyles=[],m.shadowRootOptions={mode:"open"},null==u||u({ReactiveElement:m}),(null!==(l=c.reactiveElementVersions)&&void 0!==l?l:c.reactiveElementVersions=[]).push("1.4.1");const g=window,$=g.trustedTypes,y=$?$.createPolicy("lit-html",{createHTML:t=>t}):void 0,A=`lit$${(Math.random()+"").slice(9)}$`,b="?"+A,w=`<${b}>`,E=document,S=(t="")=>E.createComment(t),x=t=>null===t||"object"!=typeof t&&"function"!=typeof t,C=Array.isArray,k=t=>C(t)||"function"==typeof(null==t?void 0:t[Symbol.iterator]),P=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,U=/-->/g,T=/>/g,O=RegExp(">|[ \t\n\f\r](?:([^\\s\"'>=/]+)([ \t\n\f\r]*=[ \t\n\f\r]*(?:[^ \t\n\f\r\"'`<>=]|(\"|')|))|$)","g"),N=/'/g,H=/"/g,R=/^(?:script|style|textarea|title)$/i,M=(t=>(e,...i)=>({_$litType$:t,strings:e,values:i}))(1),D=Symbol.for("lit-noChange"),L=Symbol.for("lit-nothing"),z=new WeakMap,j=E.createTreeWalker(E,129,null,!1),B=(t,e)=>{const i=t.length-1,s=[];let n,o=2===e?"<svg>":"",r=P;for(let e=0;e<i;e++){const i=t[e];let a,l,c=-1,h=0;for(;h<i.length&&(r.lastIndex=h,l=r.exec(i),null!==l);)h=r.lastIndex,r===P?"!--"===l[1]?r=U:void 0!==l[1]?r=T:void 0!==l[2]?(R.test(l[2])&&(n=RegExp("</"+l[2],"g")),r=O):void 0!==l[3]&&(r=O):r===O?">"===l[0]?(r=null!=n?n:P,c=-1):void 0===l[1]?c=-2:(c=r.lastIndex-l[2].length,a=l[1],r=void 0===l[3]?O:'"'===l[3]?H:N):r===H||r===N?r=O:r===U||r===T?r=P:(r=O,n=void 0);const d=r===O&&t[e+1].startsWith("/>")?" ":"";o+=r===P?i+w:c>=0?(s.push(a),i.slice(0,c)+"$lit$"+i.slice(c)+A+d):i+A+(-2===c?(s.push(void 0),e):d)}const a=o+(t[i]||"<?>")+(2===e?"</svg>":"");if(!Array.isArray(t)||!t.hasOwnProperty("raw"))throw Error("invalid template strings array");return[void 0!==y?y.createHTML(a):a,s]};class I{constructor({strings:t,_$litType$:e},i){let s;this.parts=[];let n=0,o=0;const r=t.length-1,a=this.parts,[l,c]=B(t,e);if(this.el=I.createElement(l,i),j.currentNode=this.el.content,2===e){const t=this.el.content,e=t.firstChild;e.remove(),t.append(...e.childNodes)}for(;null!==(s=j.nextNode())&&a.length<r;){if(1===s.nodeType){if(s.hasAttributes()){const t=[];for(const e of s.getAttributeNames())if(e.endsWith("$lit$")||e.startsWith(A)){const i=c[o++];if(t.push(e),void 0!==i){const t=s.getAttribute(i.toLowerCase()+"$lit$").split(A),e=/([.?@])?(.*)/.exec(i);a.push({type:1,index:n,name:e[2],strings:t,ctor:"."===e[1]?J:"?"===e[1]?Z:"@"===e[1]?G:F})}else a.push({type:6,index:n})}for(const e of t)s.removeAttribute(e)}if(R.test(s.tagName)){const t=s.textContent.split(A),e=t.length-1;if(e>0){s.textContent=$?$.emptyScript:"";for(let i=0;i<e;i++)s.append(t[i],S()),j.nextNode(),a.push({type:2,index:++n});s.append(t[e],S())}}}else if(8===s.nodeType)if(s.data===b)a.push({type:2,index:n});else{let t=-1;for(;-1!==(t=s.data.indexOf(A,t+1));)a.push({type:7,index:n}),t+=A.length-1}n++}}static createElement(t,e){const i=E.createElement("template");return i.innerHTML=t,i}}function V(t,e,i=t,s){var n,o,r,a;if(e===D)return e;let l=void 0!==s?null===(n=i._$Co)||void 0===n?void 0:n[s]:i._$Cl;const c=x(e)?void 0:e._$litDirective$;return(null==l?void 0:l.constructor)!==c&&(null===(o=null==l?void 0:l._$AO)||void 0===o||o.call(l,!1),void 0===c?l=void 0:(l=new c(t),l._$AT(t,i,s)),void 0!==s?(null!==(r=(a=i)._$Co)&&void 0!==r?r:a._$Co=[])[s]=l:i._$Cl=l),void 0!==l&&(e=V(t,l._$AS(t,e.values),l,s)),e}class K{constructor(t,e){this.u=[],this._$AN=void 0,this._$AD=t,this._$AM=e}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}v(t){var e;const{el:{content:i},parts:s}=this._$AD,n=(null!==(e=null==t?void 0:t.creationScope)&&void 0!==e?e:E).importNode(i,!0);j.currentNode=n;let o=j.nextNode(),r=0,a=0,l=s[0];for(;void 0!==l;){if(r===l.index){let e;2===l.type?e=new W(o,o.nextSibling,this,t):1===l.type?e=new l.ctor(o,l.name,l.strings,this,t):6===l.type&&(e=new Q(o,this,t)),this.u.push(e),l=s[++a]}r!==(null==l?void 0:l.index)&&(o=j.nextNode(),r++)}return n}p(t){let e=0;for(const i of this.u)void 0!==i&&(void 0!==i.strings?(i._$AI(t,i,e),e+=i.strings.length-2):i._$AI(t[e])),e++}}class W{constructor(t,e,i,s){var n;this.type=2,this._$AH=L,this._$AN=void 0,this._$AA=t,this._$AB=e,this._$AM=i,this.options=s,this._$Cm=null===(n=null==s?void 0:s.isConnected)||void 0===n||n}get _$AU(){var t,e;return null!==(e=null===(t=this._$AM)||void 0===t?void 0:t._$AU)&&void 0!==e?e:this._$Cm}get parentNode(){let t=this._$AA.parentNode;const e=this._$AM;return void 0!==e&&11===t.nodeType&&(t=e.parentNode),t}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(t,e=this){t=V(this,t,e),x(t)?t===L||null==t||""===t?(this._$AH!==L&&this._$AR(),this._$AH=L):t!==this._$AH&&t!==D&&this.g(t):void 0!==t._$litType$?this.$(t):void 0!==t.nodeType?this.T(t):k(t)?this.k(t):this.g(t)}O(t,e=this._$AB){return this._$AA.parentNode.insertBefore(t,e)}T(t){this._$AH!==t&&(this._$AR(),this._$AH=this.O(t))}g(t){this._$AH!==L&&x(this._$AH)?this._$AA.nextSibling.data=t:this.T(E.createTextNode(t)),this._$AH=t}$(t){var e;const{values:i,_$litType$:s}=t,n="number"==typeof s?this._$AC(t):(void 0===s.el&&(s.el=I.createElement(s.h,this.options)),s);if((null===(e=this._$AH)||void 0===e?void 0:e._$AD)===n)this._$AH.p(i);else{const t=new K(n,this),e=t.v(this.options);t.p(i),this.T(e),this._$AH=t}}_$AC(t){let e=z.get(t.strings);return void 0===e&&z.set(t.strings,e=new I(t)),e}k(t){C(this._$AH)||(this._$AH=[],this._$AR());const e=this._$AH;let i,s=0;for(const n of t)s===e.length?e.push(i=new W(this.O(S()),this.O(S()),this,this.options)):i=e[s],i._$AI(n),s++;s<e.length&&(this._$AR(i&&i._$AB.nextSibling,s),e.length=s)}_$AR(t=this._$AA.nextSibling,e){var i;for(null===(i=this._$AP)||void 0===i||i.call(this,!1,!0,e);t&&t!==this._$AB;){const e=t.nextSibling;t.remove(),t=e}}setConnected(t){var e;void 0===this._$AM&&(this._$Cm=t,null===(e=this._$AP)||void 0===e||e.call(this,t))}}class F{constructor(t,e,i,s,n){this.type=1,this._$AH=L,this._$AN=void 0,this.element=t,this.name=e,this._$AM=s,this.options=n,i.length>2||""!==i[0]||""!==i[1]?(this._$AH=Array(i.length-1).fill(new String),this.strings=i):this._$AH=L}get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}_$AI(t,e=this,i,s){const n=this.strings;let o=!1;if(void 0===n)t=V(this,t,e,0),o=!x(t)||t!==this._$AH&&t!==D,o&&(this._$AH=t);else{const s=t;let r,a;for(t=n[0],r=0;r<n.length-1;r++)a=V(this,s[i+r],e,r),a===D&&(a=this._$AH[r]),o||(o=!x(a)||a!==this._$AH[r]),a===L?t=L:t!==L&&(t+=(null!=a?a:"")+n[r+1]),this._$AH[r]=a}o&&!s&&this.j(t)}j(t){t===L?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,null!=t?t:"")}}class J extends F{constructor(){super(...arguments),this.type=3}j(t){this.element[this.name]=t===L?void 0:t}}const q=$?$.emptyScript:"";class Z extends F{constructor(){super(...arguments),this.type=4}j(t){t&&t!==L?this.element.setAttribute(this.name,q):this.element.removeAttribute(this.name)}}class G extends F{constructor(t,e,i,s,n){super(t,e,i,s,n),this.type=5}_$AI(t,e=this){var i;if((t=null!==(i=V(this,t,e,0))&&void 0!==i?i:L)===D)return;const s=this._$AH,n=t===L&&s!==L||t.capture!==s.capture||t.once!==s.once||t.passive!==s.passive,o=t!==L&&(s===L||n);n&&this.element.removeEventListener(this.name,this,s),o&&this.element.addEventListener(this.name,this,t),this._$AH=t}handleEvent(t){var e,i;"function"==typeof this._$AH?this._$AH.call(null!==(i=null===(e=this.options)||void 0===e?void 0:e.host)&&void 0!==i?i:this.element,t):this._$AH.handleEvent(t)}}class Q{constructor(t,e,i){this.element=t,this.type=6,this._$AN=void 0,this._$AM=e,this.options=i}get _$AU(){return this._$AM._$AU}_$AI(t){V(this,t)}}const Y={P:"$lit$",A:A,M:b,C:1,L:B,R:K,D:k,V:V,I:W,H:F,N:Z,U:G,B:J,F:Q},X=g.litHtmlPolyfillSupport;null==X||X(I,W),(null!==(_=g.litHtmlVersions)&&void 0!==_?_:g.litHtmlVersions=[]).push("2.4.0");
-/**
- * @license
- * Copyright 2017 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */
-var tt,et;class it extends m{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){var t,e;const i=super.createRenderRoot();return null!==(t=(e=this.renderOptions).renderBefore)&&void 0!==t||(e.renderBefore=i.firstChild),i}update(t){const e=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(t),this._$Do=((t,e,i)=>{var s,n;const o=null!==(s=null==i?void 0:i.renderBefore)&&void 0!==s?s:e;let r=o._$litPart$;if(void 0===r){const t=null!==(n=null==i?void 0:i.renderBefore)&&void 0!==n?n:null;o._$litPart$=r=new W(e.insertBefore(S(),t),t,void 0,null!=i?i:{})}return r._$AI(t),r})(e,this.renderRoot,this.renderOptions)}connectedCallback(){var t;super.connectedCallback(),null===(t=this._$Do)||void 0===t||t.setConnected(!0)}disconnectedCallback(){var t;super.disconnectedCallback(),null===(t=this._$Do)||void 0===t||t.setConnected(!1)}render(){return D}}it.finalized=!0,it._$litElement$=!0,null===(tt=globalThis.litElementHydrateSupport)||void 0===tt||tt.call(globalThis,{LitElement:it});const st=globalThis.litElementPolyfillSupport;null==st||st({LitElement:it}),(null!==(et=globalThis.litElementVersions)&&void 0!==et?et:globalThis.litElementVersions=[]).push("3.2.2");
-/**
- * @license
- * Copyright 2017 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */
-const nt=2;
-/**
- * @license
- * Copyright 2020 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */
-const{I:ot}=Y,rt=()=>document.createComment(""),at=(t,e,i)=>{var s;const n=t._$AA.parentNode,o=void 0===e?t._$AB:e._$AA;if(void 0===i){const e=n.insertBefore(rt(),o),s=n.insertBefore(rt(),o);i=new ot(e,s,t,t.options)}else{const e=i._$AB.nextSibling,r=i._$AM,a=r!==t;if(a){let e;null===(s=i._$AQ)||void 0===s||s.call(i,t),i._$AM=t,void 0!==i._$AP&&(e=t._$AU)!==r._$AU&&i._$AP(e)}if(e!==o||a){let t=i._$AA;for(;t!==e;){const e=t.nextSibling;n.insertBefore(t,o),t=e}}}return i},lt=(t,e,i=t)=>(t._$AI(e,i),t),ct={},ht=t=>{var e;null===(e=t._$AP)||void 0===e||e.call(t,!1,!0);let i=t._$AA;const s=t._$AB.nextSibling;for(;i!==s;){const t=i.nextSibling;i.remove(),i=t}},dt=(t,e,i)=>{const s=new Map;for(let n=e;n<=i;n++)s.set(t[n],n);return s},ut=(t=>(...e)=>({_$litDirective$:t,values:e}))(class extends class{constructor(t){}get _$AU(){return this._$AM._$AU}_$AT(t,e,i){this._$Ct=t,this._$AM=e,this._$Ci=i}_$AS(t,e){return this.update(t,e)}update(t,e){return this.render(...e)}}{constructor(t){if(super(t),t.type!==nt)throw Error("repeat() can only be used in text expressions")}ht(t,e,i){let s;void 0===i?i=e:void 0!==e&&(s=e);const n=[],o=[];let r=0;for(const e of t)n[r]=s?s(e,r):r,o[r]=i(e,r),r++;return{values:o,keys:n}}render(t,e,i){return this.ht(t,e,i).values}update(t,[e,i,s]){var n;const o=(t=>t._$AH)(t),{values:r,keys:a}=this.ht(e,i,s);if(!Array.isArray(o))return this.ut=a,r;const l=null!==(n=this.ut)&&void 0!==n?n:this.ut=[],c=[];let h,d,u=0,p=o.length-1,v=0,f=r.length-1;for(;u<=p&&v<=f;)if(null===o[u])u++;else if(null===o[p])p--;else if(l[u]===a[v])c[v]=lt(o[u],r[v]),u++,v++;else if(l[p]===a[f])c[f]=lt(o[p],r[f]),p--,f--;else if(l[u]===a[f])c[f]=lt(o[u],r[f]),at(t,c[f+1],o[u]),u++,f--;else if(l[p]===a[v])c[v]=lt(o[p],r[v]),at(t,o[u],o[p]),p--,v++;else if(void 0===h&&(h=dt(a,v,f),d=dt(l,u,p)),h.has(l[u]))if(h.has(l[p])){const e=d.get(a[v]),i=void 0!==e?o[e]:null;if(null===i){const e=at(t,o[u]);lt(e,r[v]),c[v]=e}else c[v]=lt(i,r[v]),at(t,o[u],i),o[e]=null;v++}else ht(o[p]),p--;else ht(o[u]),u++;for(;v<=f;){const e=at(t,c[f+1]);lt(e,r[v]),c[v++]=e}for(;u<=p;){const t=o[u++];null!==t&&ht(t)}return this.ut=a,((t,e=ct)=>{t._$AH=e})(t,c),D}}),pt=(t,e)=>"method"===e.kind&&e.descriptor&&!("value"in e.descriptor)?{...e,finisher(i){i.createProperty(e.key,t)}}:{kind:"field",key:Symbol(),placement:"own",descriptor:{},originalKey:e.key,initializer(){"function"==typeof e.initializer&&(this[e.key]=e.initializer.call(this))},finisher(i){i.createProperty(e.key,t)}};
-/**
- * @license
- * Copyright 2017 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */function vt(t){return(e,i)=>void 0!==i?((t,e,i)=>{e.constructor.createProperty(i,t)})(t,e,i):pt(t,e)
-/**
- * @license
- * Copyright 2017 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */}
-/**
- * @license
- * Copyright 2021 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */
-var ft;null===(ft=window.HTMLSlotElement)||void 0===ft||ft.prototype.assignedElements;var mt="[^\\s]+";function _t(t,e){for(var i=[],s=0,n=t.length;s<n;s++)i.push(t[s].substr(0,e));return i}var gt=function(t){return function(e,i){var s=i[t].map((function(t){return t.toLowerCase()})),n=s.indexOf(e.toLowerCase());return n>-1?n:null}};function $t(t){for(var e=[],i=1;i<arguments.length;i++)e[i-1]=arguments[i];for(var s=0,n=e;s<n.length;s++){var o=n[s];for(var r in o)t[r]=o[r]}return t}var yt=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],At=["January","February","March","April","May","June","July","August","September","October","November","December"],bt=_t(At,3),wt={dayNamesShort:_t(yt,3),dayNames:yt,monthNamesShort:bt,monthNames:At,amPm:["am","pm"],DoFn:function(t){return t+["th","st","nd","rd"][t%10>3?0:(t-t%10!=10?1:0)*t%10]}},Et=($t({},wt),function(t){return+t-1}),St=[null,"[1-9]\\d?"],xt=[null,mt],Ct=["isPm",mt,function(t,e){var i=t.toLowerCase();return i===e.amPm[0]?0:i===e.amPm[1]?1:null}],kt=["timezoneOffset","[^\\s]*?[\\+\\-]\\d\\d:?\\d\\d|[^\\s]*?Z?",function(t){var e=(t+"").match(/([+-]|\d\d)/gi);if(e){var i=60*+e[1]+parseInt(e[2],10);return"+"===e[0]?i:-i}return 0}];gt("monthNamesShort"),gt("monthNames");var Pt,Ut;!function(){try{(new Date).toLocaleDateString("i")}catch(t){return"RangeError"===t.name}}(),function(){try{(new Date).toLocaleString("i")}catch(t){return"RangeError"===t.name}}(),function(){try{(new Date).toLocaleTimeString("i")}catch(t){return"RangeError"===t.name}}(),function(t){t.language="language",t.system="system",t.comma_decimal="comma_decimal",t.decimal_comma="decimal_comma",t.space_comma="space_comma",t.none="none"}(Pt||(Pt={})),function(t){t.language="language",t.system="system",t.am_pm="12",t.twenty_four="24"}(Ut||(Ut={}));var Tt={version:"Version",invalid_configuration:"Invalid configuration",description:"Package tracker card for tracking parcels",name:"Package tracker card",no_packages:"No packages to track at the moment"},Ot={0:"Delivered",1:"Info received",2:"Pending",3:"In transit",4:"Being delivered",5:"Ready for pickup",6:"Returned to sender",7:"Exception"},Nt={common:Tt,statuses:Ot},Ht={version:"Versio",invalid_configuration:"Virheellinen konfiguraatio",description:"Kortti pakettilähetysten seuraamiseen",name:"Lähetysten seuranta",no_packages:"Ei seurattavia paketteja tällä hetkellä"},Rt={0:"Toimitettu",1:"Tieto vastaanotettu",2:"Odottaa",3:"Kuljetuksessa",4:"Toimituksessa",5:"Noudettavissa",6:"Palautettu lähettäjälle",7:"Poikkeama"},Mt={common:Ht,statuses:Rt};const Dt={en:Object.freeze({__proto__:null,common:Tt,statuses:Ot,default:Nt}),fi:Object.freeze({__proto__:null,common:Ht,statuses:Rt,default:Mt})};function Lt(t,e="",i=""){var s;let n,o=null===(s=localStorage.getItem("selectedLanguage"))||void 0===s?void 0:s.replace(/['"]+/g,"").replace("-","_");if(!o||"null"===o){const t=document.querySelector("home-assistant").hass;o=t.selectedLanguage||t.language||"en"}try{n=t.split(".").reduce(((t,e)=>t[e]),Dt[o])}catch(e){n=t.split(".").reduce(((t,e)=>t[e]),Dt.en)}return void 0===n&&(n=t.split(".").reduce(((t,e)=>t[e]),Dt.en)),""!==e&&""!==i&&(n=n.replace(e,i)),n}console.info(`%c  PACKAGE-TRACKER-CARD \n%c  ${Lt("common.version")} 1.1.4    `,"color: orange; font-weight: bold; background: black","color: white; font-weight: bold; background: dimgray");const zt=["mdi:checkbox-marked","mdi:file-document","mdi:clock","mdi:truck-delivery","mdi:human-dolly","mdi:check-decagram","mdi:arrow-u-left-top-bold","mdi:help-circle"];function jt(t){return t.getFullYear()+"-"+Bt(t.getMonth()+1)+"-"+Bt(t.getDate())+" "+Bt(t.getHours())+":"+Bt(t.getMinutes())}function Bt(t){return t<10?"0"+t:String(t)}window.customCards=window.customCards||[],window.customCards.push({type:"package-tracker-card",name:Lt("common.name"),description:Lt("common.description")});let It=class extends it{constructor(){super(...arguments),this.latestTimestap="1970-01-01"}static getStubConfig(){return{}}setConfig(t){if(!t||!t.entity)throw new Error(Lt("common.invalid_configuration"));this.config=Object.assign({name:Lt("common.name")},t)}shouldUpdate(t){if(!this.config)return!1;let e=!1;return"string"==typeof this.config.entity?this.hass.states[this.config.entity].last_changed>this.latestTimestap&&(this.latestTimestap=this.hass.states[this.config.entity].last_changed,e=!0):this.config.entity.forEach((t=>{this.hass.states[t].last_changed>this.latestTimestap&&(this.latestTimestap=this.hass.states[t].last_changed,e=!0)})),e||function(t,e,i){if(e.has("config")||i)return!0;if(t.config.entity){var s=e.get("hass");return!s||s.states[t.config.entity]!==t.hass.states[t.config.entity]}return!1}(this,t,!1)}render(){let t=[];return"string"==typeof this.config.entity?t=this.hass.states[this.config.entity].attributes.packages:this.config.entity.forEach((e=>{t=t.concat(this.hass.states[e].attributes.packages)})),t.sort(((t,e)=>0!==t.status&&0!==e.status||0===t.status&&0===e.status?new Date(t.latest_event_date)>new Date(e.latest_event_date)?-1:1:0!==t.status?-1:1)),this.config.max_events&&this.config.max_events<t.length&&(t=t.slice(0,this.config.max_events)),M`
-      <ha-card>
-        <div class="header">${this.config.title}</div>
-        ${ut(t,(t=>t.shipment_number),(t=>M`
-              <div class="item">
-                <div class="row">
-                  <ha-icon icon="${zt[t.status]}" class="status-${t.status}"></ha-icon>
-                  <div>
-                    <div class="tracking-number">${t.shipment_number}</div>
-                  </div>
-                </div>
-                <div class="row secondary ${!1===this.config.show_latest_event?"hidden":""}">
-                  <ha-icon icon="mdi:calendar"></ha-icon>
-                  <div class="text-content">
-                    ${Lt("statuses."+t.status)} (${jt(new Date(t.latest_event_date))})
-                  </div>
-                </div>
-                <div
-                  class="row secondary ${!1!==this.config.show_latest_event_message&&t.latest_event&&0!==t.status?"":"hidden"}"
-                >
-                  <ha-icon icon="mdi:text-box"></ha-icon>
-                  <div class="text-content">${t.latest_event}</div>
-                </div>
-                <div
-                  class="row secondary ${!1!==this.config.show_latest_event_location&&t.latest_event_city&&0!==t.status?"":"hidden"}"
-                >
-                  <ha-icon icon="mdi:map-marker"></ha-icon>
-                  <div class="text-content">${t.latest_event_city}</div>
-                </div>
-                <div class="row secondary ${!1===this.config.show_origin?"hidden":""}">
-                  <ha-icon icon="mdi:arrow-up-bold-box"></ha-icon>
-                  <div class="text-content">
-                    ${t.origin||t.origin_city} (${jt(new Date(t.shipment_date))})
-                  </div>
-                </div>
-                <div class="row secondary ${!1===this.config.show_destination?"hidden":""}">
-                  <ha-icon icon="mdi:arrow-down-bold-box"></ha-icon>
-                  <div class="text-content">${t.destination||t.destination_city}</div>
-                </div>
-              </div>
-            `))}
-        ${0===t.length?M` <div class="no-packages">${Lt("common.no_packages")}</div> `:null}
+/*! package-tracker-card 2.0.0 | MIT License */
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __decorateClass = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc(target, key) : target;
+  for (var i7 = decorators.length - 1, decorator; i7 >= 0; i7--)
+    if (decorator = decorators[i7])
+      result = (kind ? decorator(target, key, result) : decorator(result)) || result;
+  if (kind && result) __defProp(target, key, result);
+  return result;
+};
+
+// node_modules/@lit/reactive-element/css-tag.js
+var t = globalThis;
+var e = t.ShadowRoot && (void 0 === t.ShadyCSS || t.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype;
+var s = /* @__PURE__ */ Symbol();
+var o = /* @__PURE__ */ new WeakMap();
+var n = class {
+  constructor(t6, e6, o6) {
+    if (this._$cssResult$ = true, o6 !== s) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
+    this.cssText = t6, this.t = e6;
+  }
+  get styleSheet() {
+    let t6 = this.o;
+    const s5 = this.t;
+    if (e && void 0 === t6) {
+      const e6 = void 0 !== s5 && 1 === s5.length;
+      e6 && (t6 = o.get(s5)), void 0 === t6 && ((this.o = t6 = new CSSStyleSheet()).replaceSync(this.cssText), e6 && o.set(s5, t6));
+    }
+    return t6;
+  }
+  toString() {
+    return this.cssText;
+  }
+};
+var r = (t6) => new n("string" == typeof t6 ? t6 : t6 + "", void 0, s);
+var i = (t6, ...e6) => {
+  const o6 = 1 === t6.length ? t6[0] : e6.reduce((e7, s5, o7) => e7 + ((t7) => {
+    if (true === t7._$cssResult$) return t7.cssText;
+    if ("number" == typeof t7) return t7;
+    throw Error("Value passed to 'css' function must be a 'css' function result: " + t7 + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
+  })(s5) + t6[o7 + 1], t6[0]);
+  return new n(o6, t6, s);
+};
+var S = (s5, o6) => {
+  if (e) s5.adoptedStyleSheets = o6.map((t6) => t6 instanceof CSSStyleSheet ? t6 : t6.styleSheet);
+  else for (const e6 of o6) {
+    const o7 = document.createElement("style"), n5 = t.litNonce;
+    void 0 !== n5 && o7.setAttribute("nonce", n5), o7.textContent = e6.cssText, s5.appendChild(o7);
+  }
+};
+var c = e ? (t6) => t6 : (t6) => t6 instanceof CSSStyleSheet ? ((t7) => {
+  let e6 = "";
+  for (const s5 of t7.cssRules) e6 += s5.cssText;
+  return r(e6);
+})(t6) : t6;
+
+// node_modules/@lit/reactive-element/reactive-element.js
+var { is: i2, defineProperty: e2, getOwnPropertyDescriptor: h, getOwnPropertyNames: r2, getOwnPropertySymbols: o2, getPrototypeOf: n2 } = Object;
+var a = globalThis;
+var c2 = a.trustedTypes;
+var l = c2 ? c2.emptyScript : "";
+var p = a.reactiveElementPolyfillSupport;
+var d = (t6, s5) => t6;
+var u = { toAttribute(t6, s5) {
+  switch (s5) {
+    case Boolean:
+      t6 = t6 ? l : null;
+      break;
+    case Object:
+    case Array:
+      t6 = null == t6 ? t6 : JSON.stringify(t6);
+  }
+  return t6;
+}, fromAttribute(t6, s5) {
+  let i7 = t6;
+  switch (s5) {
+    case Boolean:
+      i7 = null !== t6;
+      break;
+    case Number:
+      i7 = null === t6 ? null : Number(t6);
+      break;
+    case Object:
+    case Array:
+      try {
+        i7 = JSON.parse(t6);
+      } catch (t7) {
+        i7 = null;
+      }
+  }
+  return i7;
+} };
+var f = (t6, s5) => !i2(t6, s5);
+var b = { attribute: true, type: String, converter: u, reflect: false, useDefault: false, hasChanged: f };
+Symbol.metadata ?? (Symbol.metadata = /* @__PURE__ */ Symbol("metadata")), a.litPropertyMetadata ?? (a.litPropertyMetadata = /* @__PURE__ */ new WeakMap());
+var y = class extends HTMLElement {
+  static addInitializer(t6) {
+    this._$Ei(), (this.l ?? (this.l = [])).push(t6);
+  }
+  static get observedAttributes() {
+    return this.finalize(), this._$Eh && [...this._$Eh.keys()];
+  }
+  static createProperty(t6, s5 = b) {
+    if (s5.state && (s5.attribute = false), this._$Ei(), this.prototype.hasOwnProperty(t6) && ((s5 = Object.create(s5)).wrapped = true), this.elementProperties.set(t6, s5), !s5.noAccessor) {
+      const i7 = /* @__PURE__ */ Symbol(), h4 = this.getPropertyDescriptor(t6, i7, s5);
+      void 0 !== h4 && e2(this.prototype, t6, h4);
+    }
+  }
+  static getPropertyDescriptor(t6, s5, i7) {
+    const { get: e6, set: r6 } = h(this.prototype, t6) ?? { get() {
+      return this[s5];
+    }, set(t7) {
+      this[s5] = t7;
+    } };
+    return { get: e6, set(s6) {
+      const h4 = e6?.call(this);
+      r6?.call(this, s6), this.requestUpdate(t6, h4, i7);
+    }, configurable: true, enumerable: true };
+  }
+  static getPropertyOptions(t6) {
+    return this.elementProperties.get(t6) ?? b;
+  }
+  static _$Ei() {
+    if (this.hasOwnProperty(d("elementProperties"))) return;
+    const t6 = n2(this);
+    t6.finalize(), void 0 !== t6.l && (this.l = [...t6.l]), this.elementProperties = new Map(t6.elementProperties);
+  }
+  static finalize() {
+    if (this.hasOwnProperty(d("finalized"))) return;
+    if (this.finalized = true, this._$Ei(), this.hasOwnProperty(d("properties"))) {
+      const t7 = this.properties, s5 = [...r2(t7), ...o2(t7)];
+      for (const i7 of s5) this.createProperty(i7, t7[i7]);
+    }
+    const t6 = this[Symbol.metadata];
+    if (null !== t6) {
+      const s5 = litPropertyMetadata.get(t6);
+      if (void 0 !== s5) for (const [t7, i7] of s5) this.elementProperties.set(t7, i7);
+    }
+    this._$Eh = /* @__PURE__ */ new Map();
+    for (const [t7, s5] of this.elementProperties) {
+      const i7 = this._$Eu(t7, s5);
+      void 0 !== i7 && this._$Eh.set(i7, t7);
+    }
+    this.elementStyles = this.finalizeStyles(this.styles);
+  }
+  static finalizeStyles(s5) {
+    const i7 = [];
+    if (Array.isArray(s5)) {
+      const e6 = new Set(s5.flat(1 / 0).reverse());
+      for (const s6 of e6) i7.unshift(c(s6));
+    } else void 0 !== s5 && i7.push(c(s5));
+    return i7;
+  }
+  static _$Eu(t6, s5) {
+    const i7 = s5.attribute;
+    return false === i7 ? void 0 : "string" == typeof i7 ? i7 : "string" == typeof t6 ? t6.toLowerCase() : void 0;
+  }
+  constructor() {
+    super(), this._$Ep = void 0, this.isUpdatePending = false, this.hasUpdated = false, this._$Em = null, this._$Ev();
+  }
+  _$Ev() {
+    this._$ES = new Promise((t6) => this.enableUpdating = t6), this._$AL = /* @__PURE__ */ new Map(), this._$E_(), this.requestUpdate(), this.constructor.l?.forEach((t6) => t6(this));
+  }
+  addController(t6) {
+    (this._$EO ?? (this._$EO = /* @__PURE__ */ new Set())).add(t6), void 0 !== this.renderRoot && this.isConnected && t6.hostConnected?.();
+  }
+  removeController(t6) {
+    this._$EO?.delete(t6);
+  }
+  _$E_() {
+    const t6 = /* @__PURE__ */ new Map(), s5 = this.constructor.elementProperties;
+    for (const i7 of s5.keys()) this.hasOwnProperty(i7) && (t6.set(i7, this[i7]), delete this[i7]);
+    t6.size > 0 && (this._$Ep = t6);
+  }
+  createRenderRoot() {
+    const t6 = this.shadowRoot ?? this.attachShadow(this.constructor.shadowRootOptions);
+    return S(t6, this.constructor.elementStyles), t6;
+  }
+  connectedCallback() {
+    this.renderRoot ?? (this.renderRoot = this.createRenderRoot()), this.enableUpdating(true), this._$EO?.forEach((t6) => t6.hostConnected?.());
+  }
+  enableUpdating(t6) {
+  }
+  disconnectedCallback() {
+    this._$EO?.forEach((t6) => t6.hostDisconnected?.());
+  }
+  attributeChangedCallback(t6, s5, i7) {
+    this._$AK(t6, i7);
+  }
+  _$ET(t6, s5) {
+    const i7 = this.constructor.elementProperties.get(t6), e6 = this.constructor._$Eu(t6, i7);
+    if (void 0 !== e6 && true === i7.reflect) {
+      const h4 = (void 0 !== i7.converter?.toAttribute ? i7.converter : u).toAttribute(s5, i7.type);
+      this._$Em = t6, null == h4 ? this.removeAttribute(e6) : this.setAttribute(e6, h4), this._$Em = null;
+    }
+  }
+  _$AK(t6, s5) {
+    const i7 = this.constructor, e6 = i7._$Eh.get(t6);
+    if (void 0 !== e6 && this._$Em !== e6) {
+      const t7 = i7.getPropertyOptions(e6), h4 = "function" == typeof t7.converter ? { fromAttribute: t7.converter } : void 0 !== t7.converter?.fromAttribute ? t7.converter : u;
+      this._$Em = e6;
+      const r6 = h4.fromAttribute(s5, t7.type);
+      this[e6] = r6 ?? this._$Ej?.get(e6) ?? r6, this._$Em = null;
+    }
+  }
+  requestUpdate(t6, s5, i7, e6 = false, h4) {
+    if (void 0 !== t6) {
+      const r6 = this.constructor;
+      if (false === e6 && (h4 = this[t6]), i7 ?? (i7 = r6.getPropertyOptions(t6)), !((i7.hasChanged ?? f)(h4, s5) || i7.useDefault && i7.reflect && h4 === this._$Ej?.get(t6) && !this.hasAttribute(r6._$Eu(t6, i7)))) return;
+      this.C(t6, s5, i7);
+    }
+    false === this.isUpdatePending && (this._$ES = this._$EP());
+  }
+  C(t6, s5, { useDefault: i7, reflect: e6, wrapped: h4 }, r6) {
+    i7 && !(this._$Ej ?? (this._$Ej = /* @__PURE__ */ new Map())).has(t6) && (this._$Ej.set(t6, r6 ?? s5 ?? this[t6]), true !== h4 || void 0 !== r6) || (this._$AL.has(t6) || (this.hasUpdated || i7 || (s5 = void 0), this._$AL.set(t6, s5)), true === e6 && this._$Em !== t6 && (this._$Eq ?? (this._$Eq = /* @__PURE__ */ new Set())).add(t6));
+  }
+  async _$EP() {
+    this.isUpdatePending = true;
+    try {
+      await this._$ES;
+    } catch (t7) {
+      Promise.reject(t7);
+    }
+    const t6 = this.scheduleUpdate();
+    return null != t6 && await t6, !this.isUpdatePending;
+  }
+  scheduleUpdate() {
+    return this.performUpdate();
+  }
+  performUpdate() {
+    if (!this.isUpdatePending) return;
+    if (!this.hasUpdated) {
+      if (this.renderRoot ?? (this.renderRoot = this.createRenderRoot()), this._$Ep) {
+        for (const [t8, s6] of this._$Ep) this[t8] = s6;
+        this._$Ep = void 0;
+      }
+      const t7 = this.constructor.elementProperties;
+      if (t7.size > 0) for (const [s6, i7] of t7) {
+        const { wrapped: t8 } = i7, e6 = this[s6];
+        true !== t8 || this._$AL.has(s6) || void 0 === e6 || this.C(s6, void 0, i7, e6);
+      }
+    }
+    let t6 = false;
+    const s5 = this._$AL;
+    try {
+      t6 = this.shouldUpdate(s5), t6 ? (this.willUpdate(s5), this._$EO?.forEach((t7) => t7.hostUpdate?.()), this.update(s5)) : this._$EM();
+    } catch (s6) {
+      throw t6 = false, this._$EM(), s6;
+    }
+    t6 && this._$AE(s5);
+  }
+  willUpdate(t6) {
+  }
+  _$AE(t6) {
+    this._$EO?.forEach((t7) => t7.hostUpdated?.()), this.hasUpdated || (this.hasUpdated = true, this.firstUpdated(t6)), this.updated(t6);
+  }
+  _$EM() {
+    this._$AL = /* @__PURE__ */ new Map(), this.isUpdatePending = false;
+  }
+  get updateComplete() {
+    return this.getUpdateComplete();
+  }
+  getUpdateComplete() {
+    return this._$ES;
+  }
+  shouldUpdate(t6) {
+    return true;
+  }
+  update(t6) {
+    this._$Eq && (this._$Eq = this._$Eq.forEach((t7) => this._$ET(t7, this[t7]))), this._$EM();
+  }
+  updated(t6) {
+  }
+  firstUpdated(t6) {
+  }
+};
+y.elementStyles = [], y.shadowRootOptions = { mode: "open" }, y[d("elementProperties")] = /* @__PURE__ */ new Map(), y[d("finalized")] = /* @__PURE__ */ new Map(), p?.({ ReactiveElement: y }), (a.reactiveElementVersions ?? (a.reactiveElementVersions = [])).push("2.1.2");
+
+// node_modules/lit-html/lit-html.js
+var t2 = globalThis;
+var i3 = (t6) => t6;
+var s2 = t2.trustedTypes;
+var e3 = s2 ? s2.createPolicy("lit-html", { createHTML: (t6) => t6 }) : void 0;
+var h2 = "$lit$";
+var o3 = `lit$${Math.random().toFixed(9).slice(2)}$`;
+var n3 = "?" + o3;
+var r3 = `<${n3}>`;
+var l2 = document;
+var c3 = () => l2.createComment("");
+var a2 = (t6) => null === t6 || "object" != typeof t6 && "function" != typeof t6;
+var u2 = Array.isArray;
+var d2 = (t6) => u2(t6) || "function" == typeof t6?.[Symbol.iterator];
+var f2 = "[ 	\n\f\r]";
+var v = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g;
+var _ = /-->/g;
+var m = />/g;
+var p2 = RegExp(`>|${f2}(?:([^\\s"'>=/]+)(${f2}*=${f2}*(?:[^ 	
+\f\r"'\`<>=]|("|')|))|$)`, "g");
+var g = /'/g;
+var $ = /"/g;
+var y2 = /^(?:script|style|textarea|title)$/i;
+var x = (t6) => (i7, ...s5) => ({ _$litType$: t6, strings: i7, values: s5 });
+var b2 = x(1);
+var w = x(2);
+var T = x(3);
+var E = /* @__PURE__ */ Symbol.for("lit-noChange");
+var A = /* @__PURE__ */ Symbol.for("lit-nothing");
+var C = /* @__PURE__ */ new WeakMap();
+var P = l2.createTreeWalker(l2, 129);
+function V(t6, i7) {
+  if (!u2(t6) || !t6.hasOwnProperty("raw")) throw Error("invalid template strings array");
+  return void 0 !== e3 ? e3.createHTML(i7) : i7;
+}
+var N = (t6, i7) => {
+  const s5 = t6.length - 1, e6 = [];
+  let n5, l3 = 2 === i7 ? "<svg>" : 3 === i7 ? "<math>" : "", c5 = v;
+  for (let i8 = 0; i8 < s5; i8++) {
+    const s6 = t6[i8];
+    let a3, u5, d3 = -1, f3 = 0;
+    for (; f3 < s6.length && (c5.lastIndex = f3, u5 = c5.exec(s6), null !== u5); ) f3 = c5.lastIndex, c5 === v ? "!--" === u5[1] ? c5 = _ : void 0 !== u5[1] ? c5 = m : void 0 !== u5[2] ? (y2.test(u5[2]) && (n5 = RegExp("</" + u5[2], "g")), c5 = p2) : void 0 !== u5[3] && (c5 = p2) : c5 === p2 ? ">" === u5[0] ? (c5 = n5 ?? v, d3 = -1) : void 0 === u5[1] ? d3 = -2 : (d3 = c5.lastIndex - u5[2].length, a3 = u5[1], c5 = void 0 === u5[3] ? p2 : '"' === u5[3] ? $ : g) : c5 === $ || c5 === g ? c5 = p2 : c5 === _ || c5 === m ? c5 = v : (c5 = p2, n5 = void 0);
+    const x2 = c5 === p2 && t6[i8 + 1].startsWith("/>") ? " " : "";
+    l3 += c5 === v ? s6 + r3 : d3 >= 0 ? (e6.push(a3), s6.slice(0, d3) + h2 + s6.slice(d3) + o3 + x2) : s6 + o3 + (-2 === d3 ? i8 : x2);
+  }
+  return [V(t6, l3 + (t6[s5] || "<?>") + (2 === i7 ? "</svg>" : 3 === i7 ? "</math>" : "")), e6];
+};
+var S2 = class _S {
+  constructor({ strings: t6, _$litType$: i7 }, e6) {
+    let r6;
+    this.parts = [];
+    let l3 = 0, a3 = 0;
+    const u5 = t6.length - 1, d3 = this.parts, [f3, v3] = N(t6, i7);
+    if (this.el = _S.createElement(f3, e6), P.currentNode = this.el.content, 2 === i7 || 3 === i7) {
+      const t7 = this.el.content.firstChild;
+      t7.replaceWith(...t7.childNodes);
+    }
+    for (; null !== (r6 = P.nextNode()) && d3.length < u5; ) {
+      if (1 === r6.nodeType) {
+        if (r6.hasAttributes()) for (const t7 of r6.getAttributeNames()) if (t7.endsWith(h2)) {
+          const i8 = v3[a3++], s5 = r6.getAttribute(t7).split(o3), e7 = /([.?@])?(.*)/.exec(i8);
+          d3.push({ type: 1, index: l3, name: e7[2], strings: s5, ctor: "." === e7[1] ? I : "?" === e7[1] ? L : "@" === e7[1] ? z : H }), r6.removeAttribute(t7);
+        } else t7.startsWith(o3) && (d3.push({ type: 6, index: l3 }), r6.removeAttribute(t7));
+        if (y2.test(r6.tagName)) {
+          const t7 = r6.textContent.split(o3), i8 = t7.length - 1;
+          if (i8 > 0) {
+            r6.textContent = s2 ? s2.emptyScript : "";
+            for (let s5 = 0; s5 < i8; s5++) r6.append(t7[s5], c3()), P.nextNode(), d3.push({ type: 2, index: ++l3 });
+            r6.append(t7[i8], c3());
+          }
+        }
+      } else if (8 === r6.nodeType) if (r6.data === n3) d3.push({ type: 2, index: l3 });
+      else {
+        let t7 = -1;
+        for (; -1 !== (t7 = r6.data.indexOf(o3, t7 + 1)); ) d3.push({ type: 7, index: l3 }), t7 += o3.length - 1;
+      }
+      l3++;
+    }
+  }
+  static createElement(t6, i7) {
+    const s5 = l2.createElement("template");
+    return s5.innerHTML = t6, s5;
+  }
+};
+function M(t6, i7, s5 = t6, e6) {
+  if (i7 === E) return i7;
+  let h4 = void 0 !== e6 ? s5._$Co?.[e6] : s5._$Cl;
+  const o6 = a2(i7) ? void 0 : i7._$litDirective$;
+  return h4?.constructor !== o6 && (h4?._$AO?.(false), void 0 === o6 ? h4 = void 0 : (h4 = new o6(t6), h4._$AT(t6, s5, e6)), void 0 !== e6 ? (s5._$Co ?? (s5._$Co = []))[e6] = h4 : s5._$Cl = h4), void 0 !== h4 && (i7 = M(t6, h4._$AS(t6, i7.values), h4, e6)), i7;
+}
+var R = class {
+  constructor(t6, i7) {
+    this._$AV = [], this._$AN = void 0, this._$AD = t6, this._$AM = i7;
+  }
+  get parentNode() {
+    return this._$AM.parentNode;
+  }
+  get _$AU() {
+    return this._$AM._$AU;
+  }
+  u(t6) {
+    const { el: { content: i7 }, parts: s5 } = this._$AD, e6 = (t6?.creationScope ?? l2).importNode(i7, true);
+    P.currentNode = e6;
+    let h4 = P.nextNode(), o6 = 0, n5 = 0, r6 = s5[0];
+    for (; void 0 !== r6; ) {
+      if (o6 === r6.index) {
+        let i8;
+        2 === r6.type ? i8 = new k(h4, h4.nextSibling, this, t6) : 1 === r6.type ? i8 = new r6.ctor(h4, r6.name, r6.strings, this, t6) : 6 === r6.type && (i8 = new Z(h4, this, t6)), this._$AV.push(i8), r6 = s5[++n5];
+      }
+      o6 !== r6?.index && (h4 = P.nextNode(), o6++);
+    }
+    return P.currentNode = l2, e6;
+  }
+  p(t6) {
+    let i7 = 0;
+    for (const s5 of this._$AV) void 0 !== s5 && (void 0 !== s5.strings ? (s5._$AI(t6, s5, i7), i7 += s5.strings.length - 2) : s5._$AI(t6[i7])), i7++;
+  }
+};
+var k = class _k {
+  get _$AU() {
+    return this._$AM?._$AU ?? this._$Cv;
+  }
+  constructor(t6, i7, s5, e6) {
+    this.type = 2, this._$AH = A, this._$AN = void 0, this._$AA = t6, this._$AB = i7, this._$AM = s5, this.options = e6, this._$Cv = e6?.isConnected ?? true;
+  }
+  get parentNode() {
+    let t6 = this._$AA.parentNode;
+    const i7 = this._$AM;
+    return void 0 !== i7 && 11 === t6?.nodeType && (t6 = i7.parentNode), t6;
+  }
+  get startNode() {
+    return this._$AA;
+  }
+  get endNode() {
+    return this._$AB;
+  }
+  _$AI(t6, i7 = this) {
+    t6 = M(this, t6, i7), a2(t6) ? t6 === A || null == t6 || "" === t6 ? (this._$AH !== A && this._$AR(), this._$AH = A) : t6 !== this._$AH && t6 !== E && this._(t6) : void 0 !== t6._$litType$ ? this.$(t6) : void 0 !== t6.nodeType ? this.T(t6) : d2(t6) ? this.k(t6) : this._(t6);
+  }
+  O(t6) {
+    return this._$AA.parentNode.insertBefore(t6, this._$AB);
+  }
+  T(t6) {
+    this._$AH !== t6 && (this._$AR(), this._$AH = this.O(t6));
+  }
+  _(t6) {
+    this._$AH !== A && a2(this._$AH) ? this._$AA.nextSibling.data = t6 : this.T(l2.createTextNode(t6)), this._$AH = t6;
+  }
+  $(t6) {
+    const { values: i7, _$litType$: s5 } = t6, e6 = "number" == typeof s5 ? this._$AC(t6) : (void 0 === s5.el && (s5.el = S2.createElement(V(s5.h, s5.h[0]), this.options)), s5);
+    if (this._$AH?._$AD === e6) this._$AH.p(i7);
+    else {
+      const t7 = new R(e6, this), s6 = t7.u(this.options);
+      t7.p(i7), this.T(s6), this._$AH = t7;
+    }
+  }
+  _$AC(t6) {
+    let i7 = C.get(t6.strings);
+    return void 0 === i7 && C.set(t6.strings, i7 = new S2(t6)), i7;
+  }
+  k(t6) {
+    u2(this._$AH) || (this._$AH = [], this._$AR());
+    const i7 = this._$AH;
+    let s5, e6 = 0;
+    for (const h4 of t6) e6 === i7.length ? i7.push(s5 = new _k(this.O(c3()), this.O(c3()), this, this.options)) : s5 = i7[e6], s5._$AI(h4), e6++;
+    e6 < i7.length && (this._$AR(s5 && s5._$AB.nextSibling, e6), i7.length = e6);
+  }
+  _$AR(t6 = this._$AA.nextSibling, s5) {
+    for (this._$AP?.(false, true, s5); t6 !== this._$AB; ) {
+      const s6 = i3(t6).nextSibling;
+      i3(t6).remove(), t6 = s6;
+    }
+  }
+  setConnected(t6) {
+    void 0 === this._$AM && (this._$Cv = t6, this._$AP?.(t6));
+  }
+};
+var H = class {
+  get tagName() {
+    return this.element.tagName;
+  }
+  get _$AU() {
+    return this._$AM._$AU;
+  }
+  constructor(t6, i7, s5, e6, h4) {
+    this.type = 1, this._$AH = A, this._$AN = void 0, this.element = t6, this.name = i7, this._$AM = e6, this.options = h4, s5.length > 2 || "" !== s5[0] || "" !== s5[1] ? (this._$AH = Array(s5.length - 1).fill(new String()), this.strings = s5) : this._$AH = A;
+  }
+  _$AI(t6, i7 = this, s5, e6) {
+    const h4 = this.strings;
+    let o6 = false;
+    if (void 0 === h4) t6 = M(this, t6, i7, 0), o6 = !a2(t6) || t6 !== this._$AH && t6 !== E, o6 && (this._$AH = t6);
+    else {
+      const e7 = t6;
+      let n5, r6;
+      for (t6 = h4[0], n5 = 0; n5 < h4.length - 1; n5++) r6 = M(this, e7[s5 + n5], i7, n5), r6 === E && (r6 = this._$AH[n5]), o6 || (o6 = !a2(r6) || r6 !== this._$AH[n5]), r6 === A ? t6 = A : t6 !== A && (t6 += (r6 ?? "") + h4[n5 + 1]), this._$AH[n5] = r6;
+    }
+    o6 && !e6 && this.j(t6);
+  }
+  j(t6) {
+    t6 === A ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, t6 ?? "");
+  }
+};
+var I = class extends H {
+  constructor() {
+    super(...arguments), this.type = 3;
+  }
+  j(t6) {
+    this.element[this.name] = t6 === A ? void 0 : t6;
+  }
+};
+var L = class extends H {
+  constructor() {
+    super(...arguments), this.type = 4;
+  }
+  j(t6) {
+    this.element.toggleAttribute(this.name, !!t6 && t6 !== A);
+  }
+};
+var z = class extends H {
+  constructor(t6, i7, s5, e6, h4) {
+    super(t6, i7, s5, e6, h4), this.type = 5;
+  }
+  _$AI(t6, i7 = this) {
+    if ((t6 = M(this, t6, i7, 0) ?? A) === E) return;
+    const s5 = this._$AH, e6 = t6 === A && s5 !== A || t6.capture !== s5.capture || t6.once !== s5.once || t6.passive !== s5.passive, h4 = t6 !== A && (s5 === A || e6);
+    e6 && this.element.removeEventListener(this.name, this, s5), h4 && this.element.addEventListener(this.name, this, t6), this._$AH = t6;
+  }
+  handleEvent(t6) {
+    "function" == typeof this._$AH ? this._$AH.call(this.options?.host ?? this.element, t6) : this._$AH.handleEvent(t6);
+  }
+};
+var Z = class {
+  constructor(t6, i7, s5) {
+    this.element = t6, this.type = 6, this._$AN = void 0, this._$AM = i7, this.options = s5;
+  }
+  get _$AU() {
+    return this._$AM._$AU;
+  }
+  _$AI(t6) {
+    M(this, t6);
+  }
+};
+var j = { M: h2, P: o3, A: n3, C: 1, L: N, R, D: d2, V: M, I: k, H, N: L, U: z, B: I, F: Z };
+var B = t2.litHtmlPolyfillSupport;
+B?.(S2, k), (t2.litHtmlVersions ?? (t2.litHtmlVersions = [])).push("3.3.3");
+var D = (t6, i7, s5) => {
+  const e6 = s5?.renderBefore ?? i7;
+  let h4 = e6._$litPart$;
+  if (void 0 === h4) {
+    const t7 = s5?.renderBefore ?? null;
+    e6._$litPart$ = h4 = new k(i7.insertBefore(c3(), t7), t7, void 0, s5 ?? {});
+  }
+  return h4._$AI(t6), h4;
+};
+
+// node_modules/lit-element/lit-element.js
+var s3 = globalThis;
+var i4 = class extends y {
+  constructor() {
+    super(...arguments), this.renderOptions = { host: this }, this._$Do = void 0;
+  }
+  createRenderRoot() {
+    var _a;
+    const t6 = super.createRenderRoot();
+    return (_a = this.renderOptions).renderBefore ?? (_a.renderBefore = t6.firstChild), t6;
+  }
+  update(t6) {
+    const r6 = this.render();
+    this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(t6), this._$Do = D(r6, this.renderRoot, this.renderOptions);
+  }
+  connectedCallback() {
+    super.connectedCallback(), this._$Do?.setConnected(true);
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback(), this._$Do?.setConnected(false);
+  }
+  render() {
+    return E;
+  }
+};
+i4._$litElement$ = true, i4["finalized"] = true, s3.litElementHydrateSupport?.({ LitElement: i4 });
+var o4 = s3.litElementPolyfillSupport;
+o4?.({ LitElement: i4 });
+(s3.litElementVersions ?? (s3.litElementVersions = [])).push("4.2.2");
+
+// node_modules/@lit/reactive-element/decorators/custom-element.js
+var t3 = (t6) => (e6, o6) => {
+  void 0 !== o6 ? o6.addInitializer(() => {
+    customElements.define(t6, e6);
+  }) : customElements.define(t6, e6);
+};
+
+// node_modules/@lit/reactive-element/decorators/property.js
+var o5 = { attribute: true, type: String, converter: u, reflect: false, hasChanged: f };
+var r4 = (t6 = o5, e6, r6) => {
+  const { kind: n5, metadata: i7 } = r6;
+  let s5 = globalThis.litPropertyMetadata.get(i7);
+  if (void 0 === s5 && globalThis.litPropertyMetadata.set(i7, s5 = /* @__PURE__ */ new Map()), "setter" === n5 && ((t6 = Object.create(t6)).wrapped = true), s5.set(r6.name, t6), "accessor" === n5) {
+    const { name: o6 } = r6;
+    return { set(r7) {
+      const n6 = e6.get.call(this);
+      e6.set.call(this, r7), this.requestUpdate(o6, n6, t6, true, r7);
+    }, init(e7) {
+      return void 0 !== e7 && this.C(o6, void 0, t6, e7), e7;
+    } };
+  }
+  if ("setter" === n5) {
+    const { name: o6 } = r6;
+    return function(r7) {
+      const n6 = this[o6];
+      e6.call(this, r7), this.requestUpdate(o6, n6, t6, true, r7);
+    };
+  }
+  throw Error("Unsupported decorator location: " + n5);
+};
+function n4(t6) {
+  return (e6, o6) => "object" == typeof o6 ? r4(t6, e6, o6) : ((t7, e7, o7) => {
+    const r6 = e7.hasOwnProperty(o7);
+    return e7.constructor.createProperty(o7, t7), r6 ? Object.getOwnPropertyDescriptor(e7, o7) : void 0;
+  })(t6, e6, o6);
+}
+
+// node_modules/@lit/reactive-element/decorators/state.js
+function r5(r6) {
+  return n4({ ...r6, state: true, attribute: false });
+}
+
+// node_modules/lit-html/directive.js
+var t4 = { ATTRIBUTE: 1, CHILD: 2, PROPERTY: 3, BOOLEAN_ATTRIBUTE: 4, EVENT: 5, ELEMENT: 6 };
+var e5 = (t6) => (...e6) => ({ _$litDirective$: t6, values: e6 });
+var i5 = class {
+  constructor(t6) {
+  }
+  get _$AU() {
+    return this._$AM._$AU;
+  }
+  _$AT(t6, e6, i7) {
+    this._$Ct = t6, this._$AM = e6, this._$Ci = i7;
+  }
+  _$AS(t6, e6) {
+    return this.update(t6, e6);
+  }
+  update(t6, e6) {
+    return this.render(...e6);
+  }
+};
+
+// node_modules/lit-html/directive-helpers.js
+var { I: t5 } = j;
+var i6 = (o6) => o6;
+var s4 = () => document.createComment("");
+var v2 = (o6, n5, e6) => {
+  const l3 = o6._$AA.parentNode, d3 = void 0 === n5 ? o6._$AB : n5._$AA;
+  if (void 0 === e6) {
+    const i7 = l3.insertBefore(s4(), d3), n6 = l3.insertBefore(s4(), d3);
+    e6 = new t5(i7, n6, o6, o6.options);
+  } else {
+    const t6 = e6._$AB.nextSibling, n6 = e6._$AM, c5 = n6 !== o6;
+    if (c5) {
+      let t7;
+      e6._$AQ?.(o6), e6._$AM = o6, void 0 !== e6._$AP && (t7 = o6._$AU) !== n6._$AU && e6._$AP(t7);
+    }
+    if (t6 !== d3 || c5) {
+      let o7 = e6._$AA;
+      for (; o7 !== t6; ) {
+        const t7 = i6(o7).nextSibling;
+        i6(l3).insertBefore(o7, d3), o7 = t7;
+      }
+    }
+  }
+  return e6;
+};
+var u3 = (o6, t6, i7 = o6) => (o6._$AI(t6, i7), o6);
+var m2 = {};
+var p3 = (o6, t6 = m2) => o6._$AH = t6;
+var M2 = (o6) => o6._$AH;
+var h3 = (o6) => {
+  o6._$AR(), o6._$AA.remove();
+};
+
+// node_modules/lit-html/directives/repeat.js
+var u4 = (e6, s5, t6) => {
+  const r6 = /* @__PURE__ */ new Map();
+  for (let l3 = s5; l3 <= t6; l3++) r6.set(e6[l3], l3);
+  return r6;
+};
+var c4 = e5(class extends i5 {
+  constructor(e6) {
+    if (super(e6), e6.type !== t4.CHILD) throw Error("repeat() can only be used in text expressions");
+  }
+  dt(e6, s5, t6) {
+    let r6;
+    void 0 === t6 ? t6 = s5 : void 0 !== s5 && (r6 = s5);
+    const l3 = [], o6 = [];
+    let i7 = 0;
+    for (const s6 of e6) l3[i7] = r6 ? r6(s6, i7) : i7, o6[i7] = t6(s6, i7), i7++;
+    return { values: o6, keys: l3 };
+  }
+  render(e6, s5, t6) {
+    return this.dt(e6, s5, t6).values;
+  }
+  update(s5, [t6, r6, c5]) {
+    const d3 = M2(s5), { values: p4, keys: a3 } = this.dt(t6, r6, c5);
+    if (!Array.isArray(d3)) return this.ut = a3, p4;
+    const h4 = this.ut ?? (this.ut = []), v3 = [];
+    let m3, y3, x2 = 0, j2 = d3.length - 1, k2 = 0, w2 = p4.length - 1;
+    for (; x2 <= j2 && k2 <= w2; ) if (null === d3[x2]) x2++;
+    else if (null === d3[j2]) j2--;
+    else if (h4[x2] === a3[k2]) v3[k2] = u3(d3[x2], p4[k2]), x2++, k2++;
+    else if (h4[j2] === a3[w2]) v3[w2] = u3(d3[j2], p4[w2]), j2--, w2--;
+    else if (h4[x2] === a3[w2]) v3[w2] = u3(d3[x2], p4[w2]), v2(s5, v3[w2 + 1], d3[x2]), x2++, w2--;
+    else if (h4[j2] === a3[k2]) v3[k2] = u3(d3[j2], p4[k2]), v2(s5, d3[x2], d3[j2]), j2--, k2++;
+    else if (void 0 === m3 && (m3 = u4(a3, k2, w2), y3 = u4(h4, x2, j2)), m3.has(h4[x2])) if (m3.has(h4[j2])) {
+      const e6 = y3.get(a3[k2]), t7 = void 0 !== e6 ? d3[e6] : null;
+      if (null === t7) {
+        const e7 = v2(s5, d3[x2]);
+        u3(e7, p4[k2]), v3[k2] = e7;
+      } else v3[k2] = u3(t7, p4[k2]), v2(s5, d3[x2], t7), d3[e6] = null;
+      k2++;
+    } else h3(d3[j2]), j2--;
+    else h3(d3[x2]), x2++;
+    for (; k2 <= w2; ) {
+      const e6 = v2(s5, v3[w2 + 1]);
+      u3(e6, p4[k2]), v3[k2++] = e6;
+    }
+    for (; x2 <= j2; ) {
+      const e6 = d3[x2++];
+      null !== e6 && h3(e6);
+    }
+    return this.ut = a3, p3(s5, v3), E;
+  }
+});
+
+// src/const.ts
+var CARD_VERSION = "2.0.0";
+var DELIVERED = 0;
+var WAITING = 1;
+var RECEIVED = 2;
+var IN_TRANSPORT = 3;
+var IN_DELIVERY = 4;
+var READY_FOR_PICKUP = 5;
+var RETURNED = 6;
+var UNKNOWN = 7;
+var FINISHED = [DELIVERED, RETURNED];
+var PROGRESS = {
+  [WAITING]: 0.08,
+  [RECEIVED]: 0.3,
+  [IN_TRANSPORT]: 0.55,
+  [IN_DELIVERY]: 0.75,
+  [READY_FOR_PICKUP]: 0.9,
+  [DELIVERED]: 1,
+  [RETURNED]: 1,
+  [UNKNOWN]: 0
+};
+var TRACKING_URLS = {
+  posti: "https://www.posti.fi/fi/seuranta#/lahetys/{number}",
+  matkahuolto: "https://www.matkahuolto.fi/seuranta?parcelNumber={number}"
+};
+
+// src/localize/languages/en.json
+var en_default = {
+  common: {
+    version: "Version",
+    invalid_configuration: "Invalid configuration",
+    description: "Package tracker card for tracking parcels",
+    name: "Package tracker card",
+    no_packages: "No packages to track at the moment",
+    no_entity: "There is no entity"
+  },
+  statuses: {
+    "0": "Delivered",
+    "1": "Waiting",
+    "2": "Received by the carrier",
+    "3": "In transit",
+    "4": "Being delivered",
+    "5": "Ready for pickup",
+    "6": "Returned to sender",
+    "7": "Exception"
+  },
+  editor: {
+    entity: "Tracking sensors",
+    entity_helper: "The accounts whose packages are shown. Packages from several are listed together.",
+    title: "Title",
+    max_events: "Most packages shown",
+    height: "Height",
+    height_helper: "A fixed height in pixels. The list scrolls inside the card. Leave empty and the card follows its packages.",
+    max_height: "Maximum height",
+    max_height_helper: "A height the card never grows past. Leave empty for no limit.",
+    hide_when_nothing_to_show: "Hide when empty",
+    hide_when_nothing_to_show_helper: "Leaves the card out of the dashboard entirely while there is nothing to track.",
+    show_progress: "Progress bar",
+    show_latest_event: "Status and time",
+    show_latest_event_message: "Latest event",
+    show_latest_event_location: "Where it last was",
+    show_origin: "Sender",
+    show_destination: "Destination"
+  }
+};
+
+// src/localize/languages/fi.json
+var fi_default = {
+  common: {
+    version: "Versio",
+    invalid_configuration: "Virheellinen konfiguraatio",
+    description: "Kortti pakettil\xE4hetysten seuraamiseen",
+    name: "L\xE4hetysten seuranta",
+    no_packages: "Ei seurattavia paketteja t\xE4ll\xE4 hetkell\xE4",
+    no_entity: "Entiteetti\xE4 ei ole:"
+  },
+  statuses: {
+    "0": "Toimitettu",
+    "1": "Odottaa",
+    "2": "Vastaanotettu",
+    "3": "Kuljetuksessa",
+    "4": "Toimituksessa",
+    "5": "Noudettavissa",
+    "6": "Palautettu l\xE4hett\xE4j\xE4lle",
+    "7": "Poikkeama"
+  },
+  editor: {
+    entity: "Seurannan sensorit",
+    entity_helper: "Tilit, joiden paketit n\xE4ytet\xE4\xE4n. Useamman tilin paketit listataan yhdess\xE4.",
+    title: "Otsikko",
+    max_events: "Enint\xE4\xE4n paketteja",
+    height: "Korkeus",
+    height_helper: "Kiinte\xE4 korkeus pikselein\xE4. Lista vierii kortin sis\xE4ll\xE4. J\xE4t\xE4 tyhj\xE4ksi, niin kortti seuraa pakettien m\xE4\xE4r\xE4\xE4.",
+    max_height: "Enimm\xE4iskorkeus",
+    max_height_helper: "Korkeus, jota kortti ei ylit\xE4. J\xE4t\xE4 tyhj\xE4ksi, jos rajaa ei tarvita.",
+    hide_when_nothing_to_show: "Piilota tyhj\xE4n\xE4",
+    hide_when_nothing_to_show_helper: "J\xE4tt\xE4\xE4 kortin kokonaan pois n\xE4kym\xE4st\xE4, kun seurattavaa ei ole.",
+    show_progress: "Edistymispalkki",
+    show_latest_event: "Tila ja aika",
+    show_latest_event_message: "Viimeisin tapahtuma",
+    show_latest_event_location: "Miss\xE4 viimeksi",
+    show_origin: "L\xE4hett\xE4j\xE4",
+    show_destination: "M\xE4\xE4r\xE4np\xE4\xE4"
+  }
+};
+
+// src/localize/localize.ts
+var LANGUAGES = { en: en_default, fi: fi_default };
+function translate(language, key) {
+  const code = (language ?? "en").split(/[-_]/)[0].toLowerCase();
+  return read(LANGUAGES[code], key) ?? read(LANGUAGES.en, key) ?? key;
+}
+function read(table, key) {
+  let value = table;
+  for (const part of key.split(".")) {
+    if (value === null || typeof value !== "object") {
+      return void 0;
+    }
+    value = value[part];
+  }
+  return typeof value === "string" ? value : void 0;
+}
+function browserLanguage() {
+  return document.documentElement.lang || navigator.language || "en";
+}
+
+// src/editor.ts
+var DEFAULTS = {
+  show_progress: true,
+  show_latest_event: true,
+  show_latest_event_message: true,
+  show_latest_event_location: true,
+  show_origin: true,
+  show_destination: true,
+  hide_when_nothing_to_show: false
+};
+function trackingEntities(hass) {
+  return Object.keys(hass.states).filter((id) => Array.isArray(hass.states[id]?.attributes?.packages)).sort();
+}
+function schema(hass) {
+  return [
+    {
+      name: "entity",
+      required: true,
+      selector: { entity: { multiple: true, include_entities: trackingEntities(hass) } }
+    },
+    { name: "title", selector: { text: {} } },
+    {
+      type: "grid",
+      name: "",
+      schema: [
+        { name: "max_events", selector: { number: { min: 1, max: 50, step: 1, mode: "box" } } },
+        {
+          name: "height",
+          selector: { number: { min: 100, max: 1200, step: 10, unit_of_measurement: "px", mode: "box" } }
+        },
+        {
+          name: "max_height",
+          selector: { number: { min: 100, max: 1200, step: 10, unit_of_measurement: "px", mode: "box" } }
+        }
+      ]
+    },
+    {
+      type: "grid",
+      name: "",
+      schema: [
+        { name: "show_progress", selector: { boolean: {} } },
+        { name: "show_latest_event", selector: { boolean: {} } },
+        { name: "show_latest_event_message", selector: { boolean: {} } },
+        { name: "show_latest_event_location", selector: { boolean: {} } },
+        { name: "show_origin", selector: { boolean: {} } },
+        { name: "show_destination", selector: { boolean: {} } },
+        { name: "hide_when_nothing_to_show", selector: { boolean: {} } }
+      ]
+    }
+  ];
+}
+var PackageTrackerCardEditor = class extends i4 {
+  constructor() {
+    super(...arguments);
+    this.config = { type: "custom:package-tracker-card", entity: [] };
+  }
+  setConfig(config) {
+    this.config = { ...config };
+  }
+  render() {
+    if (!this.hass) {
+      return A;
+    }
+    const entity = typeof this.config.entity === "string" ? [this.config.entity] : this.config.entity;
+    return b2`
+      <ha-form
+        .hass=${this.hass}
+        .data=${{ ...DEFAULTS, ...this.config, entity }}
+        .schema=${schema(this.hass)}
+        .computeLabel=${(entry) => this.text(`editor.${entry.name}`)}
+        .computeHelper=${(entry) => this.helper(entry.name)}
+        @value-changed=${this.valueChanged}
+      ></ha-form>
+    `;
+  }
+  valueChanged(event) {
+    const config = { ...event.detail.value };
+    for (const key of ["max_events", "height", "max_height", "title"]) {
+      const value = config[key];
+      if (value === void 0 || value === null || String(value) === "") {
+        delete config[key];
+      }
+    }
+    for (const [key, value] of Object.entries(DEFAULTS)) {
+      if (config[key] === value) {
+        delete config[key];
+      }
+    }
+    this.dispatchEvent(
+      new CustomEvent("config-changed", { detail: { config }, bubbles: true, composed: true })
+    );
+  }
+  text(key) {
+    return translate(this.language(), key);
+  }
+  helper(name) {
+    const key = `editor.${name}_helper`;
+    const helper = translate(this.language(), key);
+    return helper === key ? void 0 : helper;
+  }
+  language() {
+    return this.hass?.locale?.language ?? this.hass?.language ?? browserLanguage();
+  }
+};
+__decorateClass([
+  n4({ attribute: false })
+], PackageTrackerCardEditor.prototype, "hass", 2);
+__decorateClass([
+  r5()
+], PackageTrackerCardEditor.prototype, "config", 2);
+PackageTrackerCardEditor = __decorateClass([
+  t3("package-tracker-card-editor")
+], PackageTrackerCardEditor);
+
+// src/packages.ts
+var ICONS = [
+  "mdi:checkbox-marked",
+  "mdi:file-document",
+  "mdi:clock",
+  "mdi:truck-delivery",
+  "mdi:human-dolly",
+  "mdi:check-decagram",
+  "mdi:arrow-u-left-top-bold",
+  "mdi:help-circle"
+];
+var UNKNOWN_ICON = "mdi:help-circle";
+function entities(entity) {
+  return typeof entity === "string" ? [entity] : entity;
+}
+function packagesOf(hass, entity) {
+  const found = [];
+  for (const id of entities(entity)) {
+    const packages = hass.states[id]?.attributes?.packages;
+    if (Array.isArray(packages)) {
+      found.push(...packages);
+    }
+  }
+  return found;
+}
+function missingEntities(hass, entity) {
+  return entities(entity).filter((id) => hass.states[id] === void 0);
+}
+function sortPackages(packages) {
+  return [...packages].sort((one, other) => {
+    const oneDone = FINISHED.includes(one.status);
+    const otherDone = FINISHED.includes(other.status);
+    if (oneDone !== otherDone) {
+      return oneDone ? 1 : -1;
+    }
+    return moment(other.latest_event_date) - moment(one.latest_event_date);
+  });
+}
+function moment(date) {
+  const parsed = date ? Date.parse(date) : NaN;
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+function iconFor(status) {
+  return ICONS[status] ?? UNKNOWN_ICON;
+}
+function formatDateTime(date) {
+  const parsed = date ? new Date(date) : null;
+  if (!parsed || Number.isNaN(parsed.getTime())) {
+    return "";
+  }
+  const pad = (value) => String(value).padStart(2, "0");
+  return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())} ${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`;
+}
+function progressOf(status) {
+  return PROGRESS[status] ?? PROGRESS[UNKNOWN];
+}
+function trackingUrl(item) {
+  const pattern = TRACKING_URLS[String(item.source ?? "").toLowerCase()];
+  if (!pattern || !item.shipment_number) {
+    return void 0;
+  }
+  return pattern.replace("{number}", encodeURIComponent(item.shipment_number));
+}
+
+// src/package-tracker-card.ts
+console.info(
+  `%c  PACKAGE-TRACKER-CARD 
+%c  ${CARD_VERSION}    `,
+  "color: orange; font-weight: bold; background: black",
+  "color: white; font-weight: bold; background: dimgray"
+);
+var registry = window;
+registry.customCards = registry.customCards ?? [];
+registry.customCards.push({
+  type: "package-tracker-card",
+  name: translate(browserLanguage(), "common.name"),
+  description: translate(browserLanguage(), "common.description"),
+  documentationURL: "https://github.com/jesmak/package-tracker-card",
+  preview: true
+});
+var PackageTrackerCard = class extends i4 {
+  static getConfigElement() {
+    return document.createElement("package-tracker-card-editor");
+  }
+  /** Offers the tracking sensors that are there when the card is added from the picker. */
+  static getStubConfig(hass) {
+    const found = Object.keys(hass?.states ?? {}).filter(
+      (id) => Array.isArray(hass?.states[id]?.attributes?.packages)
+    );
+    return { entity: found };
+  }
+  setConfig(config) {
+    if (!config || !config.entity || Array.isArray(config.entity) && config.entity.length === 0) {
+      throw new Error(translate(browserLanguage(), "common.invalid_configuration"));
+    }
+    this.config = { ...config };
+  }
+  getCardSize() {
+    const packages = this.hass && this.config ? packagesOf(this.hass, this.config.entity) : [];
+    return 1 + Math.min(packages.length, this.config?.max_events ?? packages.length) * 2;
+  }
+  shouldUpdate(changed) {
+    if (changed.has("config") || !this.config) {
+      return true;
+    }
+    const previous = changed.get("hass");
+    if (!previous) {
+      return true;
+    }
+    return entities(this.config.entity).some((id) => previous.states[id] !== this.hass?.states[id]);
+  }
+  render() {
+    if (!this.hass || !this.config) {
+      return A;
+    }
+    const missing = missingEntities(this.hass, this.config.entity);
+    if (missing.length === entities(this.config.entity).length) {
+      this.toggleAttribute("hidden", false);
+      return b2`<ha-card
+        ><div class="message">${this.text("common.no_entity")} ${missing.join(", ")}</div></ha-card
+      >`;
+    }
+    let packages = sortPackages(packagesOf(this.hass, this.config.entity));
+    if (this.config.max_events !== void 0 && this.config.max_events < packages.length) {
+      packages = packages.slice(0, this.config.max_events);
+    }
+    const hide = packages.length === 0 && this.config.hide_when_nothing_to_show === true;
+    this.toggleAttribute("hidden", hide);
+    if (hide) {
+      return A;
+    }
+    const title = this.config.title ?? this.config.name;
+    return b2`
+      <ha-card style="${this.heights()}">
+        ${title ? b2`<div class="header">${title}</div>` : A}
+        <div class="list">
+          ${packages.length === 0 ? b2`<div class="no-packages">${this.text("common.no_packages")}</div>` : c4(
+      packages,
+      (item) => item.shipment_number,
+      (item) => this.shipment(item)
+    )}
+        </div>
       </ha-card>
-    `}static get styles(){return r`
-      .header {
-        font-size: 24px;
-        margin: 20px 20px 30px 12px;
-      }
-
-      .tracking-number {
-        font-size: 16px;
-      }
-
-      .no-packages {
-        font-size: 16px;
-        margin: 12px;
-      }
-
-      .hidden {
+    `;
+  }
+  /** A fixed height, a limit, or neither. The list scrolls inside whatever the card gets. */
+  heights() {
+    const { height, max_height: maxHeight } = this.config ?? {};
+    return [
+      height === void 0 ? "" : `height:${height}px;`,
+      maxHeight === void 0 ? "" : `max-height:${maxHeight}px;`
+    ].join("");
+  }
+  shipment(item) {
+    const moving = !FINISHED.includes(item.status);
+    const url = trackingUrl(item);
+    return b2`
+      <div
+        class="item status-${item.status} ${url ? "clickable" : ""}"
+        @click=${() => this.openTracking(url)}
+        title="${url ?? ""}"
+      >
+        <div class="line">
+          <ha-icon icon="${iconFor(item.status)}"></ha-icon>
+          <span class="number">${item.shipment_number}</span>
+          ${item.source ? b2`<span class="source">${item.source}</span>` : A}
+        </div>
+        ${this.progress(item)}
+        ${this.row("mdi:text-box", this.config?.show_latest_event_message, moving, [item.latest_event])}
+        ${this.row("mdi:map-marker", this.config?.show_latest_event_location, moving, [item.latest_event_city])}
+        ${this.row("mdi:arrow-up-bold-box", this.config?.show_origin, true, [
+      item.origin || item.origin_city,
+      item.shipment_date ? ` (${formatDateTime(item.shipment_date)})` : ""
+    ])}
+        ${this.row("mdi:arrow-down-bold-box", this.config?.show_destination, true, [
+      item.destination || item.destination_city
+    ])}
+      </div>
+    `;
+  }
+  /** How far the package has got, with its status and when it last moved. */
+  progress(item) {
+    if (this.config?.show_latest_event === false && this.config?.show_progress === false) {
+      return A;
+    }
+    const percent = (progressOf(item.status) * 100).toFixed(0);
+    return b2`
+      <div class="progress-row">
+        ${this.config?.show_progress === false ? A : b2`<div
+                class="track"
+                role="progressbar"
+                aria-valuenow="${percent}"
+                aria-valuemin="0"
+                aria-valuemax="100"
+              >
+                <div class="bar" style="width:${percent}%"></div>
+              </div>`}
+        ${this.config?.show_latest_event === false ? A : b2`<span class="status-text">${this.text(`statuses.${item.status}`)}</span>
+                <span class="when">${formatDateTime(item.latest_event_date)}</span>`}
+      </div>
+    `;
+  }
+  /** A line of the package, left out when the configuration hides it or there is nothing to write. */
+  row(icon, shown, relevant, parts) {
+    const text = parts.filter((part) => part !== null && part !== void 0 && part !== "").join("");
+    if (shown === false || !relevant || text === "") {
+      return A;
+    }
+    return b2`
+      <div class="row secondary">
+        <ha-icon icon="${icon}"></ha-icon>
+        <div class="text-content">${text}</div>
+      </div>
+    `;
+  }
+  openTracking(url) {
+    if (url) {
+      window.open(url, "_blank", "noopener");
+    }
+  }
+  text(key) {
+    return translate(this.language(), key);
+  }
+  language() {
+    return this.hass?.locale?.language ?? this.hass?.language ?? browserLanguage();
+  }
+  static get styles() {
+    return i`
+      :host([hidden]) {
         display: none;
       }
 
+      /* The header stays put and the packages scroll under it, so a card given a
+         height never spills its text outside. */
       ha-card {
-        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        padding: 12px;
       }
 
-      ha-icon {
-        margin-right: 3px;
+      .header {
+        flex: 0 0 auto;
+        font-size: var(--ha-card-header-font-size, 24px);
+        line-height: 1.2;
+        padding: 4px 4px 12px 4px;
       }
 
-      ha-svg-icon {
-        display: block;
+      .list {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
       }
 
-      .status-0,
-      .row.secondary {
+      .no-packages,
+      .message {
+        color: var(--secondary-text-color);
+        padding: 4px;
+      }
+
+      .item {
+        border-radius: 8px;
+        padding: 6px;
+        background: var(--secondary-background-color, transparent);
+      }
+
+      .item.clickable {
+        cursor: pointer;
+      }
+
+      .item.clickable:hover {
+        background: var(--divider-color, var(--secondary-background-color));
+      }
+
+      .line {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+      }
+
+      .number {
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* Which service the package came from, small and out of the way. */
+      .source {
+        margin-left: auto;
+        flex: 0 0 auto;
+        font-size: 11px;
+        color: var(--secondary-text-color);
+        border: 1px solid var(--divider-color, var(--secondary-text-color));
+        border-radius: 999px;
+        padding: 0 6px;
+      }
+
+      /* The bar keeps the height of a row of text, so hiding the status doesn't
+         change how tall a package is, and it lines up with the icons above and below. */
+      .progress-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 18px;
+        margin: 4px 0 2px 0;
+        padding: 0 2px;
+      }
+
+      .track {
+        flex: 1 1 auto;
+        height: 4px;
+        border-radius: 2px;
+        background: var(--divider-color, #ddd);
+        overflow: hidden;
+      }
+
+      .bar {
+        height: 100%;
+        border-radius: 2px;
+        background: currentColor;
+      }
+
+      .status-text {
+        flex: 0 0 auto;
+        font-size: 12px;
+        line-height: 1;
+        font-weight: 600;
+      }
+
+      .when {
+        flex: 0 0 auto;
+        font-size: 12px;
+        line-height: 1;
         color: var(--secondary-text-color);
       }
 
-      .status-1,
-      .status-2 {
-        color: cornflowerblue;
-      }
-
-      .status-3,
-      .status-4,
-      .status-5 {
-        color: green;
-      }
-
-      .status-6,
-      .status-7 {
-        color: red;
-      }
-
-      .row > * {
-        display: inline-block;
-        vertical-align: middle;
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        min-width: 0;
       }
 
       .row.secondary {
-        margin-left: 4px;
+        color: var(--secondary-text-color);
         font-size: 12px;
         line-height: 16px;
       }
 
+      /* The icon is a box of its own, so its middle lines up with the middle of the text. */
       .row.secondary ha-icon {
         --mdc-icon-size: 16px;
-      }
-
-      .item {
-        margin: 10px;
+        flex: 0 0 auto;
+        width: 16px;
+        height: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
 
       .text-content {
-        max-width: calc(100% - 50px);
-        margin-left: 4px;
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
-    `}};t([vt()],It.prototype,"hass",void 0),t([function(t){return vt({...t,state:!0})}()],It.prototype,"config",void 0),It=t([(t=>e=>"function"==typeof e?((t,e)=>(customElements.define(t,e),e))(t,e):((t,e)=>{const{kind:i,elements:s}=e;return{kind:i,elements:s,finisher(e){customElements.define(t,e)}}})(t,e)
-/**
- * @license
- * Copyright 2017 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */)("package-tracker-card")],It);export{It as PackageTrackerCard};
+
+      /* The status colours the icon, the bar and the status text of a package. */
+      .item {
+        color: var(--primary-text-color);
+      }
+
+      .status-1,
+      .status-2 {
+        color: var(--info-color, cornflowerblue);
+      }
+
+      .status-3,
+      .status-4 {
+        color: var(--state-icon-color, #44739e);
+      }
+
+      .status-5 {
+        color: var(--success-color, #43a047);
+      }
+
+      .status-0 {
+        color: var(--secondary-text-color);
+      }
+
+      .status-6,
+      .status-7 {
+        color: var(--error-color, #db4437);
+      }
+
+      .item .number,
+      .item .text-content {
+        color: var(--primary-text-color);
+      }
+
+      .status-0 .number {
+        color: var(--secondary-text-color);
+      }
+    `;
+  }
+};
+__decorateClass([
+  n4({ attribute: false })
+], PackageTrackerCard.prototype, "hass", 2);
+__decorateClass([
+  r5()
+], PackageTrackerCard.prototype, "config", 2);
+PackageTrackerCard = __decorateClass([
+  t3("package-tracker-card")
+], PackageTrackerCard);
+export {
+  PackageTrackerCard
+};

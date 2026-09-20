@@ -4,16 +4,35 @@
     "invalid_configuration": "Invalid configuration",
     "description": "Package tracker card for tracking parcels",
     "name": "Package tracker card",
-    "no_packages": "No packages to track at the moment"
+    "no_packages": "No packages to track at the moment",
+    "no_entity": "There is no entity"
   },
   "statuses": {
     "0": "Delivered",
-    "1": "Info received",
-    "2": "Pending",
+    "1": "Waiting",
+    "2": "Received by the carrier",
     "3": "In transit",
     "4": "Being delivered",
     "5": "Ready for pickup",
     "6": "Returned to sender",
     "7": "Exception"
+  },
+  "editor": {
+    "entity": "Tracking sensors",
+    "entity_helper": "The accounts whose packages are shown. Packages from several are listed together.",
+    "title": "Title",
+    "max_events": "Most packages shown",
+    "height": "Height",
+    "height_helper": "A fixed height in pixels. The list scrolls inside the card. Leave empty and the card follows its packages.",
+    "max_height": "Maximum height",
+    "max_height_helper": "A height the card never grows past. Leave empty for no limit.",
+    "hide_when_nothing_to_show": "Hide when empty",
+    "hide_when_nothing_to_show_helper": "Leaves the card out of the dashboard entirely while there is nothing to track.",
+    "show_progress": "Progress bar",
+    "show_latest_event": "Status and time",
+    "show_latest_event_message": "Latest event",
+    "show_latest_event_location": "Where it last was",
+    "show_origin": "Sender",
+    "show_destination": "Destination"
   }
 }

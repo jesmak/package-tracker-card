@@ -4,16 +4,35 @@
     "invalid_configuration": "Virheellinen konfiguraatio",
     "description": "Kortti pakettilähetysten seuraamiseen",
     "name": "Lähetysten seuranta",
-    "no_packages": "Ei seurattavia paketteja tällä hetkellä"
+    "no_packages": "Ei seurattavia paketteja tällä hetkellä",
+    "no_entity": "Entiteettiä ei ole:"
   },
   "statuses": {
     "0": "Toimitettu",
-    "1": "Tieto vastaanotettu",
-    "2": "Odottaa",
+    "1": "Odottaa",
+    "2": "Vastaanotettu",
     "3": "Kuljetuksessa",
     "4": "Toimituksessa",
     "5": "Noudettavissa",
     "6": "Palautettu lähettäjälle",
     "7": "Poikkeama"
+  },
+  "editor": {
+    "entity": "Seurannan sensorit",
+    "entity_helper": "Tilit, joiden paketit näytetään. Useamman tilin paketit listataan yhdessä.",
+    "title": "Otsikko",
+    "max_events": "Enintään paketteja",
+    "height": "Korkeus",
+    "height_helper": "Kiinteä korkeus pikseleinä. Lista vierii kortin sisällä. Jätä tyhjäksi, niin kortti seuraa pakettien määrää.",
+    "max_height": "Enimmäiskorkeus",
+    "max_height_helper": "Korkeus, jota kortti ei ylitä. Jätä tyhjäksi, jos rajaa ei tarvita.",
+    "hide_when_nothing_to_show": "Piilota tyhjänä",
+    "hide_when_nothing_to_show_helper": "Jättää kortin kokonaan pois näkymästä, kun seurattavaa ei ole.",
+    "show_progress": "Edistymispalkki",
+    "show_latest_event": "Tila ja aika",
+    "show_latest_event_message": "Viimeisin tapahtuma",
+    "show_latest_event_location": "Missä viimeksi",
+    "show_origin": "Lähettäjä",
+    "show_destination": "Määränpää"
   }
 }
