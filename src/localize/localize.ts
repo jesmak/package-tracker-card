@@ -1,7 +1,20 @@
-import en from './languages/en.json';
-import fi from './languages/fi.json';
+/// <reference types="vite/client" />
 
-const LANGUAGES: Record<string, Record<string, unknown>> = { en, fi };
+/**
+ * Every JSON file in languages/ is a language, named by its file: `sv.json` is Swedish. Adding a
+ * language is adding its file; nothing here changes. The build and the tests both fill this in.
+ */
+const FILES = import.meta.glob<Record<string, unknown>>('./languages/*.json', {
+  eager: true,
+  import: 'default',
+});
+
+const LANGUAGES: Record<string, Record<string, unknown>> = Object.fromEntries(
+  Object.entries(FILES).map(([path, table]) => [path.replace(/^.*\/|\.json$/g, '').toLowerCase(), table]),
+);
+
+/** The languages the card has, by their code. */
+export const LANGUAGE_CODES = Object.keys(LANGUAGES).sort();
 
 /** A text in the viewer's language, falling back to English. Keys are dotted, such as `common.name`. */
 export function translate(language: string | undefined, key: string): string {

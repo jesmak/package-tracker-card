@@ -23,6 +23,7 @@ const WAITING: Shipment = {
   latest_event_country: 'FI',
   latest_event_date: '2026-09-16T08:00:00Z',
   source: 'Posti',
+  tracking_url: 'https://carrier.example.com/track/JJFI0001',
 };
 
 function hass(
@@ -190,28 +191,38 @@ describe('how far a package has got', () => {
 });
 
 describe('opening a package', () => {
-  it('opens the carrier the package came from', async () => {
+  it('opens the page the integration gives for the package', async () => {
     const opened: string[] = [];
     const openWindow = vi.spyOn(window, 'open').mockImplementation((url) => {
       opened.push(String(url));
       return null;
     });
-    const mh = { ...WAITING, shipment_number: '70012345678', source: 'Matkahuolto' };
-    const root = shadow(await card(hass({ [POSTI]: [WAITING], [MATKAHUOLTO]: [mh] })));
+    const other = {
+      ...WAITING,
+      shipment_number: '70012345678',
+      source: 'Another Carrier',
+      tracking_url: 'https://other.example.net/?parcel=70012345678',
+    };
+    const root = shadow(await card(hass({ [POSTI]: [WAITING], [MATKAHUOLTO]: [other] })));
 
     const items = [...root.querySelectorAll('.item')] as HTMLElement[];
     items.forEach((item) => item.dispatchEvent(new Event('click')));
 
     expect(opened).toEqual([
-      'https://www.posti.fi/fi/seuranta#/lahetys/JJFI0001',
-      'https://www.matkahuolto.fi/seuranta?parcelNumber=70012345678',
+      'https://carrier.example.com/track/JJFI0001',
+      'https://other.example.net/?parcel=70012345678',
     ]);
     openWindow.mockRestore();
   });
 
-  it('stays put for a package of an unknown source', async () => {
+  it.each([
+    ['no tracking_url', undefined],
+    ['an empty one', ''],
+    ['a script', 'javascript:alert(1)'],
+    ['something that is no address', 'not a url'],
+  ])('stays put for a package with %s', async (_what, url) => {
     const openWindow = vi.spyOn(window, 'open').mockImplementation(() => null);
-    const root = shadow(await card(hass({ [POSTI]: [{ ...WAITING, source: null }] })));
+    const root = shadow(await card(hass({ [POSTI]: [{ ...WAITING, tracking_url: url }] })));
     const item = root.querySelector('.item') as HTMLElement;
 
     expect(item.classList.contains('clickable')).toBe(false);

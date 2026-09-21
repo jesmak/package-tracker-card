@@ -33,9 +33,3 @@ export const PROGRESS: Record<number, number> = {
   [RETURNED]: 1,
   [UNKNOWN]: 0,
 };
-
-/** Where a package's own carrier shows it. `{number}` is the shipment number. */
-export const TRACKING_URLS: Record<string, string> = {
-  posti: 'https://www.posti.fi/fi/seuranta#/lahetys/{number}',
-  matkahuolto: 'https://www.matkahuolto.fi/seuranta?parcelNumber={number}',
-};

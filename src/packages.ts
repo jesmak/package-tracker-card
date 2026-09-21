@@ -1,4 +1,4 @@
-import { FINISHED, PROGRESS, TRACKING_URLS, UNKNOWN } from './const';
+import { FINISHED, PROGRESS, UNKNOWN } from './const';
 import type { HomeAssistant } from './hass';
 import type { Shipment } from './types';
 
@@ -75,11 +75,18 @@ export function progressOf(status: number): number {
   return PROGRESS[status] ?? PROGRESS[UNKNOWN];
 }
 
-/** The carrier's own page for a package, or nothing when its source isn't known. */
+/**
+ * The carrier's own page for a package, as the integration gives it in `tracking_url`.
+ * Only web addresses are opened, so a package can't carry a script or another app's link.
+ */
 export function trackingUrl(item: Shipment): string | undefined {
-  const pattern = TRACKING_URLS[String(item.source ?? '').toLowerCase()];
-  if (!pattern || !item.shipment_number) {
+  if (typeof item.tracking_url !== 'string') {
     return undefined;
   }
-  return pattern.replace('{number}', encodeURIComponent(item.shipment_number));
+  try {
+    const url = new URL(item.tracking_url);
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : undefined;
+  } catch {
+    return undefined;
+  }
 }
