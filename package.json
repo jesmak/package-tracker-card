@@ -1,6 +1,6 @@
 {
   "name": "package-tracker-card",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Home Assistant dashboard card that lists the packages coming to you from Posti and Matkahuolto",
   "keywords": [
     "home-assistant",

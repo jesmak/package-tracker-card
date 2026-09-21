@@ -31,7 +31,7 @@ export interface PackageTrackerCardConfig extends LovelaceCardConfig {
   hide_when_nothing_to_show?: boolean;
 }
 
-/** One package, as the posti_tracking and matkahuolto_tracking integrations write it. */
+/** One package, as a tracking integration writes it. README.md documents the format. */
 export interface Shipment {
   shipment_number: string;
   shipment_date: string;
@@ -45,11 +45,13 @@ export interface Shipment {
   latest_event_city?: string | null;
   latest_event_country?: string | null;
   latest_event_date?: string | null;
-  /** Which service the package came from, when the sensor says so. */
+  /** Which service the package came from, shown as a label. */
   source?: string | null;
+  /** The carrier's own page for the package, opened when it is clicked. */
+  tracking_url?: string | null;
   /** When the package is expected, before it is ready for pickup. */
   estimated_delivery?: string | null;
-  /** How long a package waiting for pickup is kept. Posti never tells, Matkahuolto does. */
+  /** How long a package waiting for pickup is kept, when the carrier tells. */
   pickup_deadline?: string | null;
   /** Kilograms, and how many parcels the shipment has. */
   weight?: number | null;

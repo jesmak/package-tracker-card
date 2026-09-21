@@ -1,4 +1,4 @@
-/*! package-tracker-card 2.0.0 | MIT License */
+/*! package-tracker-card 2.1.0 | MIT License */
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __decorateClass = (decorators, target, key, kind) => {
@@ -711,7 +711,7 @@ var c4 = e5(class extends i5 {
 });
 
 // src/const.ts
-var CARD_VERSION = "2.0.0";
+var CARD_VERSION = "2.1.0";
 var DELIVERED = 0;
 var WAITING = 1;
 var RECEIVED = 2;
@@ -731,10 +731,6 @@ var PROGRESS = {
   [DELIVERED]: 1,
   [RETURNED]: 1,
   [UNKNOWN]: 0
-};
-var TRACKING_URLS = {
-  posti: "https://www.posti.fi/fi/seuranta#/lahetys/{number}",
-  matkahuolto: "https://www.matkahuolto.fi/seuranta?parcelNumber={number}"
 };
 
 // src/localize/languages/en.json
@@ -846,7 +842,11 @@ var fi_default = {
 };
 
 // src/localize/localize.ts
-var LANGUAGES = { en: en_default, fi: fi_default };
+var FILES = { "./languages/en.json": en_default, "./languages/fi.json": fi_default };
+var LANGUAGES = Object.fromEntries(
+  Object.entries(FILES).map(([path, table]) => [path.replace(/^.*\/|\.json$/g, "").toLowerCase(), table])
+);
+var LANGUAGE_CODES = Object.keys(LANGUAGES).sort();
 function translate(language, key) {
   const code = (language ?? "en").split(/[-_]/)[0].toLowerCase();
   return read(LANGUAGES[code], key) ?? read(LANGUAGES.en, key) ?? key;
@@ -1054,11 +1054,15 @@ function progressOf(status) {
   return PROGRESS[status] ?? PROGRESS[UNKNOWN];
 }
 function trackingUrl(item) {
-  const pattern = TRACKING_URLS[String(item.source ?? "").toLowerCase()];
-  if (!pattern || !item.shipment_number) {
+  if (typeof item.tracking_url !== "string") {
     return void 0;
   }
-  return pattern.replace("{number}", encodeURIComponent(item.shipment_number));
+  try {
+    const url = new URL(item.tracking_url);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.href : void 0;
+  } catch {
+    return void 0;
+  }
 }
 
 // src/package-tracker-card.ts

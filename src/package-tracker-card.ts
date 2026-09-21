@@ -1,7 +1,8 @@
 /**
- * A dashboard card that lists the packages on their way to you, from the
- * posti_tracking and matkahuolto_tracking integrations. Packages still moving
- * are listed first, finished ones last.
+ * A dashboard card that lists the packages on their way to you, from any
+ * tracking integration whose sensor lists them in a `packages` attribute in the
+ * format README.md documents. Packages still moving are listed first, finished
+ * ones last.
  *
  * Each package is one row: where it has got to, as a bar, and the latest thing
  * that happened to it. Clicking it opens the carrier's own page for it.
