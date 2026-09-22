@@ -1,15 +1,14 @@
 {
   "name": "package-tracker-card",
   "version": "2.1.0",
-  "description": "Home Assistant dashboard card that lists the packages coming to you from Posti and Matkahuolto",
+  "description": "Home Assistant dashboard card that lists the packages coming to you, from any package tracking integration",
   "keywords": [
     "home-assistant",
     "homeassistant",
     "hass",
     "lovelace",
     "custom-cards",
-    "posti",
-    "matkahuolto"
+    "package-tracking"
   ],
   "type": "module",
   "private": true,
