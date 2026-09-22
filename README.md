@@ -2,9 +2,11 @@
 
 Home Assistant dashboard card that lists the packages coming to you, from any package tracking integration.
 
-[![GitHub Release][releases-shield]][releases]
-[![License][license-shield]](LICENSE)
-[![GitHub Activity][commits-shield]][commits]
+[![GitHub Release][releases-shield]][releases] [![GitHub Release Date][release-date-shield]][releases]
+
+[![HACS][hacs-shield]][hacs] [![Home Assistant][home-assistant-shield]][home-assistant] [![License][license-shield]](LICENSE)
+
+![Project Maintenance][maintenance-shield] [![GitHub Activity][commits-shield]][commits] [![Open bugs][bugs-shield]][bugs] [![Open enhancements][enhancements-shield]][enhancements]
 
 ## Support
 
@@ -175,8 +177,8 @@ add keys; the card ignores what it doesn't know.
 
 ### Manually
 
-1. Download `package-tracker-card.js` from the latest release and copy it to the `config/www` folder of your Home
-   Assistant installation
+1. Take `dist/package-tracker-card.js` from the source code of the [latest release][releases] and copy it to the
+   `config/www` folder of your Home Assistant installation
 2. In Home Assistant settings, open dashboards, click the three dots at the top right and open resources
 3. Add a new resource with the path `/local/package-tracker-card.js` and type JavaScript
 4. Refresh your browser
@@ -221,8 +223,18 @@ is the file HACS installs and is committed to the repository.
 
 The packages come from the tracking integrations the card is given; the card itself fetches nothing.
 
+[releases-shield]: https://img.shields.io/github/release/jesmak/package-tracker-card.svg?style=for-the-badge
+[release-date-shield]: https://img.shields.io/github/release-date/jesmak/package-tracker-card?style=for-the-badge
+[releases]: https://github.com/jesmak/package-tracker-card/releases
+[hacs-shield]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
+[hacs]: https://hacs.xyz/docs/faq/custom_repositories/
+[home-assistant-shield]: https://img.shields.io/badge/Home%20Assistant-visual%20editor%20%2F%20yaml-green.svg?style=for-the-badge
+[home-assistant]: https://www.home-assistant.io/
+[license-shield]: https://img.shields.io/github/license/jesmak/package-tracker-card.svg?style=for-the-badge
+[maintenance-shield]: https://img.shields.io/maintenance/yes/2026.svg?style=for-the-badge
 [commits-shield]: https://img.shields.io/github/commit-activity/y/jesmak/package-tracker-card.svg?style=for-the-badge
 [commits]: https://github.com/jesmak/package-tracker-card/commits/master
-[license-shield]: https://img.shields.io/github/license/jesmak/package-tracker-card.svg?style=for-the-badge
-[releases-shield]: https://img.shields.io/github/release/jesmak/package-tracker-card.svg?style=for-the-badge
-[releases]: https://github.com/jesmak/package-tracker-card/releases
+[bugs-shield]: https://img.shields.io/github/issues/jesmak/package-tracker-card/bug?style=for-the-badge&label=bugs&color=red
+[bugs]: https://github.com/jesmak/package-tracker-card/labels/bug
+[enhancements-shield]: https://img.shields.io/github/issues/jesmak/package-tracker-card/enhancement?style=for-the-badge&label=enhancements&color=blue
+[enhancements]: https://github.com/jesmak/package-tracker-card/labels/enhancement
