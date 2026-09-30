@@ -1,4 +1,4 @@
-/*! package-tracker-card 2.1.0 | MIT License */
+/*! package-tracker-card 2.1.1 | MIT License */
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __decorateClass = (decorators, target, key, kind) => {
@@ -711,7 +711,7 @@ var c4 = e5(class extends i5 {
 });
 
 // src/const.ts
-var CARD_VERSION = "2.1.0";
+var CARD_VERSION = "2.1.1";
 var DELIVERED = 0;
 var WAITING = 1;
 var RECEIVED = 2;
@@ -745,6 +745,7 @@ var en_default = {
     pickup_by: "Pick up by",
     estimated: "Estimated",
     show_code: "Show the pickup code",
+    compartment: "Compartment",
     parcels: "parcels"
   },
   statuses: {
@@ -799,6 +800,7 @@ var fi_default = {
     pickup_by: "Nouda viimeist\xE4\xE4n",
     estimated: "Arvio",
     show_code: "N\xE4yt\xE4 noutokoodi",
+    compartment: "Lokero",
     parcels: "kollia"
   },
   statuses: {
@@ -1238,21 +1240,27 @@ var PackageTrackerCard = class extends i4 {
       </div>
     `;
   }
-  /** The code that collects the package: never, always, or once the field is clicked. */
+  /**
+   * The code that collects the package: never, always, or once the field is clicked. At a locker with
+   * a keypad on every door, the door comes first, since the code only opens that one. A finished
+   * package has nothing left to collect.
+   */
   code(item) {
     const setting = this.config?.pickup_code ?? "hidden";
-    if (setting === "hidden" || !item.pickup_code) {
+    if (setting === "hidden" || !item.pickup_code || FINISHED.includes(item.status)) {
       return A;
     }
     const shown = setting === "always" || this.revealed.has(item.shipment_number);
+    const compartment = item.pickup_point?.compartment;
+    const title = !shown ? this.text("common.show_code") : compartment ? `${this.text("common.compartment")} ${compartment}` : "";
     return b2`
       <span
         class="code ${shown ? "" : "covered"}"
-        title="${shown ? "" : this.text("common.show_code")}"
+        title="${title}"
         @click=${(event) => this.reveal(event, item)}
       >
         <ha-icon icon="mdi:key-variant"></ha-icon>
-        ${shown ? item.pickup_code : "\u2022\u2022\u2022\u2022"}
+        ${shown ? [compartment, item.pickup_code].filter(Boolean).join(" \xB7 ") : "\u2022\u2022\u2022\u2022"}
       </span>
     `;
   }
