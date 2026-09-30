@@ -378,6 +378,28 @@ describe('the pickup code', () => {
     expect(field().textContent).toContain('••••');
   });
 
+  it('comes after the locker door, which stays covered with it', async () => {
+    const atDoor = { ...withCode, pickup_point: { name: 'K-Market Keskusta', compartment: '17' } };
+    const element = await card(hass({ [POSTI]: [atDoor] }), { pickup_code: 'toggle' });
+    const root = shadow(element);
+    const field = () => root.querySelector('.code') as HTMLElement;
+    expect(field().textContent).not.toContain('17');
+
+    field().dispatchEvent(new Event('click'));
+    await element.updateComplete;
+    expect(field().textContent).toContain('17 · 12345678');
+    expect(field().title).toBe('Lokero 17');
+  });
+
+  it('is not shown for a package that is finished', async () => {
+    for (const status of [0, 6]) {
+      const root = shadow(
+        await card(hass({ [POSTI]: [{ ...withCode, status }] }), { pickup_code: 'always' }),
+      );
+      expect(root.querySelector('.code')).toBeNull();
+    }
+  });
+
   it('does not open the carrier page when the code is clicked', async () => {
     const openWindow = vi.spyOn(window, 'open').mockImplementation(() => null);
     const element = await card(hass({ [POSTI]: [withCode] }), { pickup_code: 'toggle' });

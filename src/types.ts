@@ -64,6 +64,8 @@ export interface Shipment {
 /** The pickup point of a package, as the tracking integrations write it. */
 export interface PickupPoint {
   name?: string | null;
+  /** The door the package is behind, at a locker with a keypad on every door. */
+  compartment?: string | null;
   street?: string | null;
   postal_code?: string | null;
   city?: string | null;

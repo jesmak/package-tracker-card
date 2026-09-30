@@ -250,21 +250,31 @@ export class PackageTrackerCard extends LitElement {
     `;
   }
 
-  /** The code that collects the package: never, always, or once the field is clicked. */
+  /**
+   * The code that collects the package: never, always, or once the field is clicked. At a locker with
+   * a keypad on every door, the door comes first, since the code only opens that one. A finished
+   * package has nothing left to collect.
+   */
   private code(item: Shipment): TemplateResult | typeof nothing {
     const setting = this.config?.pickup_code ?? 'hidden';
-    if (setting === 'hidden' || !item.pickup_code) {
+    if (setting === 'hidden' || !item.pickup_code || FINISHED.includes(item.status)) {
       return nothing;
     }
     const shown = setting === 'always' || this.revealed.has(item.shipment_number);
+    const compartment = item.pickup_point?.compartment;
+    const title = !shown
+      ? this.text('common.show_code')
+      : compartment
+        ? `${this.text('common.compartment')} ${compartment}`
+        : '';
     return html`
       <span
         class="code ${shown ? '' : 'covered'}"
-        title="${shown ? '' : this.text('common.show_code')}"
+        title="${title}"
         @click=${(event: Event) => this.reveal(event, item)}
       >
         <ha-icon icon="mdi:key-variant"></ha-icon>
-        ${shown ? item.pickup_code : '••••'}
+        ${shown ? [compartment, item.pickup_code].filter(Boolean).join(' · ') : '••••'}
       </span>
     `;
   }
