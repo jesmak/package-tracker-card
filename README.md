@@ -236,7 +236,7 @@ The packages come from the tracking integrations the card is given; the card its
 [license-shield]: https://img.shields.io/github/license/jesmak/package-tracker-card.svg?style=for-the-badge
 [maintenance-shield]: https://img.shields.io/maintenance/yes/2026.svg?style=for-the-badge
 [commits-shield]: https://img.shields.io/github/commit-activity/y/jesmak/package-tracker-card.svg?style=for-the-badge
-[commits]: https://github.com/jesmak/package-tracker-card/commits/master
+[commits]: https://github.com/jesmak/package-tracker-card/commits/main
 [bugs-shield]: https://img.shields.io/github/issues/jesmak/package-tracker-card/bug?style=for-the-badge&label=bugs&color=red
 [bugs]: https://github.com/jesmak/package-tracker-card/labels/bug
 [enhancements-shield]: https://img.shields.io/github/issues/jesmak/package-tracker-card/enhancement?style=for-the-badge&label=enhancements&color=blue
