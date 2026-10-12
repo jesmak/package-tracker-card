@@ -1,5 +1,6 @@
 {
   "name": "Package tracker card",
   "render_readme": true,
-  "filename": "package-tracker-card.js"
+  "filename": "package-tracker-card.js",
+  "homeassistant": "2026.9.3"
 }
