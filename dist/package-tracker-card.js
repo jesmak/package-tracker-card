@@ -950,15 +950,15 @@ var PackageTrackerCardEditor = class extends i4 {
     }
     const entity = typeof this.config.entity === "string" ? [this.config.entity] : this.config.entity;
     return b2`
-      <ha-form
-        .hass=${this.hass}
-        .data=${{ ...DEFAULTS, ...this.config, entity }}
-        .schema=${schema(this.hass, (key) => this.text(key))}
-        .computeLabel=${(entry) => this.text(`editor.${entry.name}`)}
-        .computeHelper=${(entry) => this.helper(entry.name)}
-        @value-changed=${this.valueChanged}
-      ></ha-form>
-    `;
+            <ha-form
+                .hass=${this.hass}
+                .data=${{ ...DEFAULTS, ...this.config, entity }}
+                .schema=${schema(this.hass, (key) => this.text(key))}
+                .computeLabel=${(entry) => this.text(`editor.${entry.name}`)}
+                .computeHelper=${(entry) => this.helper(entry.name)}
+                @value-changed=${this.valueChanged}
+            ></ha-form>
+        `;
   }
   valueChanged(event) {
     const config = { ...event.detail.value };
@@ -973,9 +973,7 @@ var PackageTrackerCardEditor = class extends i4 {
         delete config[key];
       }
     }
-    this.dispatchEvent(
-      new CustomEvent("config-changed", { detail: { config }, bubbles: true, composed: true })
-    );
+    this.dispatchEvent(new CustomEvent("config-changed", { detail: { config }, bubbles: true, composed: true }));
   }
   text(key) {
     return translate(this.language(), key);
@@ -1093,9 +1091,7 @@ var PackageTrackerCard = class extends i4 {
   }
   /** Offers the tracking sensors that are there when the card is added from the picker. */
   static getStubConfig(hass) {
-    const found = Object.keys(hass?.states ?? {}).filter(
-      (id) => Array.isArray(hass?.states[id]?.attributes?.packages)
-    );
+    const found = Object.keys(hass?.states ?? {}).filter((id) => Array.isArray(hass?.states[id]?.attributes?.packages));
     return { entity: found };
   }
   setConfig(config) {
@@ -1125,9 +1121,7 @@ var PackageTrackerCard = class extends i4 {
     const missing = missingEntities(this.hass, this.config.entity);
     if (missing.length === entities(this.config.entity).length) {
       this.toggleAttribute("hidden", false);
-      return b2`<ha-card
-        ><div class="message">${this.text("common.no_entity")} ${missing.join(", ")}</div></ha-card
-      >`;
+      return b2`<ha-card><div class="message">${this.text("common.no_entity")} ${missing.join(", ")}</div></ha-card>`;
     }
     let packages = sortPackages(packagesOf(this.hass, this.config.entity));
     if (this.config.max_events !== void 0 && this.config.max_events < packages.length) {
@@ -1140,57 +1134,50 @@ var PackageTrackerCard = class extends i4 {
     }
     const title = this.config.title ?? this.config.name;
     return b2`
-      <ha-card style="${this.heights()}">
-        ${title ? b2`<div class="header">${title}</div>` : A}
-        <div class="list">
-          ${packages.length === 0 ? b2`<div class="no-packages">${this.text("common.no_packages")}</div>` : c4(
+            <ha-card style="${this.heights()}">
+                ${title ? b2`<div class="header">${title}</div>` : A}
+                <div class="list">
+                    ${packages.length === 0 ? b2`<div class="no-packages">${this.text("common.no_packages")}</div>` : c4(
       packages,
       (item) => item.shipment_number,
       (item) => this.shipment(item)
     )}
-        </div>
-      </ha-card>
-    `;
+                </div>
+            </ha-card>
+        `;
   }
   /** A fixed height, a limit, or neither. The list scrolls inside whatever the card gets. */
   heights() {
     const { height, max_height: maxHeight } = this.config ?? {};
-    return [
-      height === void 0 ? "" : `height:${height}px;`,
-      maxHeight === void 0 ? "" : `max-height:${maxHeight}px;`
-    ].join("");
+    return [height === void 0 ? "" : `height:${height}px;`, maxHeight === void 0 ? "" : `max-height:${maxHeight}px;`].join("");
   }
   shipment(item) {
     const moving = !FINISHED.includes(item.status);
     const message = this.config?.show_latest_event_message !== false && moving && !!item.latest_event;
     const url = trackingUrl(item);
     return b2`
-      <div
-        class="item status-${item.status} ${url ? "clickable" : ""}"
-        @click=${() => this.openTracking(url)}
-        title="${url ?? ""}"
-      >
-        <div class="line">
-          <ha-icon icon="${iconFor(item.status)}"></ha-icon>
-          <span class="number">${item.shipment_number}</span>
-          ${item.source ? b2`<span class="source">${item.source}</span>` : A}
-        </div>
-        ${this.progress(item)} ${this.details(item)}
-        ${this.row(
+            <div class="item status-${item.status} ${url ? "clickable" : ""}" @click=${() => this.openTracking(url)} title="${url ?? ""}">
+                <div class="line">
+                    <ha-icon icon="${iconFor(item.status)}"></ha-icon>
+                    <span class="number">${item.shipment_number}</span>
+                    ${item.source ? b2`<span class="source">${item.source}</span>` : A}
+                </div>
+                ${this.progress(item)} ${this.details(item)}
+                ${this.row(
       "mdi:text-box",
       this.config?.show_latest_event_message,
       moving,
       [item.latest_event],
       message ? this.code(item) : A
     )}
-        ${this.row("mdi:map-marker", this.config?.show_latest_event_location, moving, [item.latest_event_city])}
-        ${this.row("mdi:arrow-up-bold-box", this.config?.show_origin, true, [
+                ${this.row("mdi:map-marker", this.config?.show_latest_event_location, moving, [item.latest_event_city])}
+                ${this.row("mdi:arrow-up-bold-box", this.config?.show_origin, true, [
       item.origin || item.origin_city,
       item.shipment_date ? ` (${formatDateTime(item.shipment_date)})` : ""
     ])}
-        ${this.destination(item, !message)}
-      </div>
-    `;
+                ${this.destination(item, !message)}
+            </div>
+        `;
   }
   /** How far the package has got, with its status and when it last moved. */
   progress(item) {
@@ -1199,20 +1186,14 @@ var PackageTrackerCard = class extends i4 {
     }
     const percent = (progressOf(item.status) * 100).toFixed(0);
     return b2`
-      <div class="progress-row">
-        ${this.config?.show_progress === false ? A : b2`<div
-                class="track"
-                role="progressbar"
-                aria-valuenow="${percent}"
-                aria-valuemin="0"
-                aria-valuemax="100"
-              >
-                <div class="bar" style="width:${percent}%"></div>
-              </div>`}
-        ${this.config?.show_latest_event === false ? A : b2`<span class="status-text">${this.text(`statuses.${item.status}`)}</span>
-                <span class="when">${formatDateTime(item.latest_event_date)}</span>`}
-      </div>
-    `;
+            <div class="progress-row">
+                ${this.config?.show_progress === false ? A : b2`<div class="track" role="progressbar" aria-valuenow="${percent}" aria-valuemin="0" aria-valuemax="100">
+                              <div class="bar" style="width:${percent}%"></div>
+                          </div>`}
+                ${this.config?.show_latest_event === false ? A : b2`<span class="status-text">${this.text(`statuses.${item.status}`)}</span>
+                              <span class="when">${formatDateTime(item.latest_event_date)}</span>`}
+            </div>
+        `;
   }
   /**
    * Where the package is going, and by when.
@@ -1231,14 +1212,12 @@ var PackageTrackerCard = class extends i4 {
       return A;
     }
     return b2`
-      <div class="row secondary">
-        <ha-icon icon="${item.pickup_point ? "mdi:map-marker-radius" : "mdi:arrow-down-bold-box"}"></ha-icon>
-        <div class="text-content">
-          ${[place, time ? `${label} ${formatDateTime(time)}` : ""].filter(Boolean).join(" \xB7 ")}
-        </div>
-        ${withCode ? this.code(item) : A}
-      </div>
-    `;
+            <div class="row secondary">
+                <ha-icon icon="${item.pickup_point ? "mdi:map-marker-radius" : "mdi:arrow-down-bold-box"}"></ha-icon>
+                <div class="text-content">${[place, time ? `${label} ${formatDateTime(time)}` : ""].filter(Boolean).join(" \xB7 ")}</div>
+                ${withCode ? this.code(item) : A}
+            </div>
+        `;
   }
   /**
    * The code that collects the package: never, always, or once the field is clicked. At a locker with
@@ -1254,15 +1233,11 @@ var PackageTrackerCard = class extends i4 {
     const compartment = item.pickup_point?.compartment;
     const title = !shown ? this.text("common.show_code") : compartment ? `${this.text("common.compartment")} ${compartment}` : "";
     return b2`
-      <span
-        class="code ${shown ? "" : "covered"}"
-        title="${title}"
-        @click=${(event) => this.reveal(event, item)}
-      >
-        <ha-icon icon="mdi:key-variant"></ha-icon>
-        ${shown ? [compartment, item.pickup_code].filter(Boolean).join(" \xB7 ") : "\u2022\u2022\u2022\u2022"}
-      </span>
-    `;
+            <span class="code ${shown ? "" : "covered"}" title="${title}" @click=${(event) => this.reveal(event, item)}>
+                <ha-icon icon="mdi:key-variant"></ha-icon>
+                ${shown ? [compartment, item.pickup_code].filter(Boolean).join(" \xB7 ") : "\u2022\u2022\u2022\u2022"}
+            </span>
+        `;
   }
   reveal(event, item) {
     if ((this.config?.pickup_code ?? "hidden") !== "toggle") {
@@ -1290,11 +1265,11 @@ var PackageTrackerCard = class extends i4 {
       return A;
     }
     return b2`
-      <div class="row secondary">
-        <ha-icon icon="mdi:weight-kilogram"></ha-icon>
-        <div class="text-content">${parts.join(" \xB7 ")}</div>
-      </div>
-    `;
+            <div class="row secondary">
+                <ha-icon icon="mdi:weight-kilogram"></ha-icon>
+                <div class="text-content">${parts.join(" \xB7 ")}</div>
+            </div>
+        `;
   }
   number(value, digits) {
     return new Intl.NumberFormat(this.language(), { maximumFractionDigits: digits }).format(value);
@@ -1306,12 +1281,12 @@ var PackageTrackerCard = class extends i4 {
       return A;
     }
     return b2`
-      <div class="row secondary">
-        <ha-icon icon="${icon}"></ha-icon>
-        <div class="text-content">${text}</div>
-        ${extra}
-      </div>
-    `;
+            <div class="row secondary">
+                <ha-icon icon="${icon}"></ha-icon>
+                <div class="text-content">${text}</div>
+                ${extra}
+            </div>
+        `;
   }
   openTracking(url) {
     if (url) {
@@ -1326,213 +1301,213 @@ var PackageTrackerCard = class extends i4 {
   }
   static get styles() {
     return i`
-      :host([hidden]) {
-        display: none;
-      }
+            :host([hidden]) {
+                display: none;
+            }
 
-      /* The header stays put and the packages scroll under it, so a card given a
+            /* The header stays put and the packages scroll under it, so a card given a
          height never spills its text outside. */
-      ha-card {
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        padding: 12px;
-      }
+            ha-card {
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+                padding: 12px;
+            }
 
-      .header {
-        flex: 0 0 auto;
-        font-size: var(--ha-card-header-font-size, 24px);
-        line-height: 1.2;
-        padding: 4px 4px 12px 4px;
-      }
+            .header {
+                flex: 0 0 auto;
+                font-size: var(--ha-card-header-font-size, 24px);
+                line-height: 1.2;
+                padding: 4px 4px 12px 4px;
+            }
 
-      .list {
-        flex: 1 1 auto;
-        min-height: 0;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-      }
+            .list {
+                flex: 1 1 auto;
+                min-height: 0;
+                overflow-y: auto;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
 
-      .no-packages,
-      .message {
-        color: var(--secondary-text-color);
-        padding: 4px;
-      }
+            .no-packages,
+            .message {
+                color: var(--secondary-text-color);
+                padding: 4px;
+            }
 
-      .item {
-        border-radius: 8px;
-        padding: 6px;
-        background: var(--secondary-background-color, transparent);
-      }
+            .item {
+                border-radius: 8px;
+                padding: 6px;
+                background: var(--secondary-background-color, transparent);
+            }
 
-      .item.clickable {
-        cursor: pointer;
-      }
+            .item.clickable {
+                cursor: pointer;
+            }
 
-      .item.clickable:hover {
-        background: var(--divider-color, var(--secondary-background-color));
-      }
+            .item.clickable:hover {
+                background: var(--divider-color, var(--secondary-background-color));
+            }
 
-      .line {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        min-width: 0;
-      }
+            .line {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                min-width: 0;
+            }
 
-      .number {
-        font-weight: 600;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
+            .number {
+                font-weight: 600;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
 
-      /* Which service the package came from, small and out of the way. */
-      .source {
-        margin-left: auto;
-        flex: 0 0 auto;
-        font-size: 11px;
-        color: var(--secondary-text-color);
-        border: 1px solid var(--divider-color, var(--secondary-text-color));
-        border-radius: 999px;
-        padding: 0 6px;
-      }
+            /* Which service the package came from, small and out of the way. */
+            .source {
+                margin-left: auto;
+                flex: 0 0 auto;
+                font-size: 11px;
+                color: var(--secondary-text-color);
+                border: 1px solid var(--divider-color, var(--secondary-text-color));
+                border-radius: 999px;
+                padding: 0 6px;
+            }
 
-      /* The bar keeps the height of a row of text, so hiding the status doesn't
+            /* The bar keeps the height of a row of text, so hiding the status doesn't
          change how tall a package is, and it lines up with the icons above and below. */
-      .progress-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        min-height: 18px;
-        margin: 4px 0 2px 0;
-        padding: 0 2px;
-      }
+            .progress-row {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                min-height: 18px;
+                margin: 4px 0 2px 0;
+                padding: 0 2px;
+            }
 
-      .track {
-        flex: 1 1 auto;
-        height: 4px;
-        border-radius: 2px;
-        background: var(--divider-color, #ddd);
-        overflow: hidden;
-      }
+            .track {
+                flex: 1 1 auto;
+                height: 4px;
+                border-radius: 2px;
+                background: var(--divider-color, #ddd);
+                overflow: hidden;
+            }
 
-      .bar {
-        height: 100%;
-        border-radius: 2px;
-        background: currentColor;
-      }
+            .bar {
+                height: 100%;
+                border-radius: 2px;
+                background: currentColor;
+            }
 
-      .status-text {
-        flex: 0 0 auto;
-        font-size: 12px;
-        line-height: 1;
-        font-weight: 600;
-      }
+            .status-text {
+                flex: 0 0 auto;
+                font-size: 12px;
+                line-height: 1;
+                font-weight: 600;
+            }
 
-      .when {
-        flex: 0 0 auto;
-        font-size: 12px;
-        line-height: 1;
-        color: var(--secondary-text-color);
-      }
+            .when {
+                flex: 0 0 auto;
+                font-size: 12px;
+                line-height: 1;
+                color: var(--secondary-text-color);
+            }
 
-      .row {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        min-width: 0;
-      }
+            .row {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                min-width: 0;
+            }
 
-      .row.secondary {
-        color: var(--secondary-text-color);
-        font-size: 12px;
-        line-height: 16px;
-      }
+            .row.secondary {
+                color: var(--secondary-text-color);
+                font-size: 12px;
+                line-height: 16px;
+            }
 
-      /* The icon is a box of its own, so its middle lines up with the middle of the text. */
-      .row.secondary ha-icon {
-        --mdc-icon-size: 16px;
-        flex: 0 0 auto;
-        width: 16px;
-        height: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
+            /* The icon is a box of its own, so its middle lines up with the middle of the text. */
+            .row.secondary ha-icon {
+                --mdc-icon-size: 16px;
+                flex: 0 0 auto;
+                width: 16px;
+                height: 16px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
 
-      /* The code sits at the end of the pickup line, covered until it is asked for. */
-      .code {
-        margin-left: auto;
-        flex: 0 0 auto;
-        display: inline-flex;
-        align-items: center;
-        gap: 2px;
-        font-variant-numeric: tabular-nums;
-        letter-spacing: 0.02em;
-      }
+            /* The code sits at the end of the pickup line, covered until it is asked for. */
+            .code {
+                margin-left: auto;
+                flex: 0 0 auto;
+                display: inline-flex;
+                align-items: center;
+                gap: 2px;
+                font-variant-numeric: tabular-nums;
+                letter-spacing: 0.02em;
+            }
 
-      .code ha-icon {
-        --mdc-icon-size: 14px;
-        width: 14px;
-        height: 14px;
-      }
+            .code ha-icon {
+                --mdc-icon-size: 14px;
+                width: 14px;
+                height: 14px;
+            }
 
-      .code.covered {
-        cursor: pointer;
-        opacity: 0.7;
-      }
+            .code.covered {
+                cursor: pointer;
+                opacity: 0.7;
+            }
 
-      .code.covered:hover {
-        opacity: 1;
-      }
+            .code.covered:hover {
+                opacity: 1;
+            }
 
-      .text-content {
-        min-width: 0;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
+            .text-content {
+                min-width: 0;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
 
-      /* The status colours the icon, the bar and the status text of a package. */
-      .item {
-        color: var(--primary-text-color);
-      }
+            /* The status colours the icon, the bar and the status text of a package. */
+            .item {
+                color: var(--primary-text-color);
+            }
 
-      .status-1,
-      .status-2 {
-        color: var(--info-color, cornflowerblue);
-      }
+            .status-1,
+            .status-2 {
+                color: var(--info-color, cornflowerblue);
+            }
 
-      .status-3,
-      .status-4 {
-        color: var(--state-icon-color, #44739e);
-      }
+            .status-3,
+            .status-4 {
+                color: var(--state-icon-color, #44739e);
+            }
 
-      .status-5 {
-        color: var(--success-color, #43a047);
-      }
+            .status-5 {
+                color: var(--success-color, #43a047);
+            }
 
-      .status-0 {
-        color: var(--secondary-text-color);
-      }
+            .status-0 {
+                color: var(--secondary-text-color);
+            }
 
-      .status-6,
-      .status-7 {
-        color: var(--error-color, #db4437);
-      }
+            .status-6,
+            .status-7 {
+                color: var(--error-color, #db4437);
+            }
 
-      .item .number,
-      .item .text-content {
-        color: var(--primary-text-color);
-      }
+            .item .number,
+            .item .text-content {
+                color: var(--primary-text-color);
+            }
 
-      .status-0 .number {
-        color: var(--secondary-text-color);
-      }
-    `;
+            .status-0 .number {
+                color: var(--secondary-text-color);
+            }
+        `;
   }
 };
 __decorateClass([

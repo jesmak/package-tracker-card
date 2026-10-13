@@ -24,12 +24,12 @@ export const FINISHED = [DELIVERED, RETURNED];
  * as far as it will go, and an unknown one shows no progress at all.
  */
 export const PROGRESS: Record<number, number> = {
-  [WAITING]: 0.08,
-  [RECEIVED]: 0.3,
-  [IN_TRANSPORT]: 0.55,
-  [IN_DELIVERY]: 0.75,
-  [READY_FOR_PICKUP]: 0.9,
-  [DELIVERED]: 1,
-  [RETURNED]: 1,
-  [UNKNOWN]: 0,
+    [WAITING]: 0.08,
+    [RECEIVED]: 0.3,
+    [IN_TRANSPORT]: 0.55,
+    [IN_DELIVERY]: 0.75,
+    [READY_FOR_PICKUP]: 0.9,
+    [DELIVERED]: 1,
+    [RETURNED]: 1,
+    [UNKNOWN]: 0,
 };
