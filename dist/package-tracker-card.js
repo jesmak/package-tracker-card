@@ -1,4 +1,4 @@
-/*! package-tracker-card 2.1.1 | MIT License */
+/*! package-tracker-card 2.2.0 | MIT License */
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __decorateClass = (decorators, target, key, kind) => {
@@ -711,7 +711,7 @@ var c4 = e5(class extends i5 {
 });
 
 // src/const.ts
-var CARD_VERSION = "2.1.1";
+var CARD_VERSION = "2.2.0";
 var DELIVERED = 0;
 var WAITING = 1;
 var RECEIVED = 2;
@@ -736,12 +736,11 @@ var PROGRESS = {
 // src/localize/languages/en.json
 var en_default = {
   common: {
-    version: "Version",
     invalid_configuration: "Invalid configuration",
     description: "Package tracker card for tracking parcels",
     name: "Package tracker card",
     no_packages: "No packages to track at the moment",
-    no_entity: "There is no entity",
+    no_entity: "No such entity:",
     pickup_by: "Pick up by",
     estimated: "Estimated",
     show_code: "Show the pickup code",
@@ -759,20 +758,18 @@ var en_default = {
     "7": "Exception"
   },
   editor: {
-    entity: "Tracking sensors",
+    entity: "Tracked accounts",
     entity_helper: "The accounts whose packages are shown. Packages from several are listed together.",
     title: "Title",
-    max_events: "Most packages shown",
+    max_events: "Most packages to show",
     height: "Height",
-    height_helper: "A fixed height in pixels. The list scrolls inside the card. Leave empty and the card follows its packages.",
+    height_helper: "A fixed height in pixels. Leave the field empty and the card's height follows the number of packages.",
     max_height: "Maximum height",
-    max_height_helper: "A height the card never grows past. Leave empty for no limit.",
-    hide_when_nothing_to_show: "Hide when empty",
-    hide_when_nothing_to_show_helper: "Leaves the card out of the dashboard entirely while there is nothing to track.",
+    max_height_helper: "A height the card never grows past. Leave the field empty and the card's height has no limit.",
     show_progress: "Progress bar",
     show_latest_event: "Status and time",
     show_latest_event_message: "Latest event",
-    show_latest_event_location: "Where it last was",
+    show_latest_event_location: "Latest location",
     show_origin: "Sender",
     show_destination: "Destination",
     show_destination_helper: "Where the package is going \u2014 the pickup point when the carrier names one.",
@@ -780,8 +777,10 @@ var en_default = {
     show_pickup_helper: "Adds the pickup deadline to that row, or the estimated delivery while the package is still on its way.",
     show_details: "Weight and parcels",
     show_details_helper: "The package's weight and how many parcels it has.",
+    wrap_text: "Wrap long texts",
+    wrap_text_helper: "When this is off, overlong texts are cut short instead of wrapping.",
     pickup_code: "Pickup code",
-    pickup_code_helper: "The code that collects the package. It comes from the integration's own setting, which is off by default.",
+    pickup_code_helper: "The code the package can be picked up with. It must be turned on in the integration's settings too.",
     pickup_code_hidden: "Never shown",
     pickup_code_always: "Always shown",
     pickup_code_toggle: "Revealed when clicked"
@@ -791,7 +790,6 @@ var en_default = {
 // src/localize/languages/fi.json
 var fi_default = {
   common: {
-    version: "Versio",
     invalid_configuration: "Virheellinen konfiguraatio",
     description: "Kortti pakettil\xE4hetysten seuraamiseen",
     name: "L\xE4hetysten seuranta",
@@ -814,20 +812,18 @@ var fi_default = {
     "7": "Poikkeama"
   },
   editor: {
-    entity: "Seurannan sensorit",
+    entity: "Seurattavat tilit",
     entity_helper: "Tilit, joiden paketit n\xE4ytet\xE4\xE4n. Useamman tilin paketit listataan yhdess\xE4.",
     title: "Otsikko",
-    max_events: "Enint\xE4\xE4n paketteja",
+    max_events: "N\xE4ytett\xE4vi\xE4 paketteja enint\xE4\xE4n",
     height: "Korkeus",
-    height_helper: "Kiinte\xE4 korkeus pikselein\xE4. Lista vierii kortin sis\xE4ll\xE4. J\xE4t\xE4 tyhj\xE4ksi, niin kortti seuraa pakettien m\xE4\xE4r\xE4\xE4.",
+    height_helper: "Kiinte\xE4 korkeus pikselein\xE4. J\xE4t\xE4 kentt\xE4 tyhj\xE4ksi, niin kortin korkeus mukautuu pakettien m\xE4\xE4r\xE4\xE4n.",
     max_height: "Enimm\xE4iskorkeus",
-    max_height_helper: "Korkeus, jota kortti ei ylit\xE4. J\xE4t\xE4 tyhj\xE4ksi, jos rajaa ei tarvita.",
-    hide_when_nothing_to_show: "Piilota tyhj\xE4n\xE4",
-    hide_when_nothing_to_show_helper: "J\xE4tt\xE4\xE4 kortin kokonaan pois n\xE4kym\xE4st\xE4, kun seurattavaa ei ole.",
+    max_height_helper: "Korkeus, jota kortti ei ylit\xE4. J\xE4t\xE4 kentt\xE4 tyhj\xE4ksi, niin kortin korkeudella ei ole yl\xE4rajaa.",
     show_progress: "Edistymispalkki",
     show_latest_event: "Tila ja aika",
     show_latest_event_message: "Viimeisin tapahtuma",
-    show_latest_event_location: "Miss\xE4 viimeksi",
+    show_latest_event_location: "Viimeisin sijainti",
     show_origin: "L\xE4hett\xE4j\xE4",
     show_destination: "M\xE4\xE4r\xE4np\xE4\xE4",
     show_destination_helper: "Minne paketti on menossa \u2013 noutopaikka, jos kuljetusyhti\xF6 kertoo sen.",
@@ -835,8 +831,10 @@ var fi_default = {
     show_pickup_helper: "Lis\xE4\xE4 samalle riville noudon m\xE4\xE4r\xE4ajan, tai arvioidun toimituksen kun paketti on viel\xE4 matkalla.",
     show_details: "Paino ja kollit",
     show_details_helper: "Paketin paino ja kollien m\xE4\xE4r\xE4.",
+    wrap_text: "Rivit\xE4 pitk\xE4t tekstit",
+    wrap_text_helper: "Kun asetus on pois p\xE4\xE4lt\xE4, ylipitk\xE4t tekstit lyhennet\xE4\xE4n rivitt\xE4misen sijaan.",
     pickup_code: "Noutokoodi",
-    pickup_code_helper: "Koodi, jolla paketin noutaa. Se tulee integraation omasta asetuksesta, joka on oletuksena pois p\xE4\xE4lt\xE4.",
+    pickup_code_helper: "Koodi, jolla paketin voi noutaa. Oltava p\xE4\xE4ll\xE4 my\xF6s integraation asetuksissa.",
     pickup_code_hidden: "Ei n\xE4ytet\xE4",
     pickup_code_always: "N\xE4ytet\xE4\xE4n aina",
     pickup_code_toggle: "Paljastuu napsauttamalla"
@@ -872,14 +870,18 @@ var DEFAULTS = {
   show_progress: true,
   show_pickup: true,
   show_details: false,
+  wrap_text: false,
   pickup_code: "hidden",
   show_latest_event: true,
   show_latest_event_message: true,
   show_latest_event_location: true,
   show_origin: true,
-  show_destination: true,
-  hide_when_nothing_to_show: false
+  show_destination: true
 };
+function withTitle(config) {
+  const { name, ...rest } = config;
+  return name === void 0 || rest.title !== void 0 ? { ...rest } : { ...rest, title: name };
+}
 function trackingEntities(hass) {
   return Object.keys(hass.states).filter((id) => Array.isArray(hass.states[id]?.attributes?.packages)).sort();
 }
@@ -925,13 +927,13 @@ function schema(hass, text) {
       schema: [
         { name: "show_progress", selector: { boolean: {} } },
         { name: "show_details", selector: { boolean: {} } },
+        { name: "wrap_text", selector: { boolean: {} } },
         { name: "show_latest_event", selector: { boolean: {} } },
         { name: "show_latest_event_message", selector: { boolean: {} } },
         { name: "show_latest_event_location", selector: { boolean: {} } },
         { name: "show_origin", selector: { boolean: {} } },
         { name: "show_destination", selector: { boolean: {} } },
-        { name: "show_pickup", selector: { boolean: {} } },
-        { name: "hide_when_nothing_to_show", selector: { boolean: {} } }
+        { name: "show_pickup", selector: { boolean: {} } }
       ]
     }
   ];
@@ -942,7 +944,7 @@ var PackageTrackerCardEditor = class extends i4 {
     this.config = { type: "custom:package-tracker-card", entity: [] };
   }
   setConfig(config) {
-    this.config = { ...config };
+    this.config = withTitle(config);
   }
   render() {
     if (!this.hass) {
@@ -1013,14 +1015,89 @@ function entities(entity) {
   return typeof entity === "string" ? [entity] : entity;
 }
 function packagesOf(hass, entity) {
-  const found = [];
+  const found = /* @__PURE__ */ new Map();
+  let dropped = 0;
   for (const id of entities(entity)) {
     const packages = hass.states[id]?.attributes?.packages;
-    if (Array.isArray(packages)) {
-      found.push(...packages);
+    if (!Array.isArray(packages)) {
+      continue;
+    }
+    for (const raw of packages) {
+      const item = shipmentOf(raw);
+      if (!item) {
+        dropped++;
+        continue;
+      }
+      const seen = found.get(item.shipment_number);
+      if (!seen || moment(item.latest_event_date) > moment(seen.latest_event_date)) {
+        found.set(item.shipment_number, item);
+      }
     }
   }
-  return found;
+  if (dropped > 0 && dropped !== lastDropped) {
+    console.warn(`package-tracker-card: left out ${dropped} entries that are not packages in the format README.md describes`);
+  }
+  lastDropped = dropped;
+  return [...found.values()];
+}
+var lastDropped = 0;
+var TEXTS = [
+  "shipment_date",
+  "raw_status",
+  "origin",
+  "origin_city",
+  "destination",
+  "destination_city",
+  "latest_event",
+  "latest_event_city",
+  "latest_event_country",
+  "latest_event_date",
+  "source",
+  "tracking_url",
+  "estimated_delivery",
+  "pickup_deadline"
+];
+var NUMBERS = ["weight", "package_count"];
+var POINT_TEXTS = ["name", "street", "postal_code", "city", "type", "available"];
+function shipmentOf(raw) {
+  if (!isRecord(raw) || typeof raw.shipment_number !== "string" || raw.shipment_number === "" || raw.status == null || raw.status === "") {
+    return void 0;
+  }
+  const item = { shipment_number: raw.shipment_number, status: statusOf(raw.status) };
+  for (const key of TEXTS) {
+    if (typeof raw[key] === "string") {
+      item[key] = raw[key];
+    }
+  }
+  for (const key of NUMBERS) {
+    if (typeof raw[key] === "number" && Number.isFinite(raw[key])) {
+      item[key] = raw[key];
+    }
+  }
+  item.pickup_code = textOf(raw.pickup_code);
+  if (isRecord(raw.pickup_point)) {
+    const point = { compartment: textOf(raw.pickup_point.compartment) };
+    for (const key of POINT_TEXTS) {
+      if (typeof raw.pickup_point[key] === "string") {
+        point[key] = raw.pickup_point[key];
+      }
+    }
+    item.pickup_point = point;
+  }
+  return item;
+}
+function statusOf(status) {
+  const value = typeof status === "string" && status.trim() !== "" ? Number(status) : status;
+  return typeof value === "number" && Number.isInteger(value) && value >= DELIVERED && value <= UNKNOWN ? value : UNKNOWN;
+}
+function textOf(value) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  return typeof value === "string" && value !== "" ? value : void 0;
+}
+function isRecord(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function missingEntities(hass, entity) {
   return entities(entity).filter((id) => hass.states[id] === void 0);
@@ -1043,6 +1120,10 @@ function iconFor(status) {
   return ICONS[status] ?? UNKNOWN_ICON;
 }
 function formatDateTime(date) {
+  if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    const parsed2 = Date.parse(date);
+    return !Number.isNaN(parsed2) && new Date(parsed2).toISOString().startsWith(date) ? date : "";
+  }
   const parsed = date ? new Date(date) : null;
   if (!parsed || Number.isNaN(parsed.getTime())) {
     return "";
@@ -1091,25 +1172,41 @@ var PackageTrackerCard = class extends i4 {
   }
   /** Offers the tracking sensors that are there when the card is added from the picker. */
   static getStubConfig(hass) {
-    const found = Object.keys(hass?.states ?? {}).filter((id) => Array.isArray(hass?.states[id]?.attributes?.packages));
-    return { entity: found };
+    return { entity: hass ? trackingEntities(hass) : [] };
   }
   setConfig(config) {
-    if (!config || !config.entity || Array.isArray(config.entity) && config.entity.length === 0) {
+    const noEntity = !config || !config.entity || Array.isArray(config.entity) && config.entity.length === 0;
+    const badCount = config?.max_events != null && !(Number.isInteger(config.max_events) && config.max_events > 0);
+    if (noEntity || badCount) {
       throw new Error(translate(browserLanguage(), "common.invalid_configuration"));
     }
-    this.config = { ...config };
+    this.config = withTitle(config);
   }
   getCardSize() {
     const packages = this.hass && this.config ? packagesOf(this.hass, this.config.entity) : [];
     return 1 + Math.min(packages.length, this.config?.max_events ?? packages.length) * 2;
   }
+  getGridOptions() {
+    return { columns: 12, rows: "auto", min_columns: 6 };
+  }
+  /** Home Assistant takes cards out of the page and puts them back, such as when the view changes. */
+  connectedCallback() {
+    super.connectedCallback();
+    if (this.observed) {
+      this.resizeObserver?.observe(this.observed);
+      fadeEdges(this.observed);
+    }
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.resizeObserver?.disconnect();
+  }
   shouldUpdate(changed) {
-    if (changed.has("config") || !this.config) {
+    if (!this.config || [...changed.keys()].some((key) => key !== "hass")) {
       return true;
     }
     const previous = changed.get("hass");
-    if (!previous) {
+    if (!previous || this.language() !== (previous.locale?.language ?? previous.language ?? browserLanguage())) {
       return true;
     }
     return entities(this.config.entity).some((id) => previous.states[id] !== this.hass?.states[id]);
@@ -1120,23 +1217,17 @@ var PackageTrackerCard = class extends i4 {
     }
     const missing = missingEntities(this.hass, this.config.entity);
     if (missing.length === entities(this.config.entity).length) {
-      this.toggleAttribute("hidden", false);
       return b2`<ha-card><div class="message">${this.text("common.no_entity")} ${missing.join(", ")}</div></ha-card>`;
     }
     let packages = sortPackages(packagesOf(this.hass, this.config.entity));
-    if (this.config.max_events !== void 0 && this.config.max_events < packages.length) {
+    if (this.config.max_events != null && this.config.max_events < packages.length) {
       packages = packages.slice(0, this.config.max_events);
     }
-    const hide = packages.length === 0 && this.config.hide_when_nothing_to_show === true;
-    this.toggleAttribute("hidden", hide);
-    if (hide) {
-      return A;
-    }
-    const title = this.config.title ?? this.config.name;
+    const title = this.config.title;
     return b2`
-            <ha-card style="${this.heights()}">
+            <ha-card class="${this.config.wrap_text ? "wrap" : ""}" style="${this.heights()}">
                 ${title ? b2`<div class="header">${title}</div>` : A}
-                <div class="list">
+                <div class="list" @scroll=${(event) => fadeEdges(event.currentTarget)}>
                     ${packages.length === 0 ? b2`<div class="no-packages">${this.text("common.no_packages")}</div>` : c4(
       packages,
       (item) => item.shipment_number,
@@ -1145,6 +1236,21 @@ var PackageTrackerCard = class extends i4 {
                 </div>
             </ha-card>
         `;
+  }
+  /** The list's edges fade wherever packages are scrolled out of sight, which changes as the list and the card resize. */
+  updated() {
+    const list = this.renderRoot.querySelector(".list") ?? void 0;
+    if (list !== this.observed) {
+      this.resizeObserver ?? (this.resizeObserver = new ResizeObserver((entries) => entries.forEach((entry) => fadeEdges(entry.target))));
+      this.resizeObserver.disconnect();
+      if (list) {
+        this.resizeObserver.observe(list);
+      }
+      this.observed = list;
+    }
+    if (list) {
+      fadeEdges(list);
+    }
   }
   /** A fixed height, a limit, or neither. The list scrolls inside whatever the card gets. */
   heights() {
@@ -1155,11 +1261,18 @@ var PackageTrackerCard = class extends i4 {
     const moving = !FINISHED.includes(item.status);
     const message = this.config?.show_latest_event_message !== false && moving && !!item.latest_event;
     const url = trackingUrl(item);
+    const sender = item.origin || item.origin_city;
     return b2`
-            <div class="item status-${item.status} ${url ? "clickable" : ""}" @click=${() => this.openTracking(url)} title="${url ?? ""}">
+            <div class="item status-${item.status} ${url ? "clickable" : ""}" title="${url ?? ""}" @click=${() => this.openTracking(url)}>
                 <div class="line">
                     <ha-icon icon="${iconFor(item.status)}"></ha-icon>
-                    <span class="number">${item.shipment_number}</span>
+                    <span
+                        class="number"
+                        role="${url ? "link" : A}"
+                        tabindex="${url ? 0 : A}"
+                        @keydown=${(event) => activate(event, () => this.openTracking(url))}
+                        >${item.shipment_number}</span
+                    >
                     ${item.source ? b2`<span class="source">${item.source}</span>` : A}
                 </div>
                 ${this.progress(item)} ${this.details(item)}
@@ -1172,8 +1285,8 @@ var PackageTrackerCard = class extends i4 {
     )}
                 ${this.row("mdi:map-marker", this.config?.show_latest_event_location, moving, [item.latest_event_city])}
                 ${this.row("mdi:arrow-up-bold-box", this.config?.show_origin, true, [
-      item.origin || item.origin_city,
-      item.shipment_date ? ` (${formatDateTime(item.shipment_date)})` : ""
+      sender,
+      sender && item.shipment_date ? ` (${formatDateTime(item.shipment_date)})` : ""
     ])}
                 ${this.destination(item, !message)}
             </div>
@@ -1187,7 +1300,14 @@ var PackageTrackerCard = class extends i4 {
     const percent = (progressOf(item.status) * 100).toFixed(0);
     return b2`
             <div class="progress-row">
-                ${this.config?.show_progress === false ? A : b2`<div class="track" role="progressbar" aria-valuenow="${percent}" aria-valuemin="0" aria-valuemax="100">
+                ${this.config?.show_progress === false ? A : b2`<div
+                              class="track"
+                              role="progressbar"
+                              aria-label="${this.text(`statuses.${item.status}`)}"
+                              aria-valuenow="${percent}"
+                              aria-valuemin="0"
+                              aria-valuemax="100"
+                          >
                               <div class="bar" style="width:${percent}%"></div>
                           </div>`}
                 ${this.config?.show_latest_event === false ? A : b2`<span class="status-text">${this.text(`statuses.${item.status}`)}</span>
@@ -1208,14 +1328,15 @@ var PackageTrackerCard = class extends i4 {
     const waiting = AT_PICKUP_POINT.includes(item.status);
     const time = this.config?.show_pickup === false || FINISHED.includes(item.status) ? "" : waiting ? item.pickup_deadline : item.estimated_delivery;
     const label = waiting ? this.text("common.pickup_by") : this.text("common.estimated");
-    if (!place && !time) {
+    const code = withCode ? this.code(item) : A;
+    if (!place && !time && code === A) {
       return A;
     }
     return b2`
             <div class="row secondary">
                 <ha-icon icon="${item.pickup_point ? "mdi:map-marker-radius" : "mdi:arrow-down-bold-box"}"></ha-icon>
                 <div class="text-content">${[place, time ? `${label} ${formatDateTime(time)}` : ""].filter(Boolean).join(" \xB7 ")}</div>
-                ${withCode ? this.code(item) : A}
+                ${code}
             </div>
         `;
   }
@@ -1232,18 +1353,28 @@ var PackageTrackerCard = class extends i4 {
     const shown = setting === "always" || this.revealed.has(item.shipment_number);
     const compartment = item.pickup_point?.compartment;
     const title = !shown ? this.text("common.show_code") : compartment ? `${this.text("common.compartment")} ${compartment}` : "";
+    const toggles = setting === "toggle";
     return b2`
-            <span class="code ${shown ? "" : "covered"}" title="${title}" @click=${(event) => this.reveal(event, item)}>
+            <span
+                class="code ${shown ? "" : "covered"}"
+                title="${title}"
+                role="${toggles ? "button" : A}"
+                tabindex="${toggles ? 0 : A}"
+                aria-label="${toggles && !shown ? this.text("common.show_code") : A}"
+                aria-pressed="${toggles ? String(shown) : A}"
+                @click=${(event) => this.reveal(event, item)}
+                @keydown=${(event) => activate(event, () => this.reveal(event, item))}
+            >
                 <ha-icon icon="mdi:key-variant"></ha-icon>
                 ${shown ? [compartment, item.pickup_code].filter(Boolean).join(" \xB7 ") : "\u2022\u2022\u2022\u2022"}
             </span>
         `;
   }
   reveal(event, item) {
+    event.stopPropagation();
     if ((this.config?.pickup_code ?? "hidden") !== "toggle") {
       return;
     }
-    event.stopPropagation();
     const revealed = new Set(this.revealed);
     if (revealed.has(item.shipment_number)) {
       revealed.delete(item.shipment_number);
@@ -1301,17 +1432,17 @@ var PackageTrackerCard = class extends i4 {
   }
   static get styles() {
     return i`
-            :host([hidden]) {
-                display: none;
-            }
-
             /* The header stays put and the packages scroll under it, so a card given a
-         height never spills its text outside. */
+               height, by its options or by the rows of a sections view, never spills its text outside.
+               The card is the container its layout measures, so it follows its own width wherever it is. */
             ha-card {
                 display: flex;
                 flex-direction: column;
+                box-sizing: border-box;
+                height: 100%;
                 overflow: hidden;
                 padding: 12px;
+                container-type: inline-size;
             }
 
             .header {
@@ -1328,6 +1459,19 @@ var PackageTrackerCard = class extends i4 {
                 display: flex;
                 flex-direction: column;
                 gap: 10px;
+            }
+
+            /* An edge with packages scrolled past it fades out, so it's clear there's more. */
+            .list.fade-top {
+                mask-image: linear-gradient(to bottom, transparent, #000 24px);
+            }
+
+            .list.fade-bottom {
+                mask-image: linear-gradient(to top, transparent, #000 24px);
+            }
+
+            .list.fade-top.fade-bottom {
+                mask-image: linear-gradient(to bottom, transparent, #000 24px, #000 calc(100% - 24px), transparent);
             }
 
             .no-packages,
@@ -1350,6 +1494,13 @@ var PackageTrackerCard = class extends i4 {
                 background: var(--divider-color, var(--secondary-background-color));
             }
 
+            /* Reached by keyboard, the number and the code show where the focus is, inside their edges so the scrolling list doesn't clip it. */
+            .number:focus-visible,
+            .code:focus-visible {
+                outline: 2px solid var(--primary-color);
+                outline-offset: -2px;
+            }
+
             .line {
                 display: flex;
                 align-items: center;
@@ -1357,11 +1508,11 @@ var PackageTrackerCard = class extends i4 {
                 min-width: 0;
             }
 
+            /* The number is never cut short. It wraps when the card is too narrow for it. */
             .number {
+                min-width: 0;
                 font-weight: 600;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
+                overflow-wrap: anywhere;
             }
 
             /* Which service the package came from, small and out of the way. */
@@ -1376,7 +1527,7 @@ var PackageTrackerCard = class extends i4 {
             }
 
             /* The bar keeps the height of a row of text, so hiding the status doesn't
-         change how tall a package is, and it lines up with the icons above and below. */
+               change how tall a package is, and it lines up with the icons above and below. */
             .progress-row {
                 display: flex;
                 align-items: center;
@@ -1414,9 +1565,10 @@ var PackageTrackerCard = class extends i4 {
                 color: var(--secondary-text-color);
             }
 
+            /* Rows align to their first line, so the icon stays beside the start of a wrapped text. */
             .row {
                 display: flex;
-                align-items: center;
+                align-items: flex-start;
                 gap: 4px;
                 min-width: 0;
             }
@@ -1464,11 +1616,33 @@ var PackageTrackerCard = class extends i4 {
                 opacity: 1;
             }
 
+            /* Long texts are cut short, or wrap in full with wrap_text. */
             .text-content {
                 min-width: 0;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
+            }
+
+            .wrap .text-content {
+                white-space: normal;
+                overflow-wrap: anywhere;
+            }
+
+            /* On a narrow card the bar gets a line of its own, with the status under it and its time at the end. */
+            @container (max-width: 360px) {
+                .progress-row {
+                    flex-wrap: wrap;
+                    row-gap: 6px;
+                }
+
+                .track {
+                    flex-basis: 100%;
+                }
+
+                .when {
+                    margin-left: auto;
+                }
             }
 
             /* The status colours the icon, the bar and the status text of a package. */
@@ -1522,6 +1696,16 @@ __decorateClass([
 PackageTrackerCard = __decorateClass([
   t3("package-tracker-card")
 ], PackageTrackerCard);
+function activate(event, action) {
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    action();
+  }
+}
+function fadeEdges(list) {
+  list.classList.toggle("fade-top", list.scrollTop > 1);
+  list.classList.toggle("fade-bottom", list.scrollTop + list.clientHeight < list.scrollHeight - 1);
+}
 function placeOf(point) {
   if (!point) {
     return "";

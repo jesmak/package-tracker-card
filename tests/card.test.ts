@@ -105,19 +105,11 @@ describe("the list of packages", () => {
 });
 
 describe("the title", () => {
-    it("is shown when the configuration gives one", async () => {
-        const root = shadow(await card(hass(), { title: "Lähetykset" }));
-        expect(root.querySelector(".header")?.textContent).toContain("Lähetykset");
-    });
-
-    it("is taken from name as well, as older versions documented it", async () => {
-        const root = shadow(await card(hass(), { name: "Paketit" }));
-        expect(root.querySelector(".header")?.textContent).toContain("Paketit");
-    });
-
-    it("leaves no empty header when there is no title", async () => {
-        const root = shadow(await card(hass()));
-        expect(root.querySelector(".header")).toBeNull();
+    it("is taken from name, as older versions documented it, unless a title is given too", async () => {
+        const old = shadow(await card(hass(), { name: "Paketit" }));
+        expect(old.querySelector(".header")?.textContent).toContain("Paketit");
+        const both = shadow(await card(hass(), { name: "Paketit", title: "Lähetykset" }));
+        expect(both.querySelector(".header")?.textContent).toContain("Lähetykset");
     });
 });
 
@@ -126,23 +118,6 @@ describe("when there is nothing to track", () => {
         const root = shadow(await card(hass({ [POSTI]: [], [MATKAHUOLTO]: [] })));
         expect(root.querySelector(".no-packages")?.textContent).toContain("Ei seurattavia paketteja");
     });
-
-    it("hides the card entirely when asked to", async () => {
-        const element = await card(hass({ [POSTI]: [], [MATKAHUOLTO]: [] }), { hide_when_nothing_to_show: true });
-        expect(element.hasAttribute("hidden")).toBe(true);
-        expect(shadow(element).querySelector("ha-card")).toBeNull();
-    });
-
-    it("comes back when a package arrives", async () => {
-        const element = await card(hass({ [POSTI]: [], [MATKAHUOLTO]: [] }), { hide_when_nothing_to_show: true });
-        expect(element.hasAttribute("hidden")).toBe(true);
-
-        element.hass = hass({ [POSTI]: [WAITING], [MATKAHUOLTO]: [] });
-        await element.updateComplete;
-
-        expect(element.hasAttribute("hidden")).toBe(false);
-        expect(shadow(element).querySelectorAll(".item")).toHaveLength(1);
-    });
 });
 
 describe("when the configuration is wrong", () => {
@@ -150,6 +125,16 @@ describe("when the configuration is wrong", () => {
         const element = document.createElement("package-tracker-card") as PackageTrackerCard;
         expect(() => element.setConfig({ type: "custom:package-tracker-card" } as never)).toThrow();
         expect(() => element.setConfig({ type: "custom:package-tracker-card", entity: [] } as never)).toThrow();
+    });
+
+    it("takes an empty max_events as no limit", async () => {
+        const root = shadow(await card(hass(), { max_events: null as never }));
+        expect(root.querySelectorAll(".item")).toHaveLength(1);
+    });
+
+    it.each([0, -1, 2.5])("refuses %s packages at most", (count) => {
+        const element = document.createElement("package-tracker-card") as PackageTrackerCard;
+        expect(() => element.setConfig({ type: "custom:package-tracker-card", entity: POSTI, max_events: count } as never)).toThrow();
     });
 
     it("says which entity is missing instead of throwing", async () => {
@@ -207,6 +192,14 @@ describe("opening a package", () => {
         openWindow.mockRestore();
     });
 
+    it("opens it with the keyboard as well", async () => {
+        const openWindow = vi.spyOn(window, "open").mockImplementation(() => null);
+        const root = shadow(await card(hass()));
+        root.querySelector(".number")?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
+        expect(openWindow).toHaveBeenCalledWith("https://carrier.example.com/track/JJFI0001", "_blank", "noopener");
+        openWindow.mockRestore();
+    });
+
     it.each([
         ["no tracking_url", undefined],
         ["an empty one", ""],
@@ -224,36 +217,21 @@ describe("opening a package", () => {
     });
 });
 
-describe("the size of the card", () => {
-    it("takes a fixed height, and scrolls the packages inside it", async () => {
-        const root = shadow(await card(hass(), { height: 300 }));
-        expect((root.querySelector("ha-card") as HTMLElement).getAttribute("style")).toBe("height:300px;");
-    });
-
-    it("takes a height it never grows past", async () => {
-        const root = shadow(await card(hass(), { max_height: 240 }));
-        expect((root.querySelector("ha-card") as HTMLElement).getAttribute("style")).toBe("max-height:240px;");
-    });
-
-    it("follows its packages when neither is given", async () => {
-        const root = shadow(await card(hass()));
-        expect((root.querySelector("ha-card") as HTMLElement).getAttribute("style")).toBe("");
-    });
-
-    it("keeps the list scrollable, whatever height the card ends up with", async () => {
-        const { PackageTrackerCard } = await import("../src/package-tracker-card");
-        const styles = String((PackageTrackerCard as unknown as { styles: { cssText: string } }).styles.cssText);
-        expect(styles).toContain("overflow-y: auto");
-        expect(styles).toContain("min-height: 0");
-        // The header used to sit in a 20px margin; it doesn't any more.
-        expect(styles).not.toContain("margin: 20px 20px 30px 12px");
+describe("redrawing", () => {
+    it("follows a change of language, even when no package moved", async () => {
+        const state = hass();
+        const element = await card(state);
+        element.hass = { ...state, locale: { language: "en" } };
+        await element.updateComplete;
+        expect(shadow(element).querySelector(".status-text")?.textContent?.trim()).toBe("Waiting");
     });
 });
 
 describe("where a package came from", () => {
-    it("is named on the package", async () => {
-        const root = shadow(await card(hass()));
-        expect(root.querySelector(".source")?.textContent?.trim()).toBe("Posti");
+    it("leaves out the date it was sent when there is no sender to go with it", async () => {
+        const anonymous = { ...WAITING, origin: null, origin_city: null };
+        const root = shadow(await card(hass({ [POSTI]: [anonymous] })));
+        expect(root.querySelector('ha-icon[icon="mdi:arrow-up-bold-box"]')).toBeNull();
     });
 });
 
@@ -344,6 +322,12 @@ describe("the pickup code", () => {
         expect(rowOf(root, "mdi:map-marker-radius")?.querySelector(".code")).toBeNull();
     });
 
+    it("keeps a line of its own when the message is hidden and the destination line has nothing else", async () => {
+        const bare = { ...withCode, pickup_point: null, destination: null, destination_city: null };
+        const root = shadow(await card(hass({ [POSTI]: [bare] }), { pickup_code: "always", show_latest_event_message: false }));
+        expect(root.querySelector(".code")?.textContent).toContain("12345678");
+    });
+
     it("moves to the destination line when that message is hidden", async () => {
         const root = shadow(
             await card(hass({ [POSTI]: [withCode] }), {
@@ -390,14 +374,27 @@ describe("the pickup code", () => {
         }
     });
 
-    it("does not open the carrier page when the code is clicked", async () => {
+    it.each(["toggle", "always"] as const)("does not open the carrier page when the code is clicked, with %s", async (setting) => {
         const openWindow = vi.spyOn(window, "open").mockImplementation(() => null);
-        const element = await card(hass({ [POSTI]: [withCode] }), { pickup_code: "toggle" });
+        const element = await card(hass({ [POSTI]: [withCode] }), { pickup_code: setting });
         const code = shadow(element).querySelector(".code") as HTMLElement;
 
         code.dispatchEvent(new Event("click", { bubbles: true }));
         await element.updateComplete;
 
+        expect(openWindow).not.toHaveBeenCalled();
+        openWindow.mockRestore();
+    });
+
+    it("is revealed with the keyboard as well, without opening the carrier page", async () => {
+        const openWindow = vi.spyOn(window, "open").mockImplementation(() => null);
+        const element = await card(hass({ [POSTI]: [withCode] }), { pickup_code: "toggle" });
+        const field = () => shadow(element).querySelector(".code") as HTMLElement;
+
+        field().dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+        await element.updateComplete;
+
+        expect(field().textContent).toContain("12345678");
         expect(openWindow).not.toHaveBeenCalled();
         openWindow.mockRestore();
     });

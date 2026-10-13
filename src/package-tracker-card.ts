@@ -13,7 +13,7 @@ import { customElement, property, state } from "lit/decorators.js";
 import { repeat } from "lit/directives/repeat.js";
 
 import { AT_PICKUP_POINT, CARD_VERSION, FINISHED } from "./const";
-import "./editor";
+import { trackingEntities, withTitle } from "./editor";
 import type { HomeAssistant } from "./hass";
 import { browserLanguage, translate } from "./localize/localize";
 import { entities, formatDateTime, iconFor, missingEntities, packagesOf, progressOf, sortPackages, trackingUrl } from "./packages";
@@ -49,6 +49,8 @@ export class PackageTrackerCard extends LitElement {
     @state() private config?: PackageTrackerCardConfig;
     /** The packages whose pickup code has been revealed by clicking it. */
     @state() private revealed = new Set<string>();
+    private resizeObserver?: ResizeObserver;
+    private observed?: HTMLElement;
 
     public static getConfigElement(): HTMLElement {
         return document.createElement("package-tracker-card-editor");
@@ -56,15 +58,17 @@ export class PackageTrackerCard extends LitElement {
 
     /** Offers the tracking sensors that are there when the card is added from the picker. */
     public static getStubConfig(hass?: HomeAssistant): Record<string, unknown> {
-        const found = Object.keys(hass?.states ?? {}).filter((id) => Array.isArray(hass?.states[id]?.attributes?.packages));
-        return { entity: found };
+        return { entity: hass ? trackingEntities(hass) : [] };
     }
 
     public setConfig(config: PackageTrackerCardConfig): void {
-        if (!config || !config.entity || (Array.isArray(config.entity) && config.entity.length === 0)) {
+        const noEntity = !config || !config.entity || (Array.isArray(config.entity) && config.entity.length === 0);
+        // An empty `max_events:` in YAML is null, which means no limit, as leaving it out does.
+        const badCount = config?.max_events != null && !(Number.isInteger(config.max_events) && config.max_events > 0);
+        if (noEntity || badCount) {
             throw new Error(translate(browserLanguage(), "common.invalid_configuration"));
         }
-        this.config = { ...config };
+        this.config = withTitle(config);
     }
 
     public getCardSize(): number {
@@ -72,15 +76,33 @@ export class PackageTrackerCard extends LitElement {
         return 1 + Math.min(packages.length, this.config?.max_events ?? packages.length) * 2;
     }
 
+    public getGridOptions(): Record<string, unknown> {
+        return { columns: 12, rows: "auto", min_columns: 6 };
+    }
+
+    /** Home Assistant takes cards out of the page and puts them back, such as when the view changes. */
+    public connectedCallback(): void {
+        super.connectedCallback();
+        if (this.observed) {
+            this.resizeObserver?.observe(this.observed);
+            fadeEdges(this.observed);
+        }
+    }
+
+    public disconnectedCallback(): void {
+        super.disconnectedCallback();
+        this.resizeObserver?.disconnect();
+    }
+
     protected shouldUpdate(changed: PropertyValues): boolean {
-        if (changed.has("config") || !this.config) {
+        if (!this.config || [...changed.keys()].some((key) => key !== "hass")) {
             return true;
         }
         const previous = changed.get("hass") as HomeAssistant | undefined;
-        if (!previous) {
+        if (!previous || this.language() !== (previous.locale?.language ?? previous.language ?? browserLanguage())) {
             return true;
         }
-        // Redraw when any of the sensors the card was given has changed.
+        // Otherwise redraw only when one of the sensors the card was given has changed.
         return entities(this.config.entity).some((id) => previous.states[id] !== this.hass?.states[id]);
     }
 
@@ -91,28 +113,20 @@ export class PackageTrackerCard extends LitElement {
 
         const missing = missingEntities(this.hass, this.config.entity);
         if (missing.length === entities(this.config.entity).length) {
-            this.toggleAttribute("hidden", false);
             return html`<ha-card><div class="message">${this.text("common.no_entity")} ${missing.join(", ")}</div></ha-card>`;
         }
 
         let packages = sortPackages(packagesOf(this.hass, this.config.entity));
-        if (this.config.max_events !== undefined && this.config.max_events < packages.length) {
+        if (this.config.max_events != null && this.config.max_events < packages.length) {
             packages = packages.slice(0, this.config.max_events);
         }
 
-        // Nothing to track: either say so, or leave the card out of the dashboard entirely.
-        const hide = packages.length === 0 && this.config.hide_when_nothing_to_show === true;
-        this.toggleAttribute("hidden", hide);
-        if (hide) {
-            return nothing;
-        }
-
-        const title = this.config.title ?? this.config.name;
+        const title = this.config.title;
 
         return html`
-            <ha-card style="${this.heights()}">
+            <ha-card class="${this.config.wrap_text ? "wrap" : ""}" style="${this.heights()}">
                 ${title ? html`<div class="header">${title}</div>` : nothing}
-                <div class="list">
+                <div class="list" @scroll=${(event: Event) => fadeEdges(event.currentTarget as HTMLElement)}>
                     ${
                         packages.length === 0
                             ? html`<div class="no-packages">${this.text("common.no_packages")}</div>`
@@ -127,6 +141,22 @@ export class PackageTrackerCard extends LitElement {
         `;
     }
 
+    /** The list's edges fade wherever packages are scrolled out of sight, which changes as the list and the card resize. */
+    protected updated(): void {
+        const list = this.renderRoot.querySelector<HTMLElement>(".list") ?? undefined;
+        if (list !== this.observed) {
+            this.resizeObserver ??= new ResizeObserver((entries) => entries.forEach((entry) => fadeEdges(entry.target as HTMLElement)));
+            this.resizeObserver.disconnect();
+            if (list) {
+                this.resizeObserver.observe(list);
+            }
+            this.observed = list;
+        }
+        if (list) {
+            fadeEdges(list);
+        }
+    }
+
     /** A fixed height, a limit, or neither. The list scrolls inside whatever the card gets. */
     private heights(): string {
         const { height, max_height: maxHeight } = this.config ?? {};
@@ -139,11 +169,21 @@ export class PackageTrackerCard extends LitElement {
         // it rides along with the place it is collected from.
         const message = this.config?.show_latest_event_message !== false && moving && !!item.latest_event;
         const url = trackingUrl(item);
+        // The date it was sent belongs to the sender, and says nothing on its own.
+        const sender = item.origin || item.origin_city;
+        // A click anywhere on the package opens its page. For the keyboard and screen readers the number is the link,
+        // so that the code's button sits beside it rather than inside it.
         return html`
-            <div class="item status-${item.status} ${url ? "clickable" : ""}" @click=${() => this.openTracking(url)} title="${url ?? ""}">
+            <div class="item status-${item.status} ${url ? "clickable" : ""}" title="${url ?? ""}" @click=${() => this.openTracking(url)}>
                 <div class="line">
                     <ha-icon icon="${iconFor(item.status)}"></ha-icon>
-                    <span class="number">${item.shipment_number}</span>
+                    <span
+                        class="number"
+                        role="${url ? "link" : nothing}"
+                        tabindex="${url ? 0 : nothing}"
+                        @keydown=${(event: KeyboardEvent) => activate(event, () => this.openTracking(url))}
+                        >${item.shipment_number}</span
+                    >
                     ${item.source ? html`<span class="source">${item.source}</span>` : nothing}
                 </div>
                 ${this.progress(item)} ${this.details(item)}
@@ -156,8 +196,8 @@ export class PackageTrackerCard extends LitElement {
                 )}
                 ${this.row("mdi:map-marker", this.config?.show_latest_event_location, moving, [item.latest_event_city])}
                 ${this.row("mdi:arrow-up-bold-box", this.config?.show_origin, true, [
-                    item.origin || item.origin_city,
-                    item.shipment_date ? ` (${formatDateTime(item.shipment_date)})` : "",
+                    sender,
+                    sender && item.shipment_date ? ` (${formatDateTime(item.shipment_date)})` : "",
                 ])}
                 ${this.destination(item, !message)}
             </div>
@@ -175,7 +215,14 @@ export class PackageTrackerCard extends LitElement {
                 ${
                     this.config?.show_progress === false
                         ? nothing
-                        : html`<div class="track" role="progressbar" aria-valuenow="${percent}" aria-valuemin="0" aria-valuemax="100">
+                        : html`<div
+                              class="track"
+                              role="progressbar"
+                              aria-label="${this.text(`statuses.${item.status}`)}"
+                              aria-valuenow="${percent}"
+                              aria-valuemin="0"
+                              aria-valuemax="100"
+                          >
                               <div class="bar" style="width:${percent}%"></div>
                           </div>`
                 }
@@ -208,14 +255,16 @@ export class PackageTrackerCard extends LitElement {
                   ? item.pickup_deadline
                   : item.estimated_delivery;
         const label = waiting ? this.text("common.pickup_by") : this.text("common.estimated");
-        if (!place && !time) {
+        // The line stays for the code even with nothing else on it, or the code would have nowhere to go.
+        const code = withCode ? this.code(item) : nothing;
+        if (!place && !time && code === nothing) {
             return nothing;
         }
         return html`
             <div class="row secondary">
                 <ha-icon icon="${item.pickup_point ? "mdi:map-marker-radius" : "mdi:arrow-down-bold-box"}"></ha-icon>
                 <div class="text-content">${[place, time ? `${label} ${formatDateTime(time)}` : ""].filter(Boolean).join(" · ")}</div>
-                ${withCode ? this.code(item) : nothing}
+                ${code}
             </div>
         `;
     }
@@ -233,8 +282,18 @@ export class PackageTrackerCard extends LitElement {
         const shown = setting === "always" || this.revealed.has(item.shipment_number);
         const compartment = item.pickup_point?.compartment;
         const title = !shown ? this.text("common.show_code") : compartment ? `${this.text("common.compartment")} ${compartment}` : "";
+        const toggles = setting === "toggle";
         return html`
-            <span class="code ${shown ? "" : "covered"}" title="${title}" @click=${(event: Event) => this.reveal(event, item)}>
+            <span
+                class="code ${shown ? "" : "covered"}"
+                title="${title}"
+                role="${toggles ? "button" : nothing}"
+                tabindex="${toggles ? 0 : nothing}"
+                aria-label="${toggles && !shown ? this.text("common.show_code") : nothing}"
+                aria-pressed="${toggles ? String(shown) : nothing}"
+                @click=${(event: Event) => this.reveal(event, item)}
+                @keydown=${(event: KeyboardEvent) => activate(event, () => this.reveal(event, item))}
+            >
                 <ha-icon icon="mdi:key-variant"></ha-icon>
                 ${shown ? [compartment, item.pickup_code].filter(Boolean).join(" · ") : "••••"}
             </span>
@@ -242,11 +301,12 @@ export class PackageTrackerCard extends LitElement {
     }
 
     private reveal(event: Event, item: Shipment): void {
+        // The code is its own thing to click, so the package under it stays put, also when the code is
+        // always shown and someone taps it to read it.
+        event.stopPropagation();
         if ((this.config?.pickup_code ?? "hidden") !== "toggle") {
             return;
         }
-        // The code is its own thing to click; the package under it stays put.
-        event.stopPropagation();
         const revealed = new Set(this.revealed);
         if (revealed.has(item.shipment_number)) {
             revealed.delete(item.shipment_number);
@@ -317,17 +377,17 @@ export class PackageTrackerCard extends LitElement {
 
     static get styles(): CSSResultGroup {
         return css`
-            :host([hidden]) {
-                display: none;
-            }
-
             /* The header stays put and the packages scroll under it, so a card given a
-         height never spills its text outside. */
+               height, by its options or by the rows of a sections view, never spills its text outside.
+               The card is the container its layout measures, so it follows its own width wherever it is. */
             ha-card {
                 display: flex;
                 flex-direction: column;
+                box-sizing: border-box;
+                height: 100%;
                 overflow: hidden;
                 padding: 12px;
+                container-type: inline-size;
             }
 
             .header {
@@ -344,6 +404,19 @@ export class PackageTrackerCard extends LitElement {
                 display: flex;
                 flex-direction: column;
                 gap: 10px;
+            }
+
+            /* An edge with packages scrolled past it fades out, so it's clear there's more. */
+            .list.fade-top {
+                mask-image: linear-gradient(to bottom, transparent, #000 24px);
+            }
+
+            .list.fade-bottom {
+                mask-image: linear-gradient(to top, transparent, #000 24px);
+            }
+
+            .list.fade-top.fade-bottom {
+                mask-image: linear-gradient(to bottom, transparent, #000 24px, #000 calc(100% - 24px), transparent);
             }
 
             .no-packages,
@@ -366,6 +439,13 @@ export class PackageTrackerCard extends LitElement {
                 background: var(--divider-color, var(--secondary-background-color));
             }
 
+            /* Reached by keyboard, the number and the code show where the focus is, inside their edges so the scrolling list doesn't clip it. */
+            .number:focus-visible,
+            .code:focus-visible {
+                outline: 2px solid var(--primary-color);
+                outline-offset: -2px;
+            }
+
             .line {
                 display: flex;
                 align-items: center;
@@ -373,11 +453,11 @@ export class PackageTrackerCard extends LitElement {
                 min-width: 0;
             }
 
+            /* The number is never cut short. It wraps when the card is too narrow for it. */
             .number {
+                min-width: 0;
                 font-weight: 600;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
+                overflow-wrap: anywhere;
             }
 
             /* Which service the package came from, small and out of the way. */
@@ -392,7 +472,7 @@ export class PackageTrackerCard extends LitElement {
             }
 
             /* The bar keeps the height of a row of text, so hiding the status doesn't
-         change how tall a package is, and it lines up with the icons above and below. */
+               change how tall a package is, and it lines up with the icons above and below. */
             .progress-row {
                 display: flex;
                 align-items: center;
@@ -430,9 +510,10 @@ export class PackageTrackerCard extends LitElement {
                 color: var(--secondary-text-color);
             }
 
+            /* Rows align to their first line, so the icon stays beside the start of a wrapped text. */
             .row {
                 display: flex;
-                align-items: center;
+                align-items: flex-start;
                 gap: 4px;
                 min-width: 0;
             }
@@ -480,11 +561,33 @@ export class PackageTrackerCard extends LitElement {
                 opacity: 1;
             }
 
+            /* Long texts are cut short, or wrap in full with wrap_text. */
             .text-content {
                 min-width: 0;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
+            }
+
+            .wrap .text-content {
+                white-space: normal;
+                overflow-wrap: anywhere;
+            }
+
+            /* On a narrow card the bar gets a line of its own, with the status under it and its time at the end. */
+            @container (max-width: 360px) {
+                .progress-row {
+                    flex-wrap: wrap;
+                    row-gap: 6px;
+                }
+
+                .track {
+                    flex-basis: 100%;
+                }
+
+                .when {
+                    margin-left: auto;
+                }
             }
 
             /* The status colours the icon, the bar and the status text of a package. */
@@ -525,6 +628,20 @@ export class PackageTrackerCard extends LitElement {
             }
         `;
     }
+}
+
+/** Enter and Space do what a click does, for a part of the card that isn't a native button or link. */
+function activate(event: KeyboardEvent, action: () => void): void {
+    if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        action();
+    }
+}
+
+/** Marks the edges of a scrolling list that have packages beyond them. A pixel of slack absorbs fractional scrolling. */
+function fadeEdges(list: HTMLElement): void {
+    list.classList.toggle("fade-top", list.scrollTop > 1);
+    list.classList.toggle("fade-bottom", list.scrollTop + list.clientHeight < list.scrollHeight - 1);
 }
 
 /** The pickup point as one line: its name, and the city when they differ. */

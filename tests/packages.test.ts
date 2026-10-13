@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { entities, formatDateTime, iconFor, missingEntities, packagesOf, sortPackages } from "../src/packages";
+import { entities, formatDateTime, iconFor, missingEntities, packagesOf, shipmentOf, sortPackages } from "../src/packages";
 import type { HomeAssistant } from "../src/hass";
 import type { Shipment } from "../src/types";
 
@@ -14,7 +14,7 @@ function shipment(values: Partial<Shipment> = {}): Shipment {
     };
 }
 
-function hass(states: Record<string, Shipment[] | undefined>): HomeAssistant {
+function hass(states: Record<string, unknown[] | undefined>): HomeAssistant {
     return {
         states: Object.fromEntries(
             Object.entries(states).map(([id, packages]) => [
@@ -44,6 +44,56 @@ describe("the sensors the card was given", () => {
 
     it("are passed over when a sensor carries no packages at all", () => {
         expect(packagesOf(hass({ "sensor.a": undefined }), "sensor.a")).toEqual([]);
+    });
+});
+
+describe("what a sensor writes", () => {
+    it("leaves out entries that are no packages, and keeps the rest", () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+        const state = hass({ "sensor.a": [null, "JJFI2", [], { status: 1 }, { shipment_number: "" }, shipment()] });
+        expect(packagesOf(state, "sensor.a").map((item) => item.shipment_number)).toEqual(["JJFI1"]);
+        expect(warn).toHaveBeenCalledOnce();
+        warn.mockRestore();
+    });
+
+    it("drops fields of the wrong type instead of passing them on", () => {
+        const item = shipmentOf({
+            shipment_number: "JJFI1",
+            status: 5,
+            origin: 42,
+            weight: "heavy",
+            pickup_point: { name: "Example Kiosk", city: 53100 },
+        });
+        expect(item?.origin).toBeUndefined();
+        expect(item?.weight).toBeUndefined();
+        expect(item?.pickup_point).toEqual({ name: "Example Kiosk", compartment: undefined });
+    });
+
+    it("takes a code and a door written as numbers as text", () => {
+        const item = shipmentOf({ shipment_number: "JJFI1", status: 5, pickup_code: 1234, pickup_point: { compartment: 17 } });
+        expect(item?.pickup_code).toBe("1234");
+        expect(item?.pickup_point?.compartment).toBe("17");
+    });
+
+    it.each([
+        ["a status written as text", "0", 0],
+        ["a status the card doesn't know", 9, 7],
+        ["a status that isn't a whole number", 2.5, 7],
+        ["text that isn't a number", "delivered", 7],
+    ])("reads %s", (_what, status, expected) => {
+        expect(shipmentOf({ shipment_number: "JJFI1", status })?.status).toBe(expected);
+    });
+
+    it.each([undefined, null, ""])("leaves out an entry whose status is %s, like one without a number", (status) => {
+        expect(shipmentOf({ shipment_number: "JJFI1", status })).toBeUndefined();
+    });
+
+    it("lists a package that two sensors both carry once, as the one that moved last", () => {
+        const older = shipment({ latest_event: "In transit", latest_event_date: "2026-09-13T10:00:00Z" });
+        const newer = shipment({ latest_event: "Ready for pickup", latest_event_date: "2026-09-14T10:00:00Z" });
+        // The newer copy comes first, so keeping whichever sensor was read last would fail.
+        const listed = packagesOf(hass({ "sensor.a": [newer], "sensor.b": [older] }), ["sensor.a", "sensor.b"]);
+        expect(listed.map((item) => item.latest_event)).toEqual(["Ready for pickup"]);
     });
 });
 
@@ -100,5 +150,11 @@ describe("dates", () => {
         expect(formatDateTime(null)).toBe("");
         expect(formatDateTime(undefined)).toBe("");
         expect(formatDateTime("not a date")).toBe("");
+    });
+
+    it("keep a date without a time as the day it is, not midnight in UTC", () => {
+        expect(formatDateTime("2026-10-15")).toBe("2026-10-15");
+        expect(formatDateTime("2026-13-45")).toBe("");
+        expect(formatDateTime("2026-02-30")).toBe("");
     });
 });

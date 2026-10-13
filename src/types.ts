@@ -6,7 +6,7 @@ export type PickupCode = "hidden" | "always" | "toggle";
 export interface PackageTrackerCardConfig extends LovelaceCardConfig {
     /** One sensor of a tracking integration, or several whose packages are shown together. */
     entity: string | string[];
-    /** Shown at the top of the card. `name` is accepted as well, as older versions documented it. */
+    /** Shown at the top of the card. `name`, as older versions documented it, is read as the title. */
     title?: string;
     name?: string;
     /** At most this many packages are listed. */
@@ -20,6 +20,8 @@ export interface PackageTrackerCardConfig extends LovelaceCardConfig {
     show_pickup?: boolean;
     /** The weight and how many parcels the shipment has. */
     show_details?: boolean;
+    /** Long texts wrap over several lines instead of being cut short. */
+    wrap_text?: boolean;
     /** `hidden`, `always`, or `toggle` for a field that reveals the code when clicked. */
     pickup_code?: PickupCode;
     show_origin?: boolean;
@@ -27,14 +29,12 @@ export interface PackageTrackerCardConfig extends LovelaceCardConfig {
     show_latest_event?: boolean;
     show_latest_event_message?: boolean;
     show_latest_event_location?: boolean;
-    /** Leaves the card out of the dashboard entirely while there is nothing to track. */
-    hide_when_nothing_to_show?: boolean;
 }
 
 /** One package, as a tracking integration writes it. README.md documents the format. */
 export interface Shipment {
     shipment_number: string;
-    shipment_date: string;
+    shipment_date?: string;
     status: number;
     raw_status?: string;
     origin?: string | null;

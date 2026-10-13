@@ -1,4 +1,4 @@
-import { FINISHED, PROGRESS, UNKNOWN } from "./const";
+import { DELIVERED, FINISHED, PROGRESS, UNKNOWN } from "./const";
 import type { HomeAssistant } from "./hass";
 import type { Shipment } from "./types";
 
@@ -19,16 +19,113 @@ export function entities(entity: string | string[]): string[] {
     return typeof entity === "string" ? [entity] : entity;
 }
 
-/** The packages of every sensor the card was given. Sensors that aren't there are passed over. */
+/**
+ * The packages of every sensor the card was given. Sensors that aren't there are passed over, and so
+ * are entries that aren't packages, with a warning, so that one bad entry can't take the others with it.
+ * A package that two sensors both list is shown once, as the one that moved last.
+ */
 export function packagesOf(hass: HomeAssistant, entity: string | string[]): Shipment[] {
-    const found: Shipment[] = [];
+    const found = new Map<string, Shipment>();
+    let dropped = 0;
     for (const id of entities(entity)) {
         const packages = hass.states[id]?.attributes?.packages;
-        if (Array.isArray(packages)) {
-            found.push(...(packages as Shipment[]));
+        if (!Array.isArray(packages)) {
+            continue;
+        }
+        for (const raw of packages) {
+            const item = shipmentOf(raw);
+            if (!item) {
+                dropped++;
+                continue;
+            }
+            const seen = found.get(item.shipment_number);
+            if (!seen || moment(item.latest_event_date) > moment(seen.latest_event_date)) {
+                found.set(item.shipment_number, item);
+            }
         }
     }
-    return found;
+    // Once per change, not on every redraw, or one bad entry would fill the console for as long as it stays.
+    if (dropped > 0 && dropped !== lastDropped) {
+        console.warn(`package-tracker-card: left out ${dropped} entries that are not packages in the format README.md describes`);
+    }
+    lastDropped = dropped;
+    return [...found.values()];
+}
+
+let lastDropped = 0;
+
+const TEXTS = [
+    "shipment_date",
+    "raw_status",
+    "origin",
+    "origin_city",
+    "destination",
+    "destination_city",
+    "latest_event",
+    "latest_event_city",
+    "latest_event_country",
+    "latest_event_date",
+    "source",
+    "tracking_url",
+    "estimated_delivery",
+    "pickup_deadline",
+] as const;
+const NUMBERS = ["weight", "package_count"] as const;
+const POINT_TEXTS = ["name", "street", "postal_code", "city", "type", "available"] as const;
+
+/**
+ * One package from a sensor, keeping only the fields that have the type the format gives them. A code
+ * or a door written as a number is taken as text. Without a shipment number or a status it is no package at all.
+ */
+export function shipmentOf(raw: unknown): Shipment | undefined {
+    if (
+        !isRecord(raw) ||
+        typeof raw.shipment_number !== "string" ||
+        raw.shipment_number === "" ||
+        raw.status == null ||
+        raw.status === ""
+    ) {
+        return undefined;
+    }
+    const item: Record<string, unknown> = { shipment_number: raw.shipment_number, status: statusOf(raw.status) };
+    for (const key of TEXTS) {
+        if (typeof raw[key] === "string") {
+            item[key] = raw[key];
+        }
+    }
+    for (const key of NUMBERS) {
+        if (typeof raw[key] === "number" && Number.isFinite(raw[key])) {
+            item[key] = raw[key];
+        }
+    }
+    item.pickup_code = textOf(raw.pickup_code);
+    if (isRecord(raw.pickup_point)) {
+        const point: Record<string, unknown> = { compartment: textOf(raw.pickup_point.compartment) };
+        for (const key of POINT_TEXTS) {
+            if (typeof raw.pickup_point[key] === "string") {
+                point[key] = raw.pickup_point[key];
+            }
+        }
+        item.pickup_point = point;
+    }
+    return item as unknown as Shipment;
+}
+
+/** One of the statuses, also when written as text. Any other status is unknown. */
+function statusOf(status: unknown): number {
+    const value = typeof status === "string" && status.trim() !== "" ? Number(status) : status;
+    return typeof value === "number" && Number.isInteger(value) && value >= DELIVERED && value <= UNKNOWN ? value : UNKNOWN;
+}
+
+function textOf(value: unknown): string | undefined {
+    if (typeof value === "number" && Number.isFinite(value)) {
+        return String(value);
+    }
+    return typeof value === "string" && value !== "" ? value : undefined;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 /** Sensors named in the configuration that Home Assistant doesn't have. */
@@ -57,8 +154,16 @@ export function iconFor(status: number): string {
     return ICONS[status] ?? UNKNOWN_ICON;
 }
 
-/** A date and time as the card has always written it: 2026-09-13 19:58 in the viewer's own time. */
+/**
+ * A date and time as the card has always written it: 2026-09-13 19:58 in the viewer's own time. A date
+ * without a time is a day, not midnight in UTC, so it is written as it is.
+ */
 export function formatDateTime(date: string | null | undefined): string {
+    if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        // Date.parse takes 2026-02-30 too, so the day has to come back as it went in.
+        const parsed = Date.parse(date);
+        return !Number.isNaN(parsed) && new Date(parsed).toISOString().startsWith(date) ? date : "";
+    }
     const parsed = date ? new Date(date) : null;
     if (!parsed || Number.isNaN(parsed.getTime())) {
         return "";

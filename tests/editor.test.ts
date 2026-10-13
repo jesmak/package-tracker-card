@@ -82,6 +82,12 @@ describe("the visual editor", () => {
         expect(names).toContain("pickup_code");
     });
 
+    it("shows an old name in the title field, so the next save writes it as the title", async () => {
+        const data = form(await editor({ name: "Paketit" })).data;
+        expect(data.title).toBe("Paketit");
+        expect(data.name).toBeUndefined();
+    });
+
     it("shows one sensor as a list, the way the picker works", async () => {
         expect(form(await editor({ entity: "sensor.posti_omaposti" })).data.entity).toEqual(["sensor.posti_omaposti"]);
     });

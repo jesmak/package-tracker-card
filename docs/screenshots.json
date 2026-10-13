@@ -1,0 +1,125 @@
+{
+    "clock": "2026-10-14T12:00:00+03:00",
+    "states": {
+        "sensor.example_posti": {
+            "state": "2026-10-14T09:12:00+00:00",
+            "attributes": {
+                "friendly_name": "Posti",
+                "packages": [
+                    {
+                        "shipment_number": "JJFI0001000000000001",
+                        "shipment_date": "2026-10-10T14:20:00+00:00",
+                        "status": 5,
+                        "raw_status": "READY_FOR_PICKUP",
+                        "origin": "Example Shop",
+                        "origin_city": "HELSINKI",
+                        "destination": "Matti Meikäläinen",
+                        "destination_city": "TAMPERE",
+                        "latest_event": "The shipment can be picked up",
+                        "latest_event_city": "TAMPERE",
+                        "latest_event_date": "2026-10-14T06:41:00+00:00",
+                        "estimated_delivery": "2026-10-14T10:00:00+00:00",
+                        "pickup_deadline": "2026-10-21T21:00:00+00:00",
+                        "weight": 1.2,
+                        "package_count": 1,
+                        "pickup_point": {
+                            "name": "Parcel locker, Example Market Hervanta",
+                            "compartment": "17",
+                            "city": "Tampere",
+                            "type": "LOCKER"
+                        },
+                        "pickup_code": "482913",
+                        "source": "Posti",
+                        "tracking_url": "https://www.example.com/track/JJFI0001000000000001"
+                    },
+                    {
+                        "shipment_number": "JJFI0001000000000002",
+                        "shipment_date": "2026-10-12T08:05:00+00:00",
+                        "status": 3,
+                        "raw_status": "IN_TRANSPORT",
+                        "origin": "Example Books",
+                        "origin_city": "TURKU",
+                        "destination": "Matti Meikäläinen",
+                        "destination_city": "TAMPERE",
+                        "latest_event": "The shipment is on its way to the destination",
+                        "latest_event_city": "VANTAA",
+                        "latest_event_date": "2026-10-14T03:15:00+00:00",
+                        "estimated_delivery": "2026-10-15T12:00:00+00:00",
+                        "weight": 0.45,
+                        "package_count": 1,
+                        "pickup_point": {
+                            "name": "Example Kiosk Kaleva",
+                            "city": "Tampere",
+                            "type": "NOUTOPISTE"
+                        },
+                        "pickup_code": "73X9QK",
+                        "source": "Posti",
+                        "tracking_url": "https://www.example.com/track/JJFI0001000000000002"
+                    },
+                    {
+                        "shipment_number": "JJFI0001000000000003",
+                        "shipment_date": "2026-10-01T10:00:00+00:00",
+                        "status": 0,
+                        "raw_status": "DELIVERED",
+                        "origin": "Example Outdoor Gear",
+                        "origin_city": "OULU",
+                        "destination": "Matti Meikäläinen",
+                        "destination_city": "TAMPERE",
+                        "latest_event": "The shipment has been delivered",
+                        "latest_event_date": "2026-10-08T15:30:00+00:00",
+                        "weight": 3.8,
+                        "package_count": 2,
+                        "source": "Posti",
+                        "tracking_url": "https://www.example.com/track/JJFI0001000000000003"
+                    }
+                ]
+            }
+        },
+        "sensor.example_matkahuolto": {
+            "state": "2026-10-13T11:00:00+00:00",
+            "attributes": {
+                "friendly_name": "Matkahuolto",
+                "packages": [
+                    {
+                        "shipment_number": "MH0001000000000004",
+                        "shipment_date": "2026-10-13T11:00:00+00:00",
+                        "status": 1,
+                        "raw_status": "WAITING",
+                        "origin": "Example Electronics",
+                        "origin_city": "JYVÄSKYLÄ",
+                        "destination": "Example Service Point Hervanta",
+                        "destination_city": "TAMPERE",
+                        "latest_event": "The sender has created the shipment",
+                        "latest_event_date": "2026-10-13T11:00:00+00:00",
+                        "estimated_delivery": "2026-10-16T12:00:00+00:00",
+                        "pickup_code": "5561",
+                        "source": "Matkahuolto",
+                        "tracking_url": "https://www.example.com/mh/MH0001000000000004"
+                    }
+                ]
+            }
+        }
+    },
+    "shots": [
+        {
+            "name": "packages",
+            "width": 500,
+            "card": {
+                "type": "custom:package-tracker-card",
+                "title": "Packages",
+                "entity": ["sensor.example_posti", "sensor.example_matkahuolto"]
+            }
+        },
+        {
+            "name": "pickup",
+            "width": 500,
+            "card": {
+                "type": "custom:package-tracker-card",
+                "entity": "sensor.example_posti",
+                "max_events": 1,
+                "pickup_code": "always",
+                "show_details": true
+            }
+        }
+    ]
+}

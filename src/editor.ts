@@ -18,14 +18,23 @@ const DEFAULTS: Record<string, unknown> = {
     show_progress: true,
     show_pickup: true,
     show_details: false,
+    wrap_text: false,
     pickup_code: "hidden",
     show_latest_event: true,
     show_latest_event_message: true,
     show_latest_event_location: true,
     show_origin: true,
     show_destination: true,
-    hide_when_nothing_to_show: false,
 };
+
+/**
+ * The configuration with an old `name` read as its title. The editor then shows it in the title field,
+ * and the next save writes it there.
+ */
+export function withTitle(config: PackageTrackerCardConfig): PackageTrackerCardConfig {
+    const { name, ...rest } = config;
+    return name === undefined || rest.title !== undefined ? { ...rest } : { ...rest, title: name };
+}
 
 /** The sensors that carry packages: the tracking integrations write them, whatever they are called. */
 export function trackingEntities(hass: HomeAssistant): string[] {
@@ -76,13 +85,13 @@ function schema(hass: HomeAssistant, text: (key: string) => string) {
             schema: [
                 { name: "show_progress", selector: { boolean: {} } },
                 { name: "show_details", selector: { boolean: {} } },
+                { name: "wrap_text", selector: { boolean: {} } },
                 { name: "show_latest_event", selector: { boolean: {} } },
                 { name: "show_latest_event_message", selector: { boolean: {} } },
                 { name: "show_latest_event_location", selector: { boolean: {} } },
                 { name: "show_origin", selector: { boolean: {} } },
                 { name: "show_destination", selector: { boolean: {} } },
                 { name: "show_pickup", selector: { boolean: {} } },
-                { name: "hide_when_nothing_to_show", selector: { boolean: {} } },
             ],
         },
     ];
@@ -94,7 +103,7 @@ export class PackageTrackerCardEditor extends LitElement {
     @state() private config: PackageTrackerCardConfig = { type: "custom:package-tracker-card", entity: [] };
 
     public setConfig(config: PackageTrackerCardConfig): void {
-        this.config = { ...config };
+        this.config = withTitle(config);
     }
 
     protected render(): TemplateResult | typeof nothing {
