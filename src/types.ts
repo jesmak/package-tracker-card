@@ -59,6 +59,8 @@ export interface Shipment {
     /** Where it is picked up, and the code that collects it. Both need the integration's own setting. */
     pickup_point?: PickupPoint | null;
     pickup_code?: string | null;
+    /** What a QR code for the pickup point holds, when the integration knows the point scans one. */
+    pickup_qr?: string | null;
 }
 
 /** The pickup point of a package, as the tracking integrations write it. */

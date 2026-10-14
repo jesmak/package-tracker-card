@@ -111,6 +111,20 @@ The integration has to send the code too, and most keep it off by default, so sw
 with a keypad on every door, the door comes first, as `17 · 12345678`, and is covered along with the code. A delivered
 or returned package has nothing left to collect, so its code is not shown.
 
+### The QR code
+
+<img src="https://raw.githubusercontent.com/jesmak/package-tracker-card/main/docs/images/qr-light.png#gh-light-mode-only" width="510" alt="A package ready for pickup at a kiosk, its code covered and a QR code button after it">
+<img src="https://raw.githubusercontent.com/jesmak/package-tracker-card/main/docs/images/qr-dark.png#gh-dark-mode-only" width="510" alt="A package ready for pickup at a kiosk, its code covered and a QR code button after it">
+
+Some pickup points scan a QR code instead of having the code typed in. When the integration sends one for a package,
+a button with a QR icon sits after the code. It opens the QR code large enough to scan off a phone's screen, on white
+whatever the theme, with the code under it for a counter that types it in, the pickup point and the deadline. The close
+button, Esc or a click outside it close it.
+
+The button follows `pickup_code`. It is there with `always` and `toggle`, and with `toggle` the code in the list stays
+covered while the QR code is open. With `hidden` there is no button either. Which packages get a QR code is up to the
+integration, which knows which of its pickup points scan one.
+
 ### Size
 
 Without `height` or `max_height` the card is as tall as its packages. With either of them, or with a row count given
@@ -196,6 +210,7 @@ the line that would show it is left out too.
 | `pickup_deadline`    | string | How long it is kept at the pickup point, in ISO 8601. Shown once it can be picked up                              |
 | `pickup_point`       | object | Where it is picked up. `name` and `city` replace the destination, and `compartment`, the door, goes with the code |
 | `pickup_code`        | string | The code that collects it. Shown only as `pickup_code` allows                                                     |
+| `pickup_qr`          | string | What a QR code for the pickup point holds, opened from its button. Shown only as `pickup_code` allows             |
 | `weight`             | number | Kilograms, with `show_details`                                                                                    |
 | `package_count`      | number | How many parcels the shipment has, with `show_details`                                                            |
 | `source`             | string | The service it came from, shown as a chip                                                                         |
@@ -213,8 +228,8 @@ The statuses:
 Delivered and returned packages are finished, and sort below the rest. A date without a time is shown as that day.
 
 The card is forgiving about what it is given. An entry without a `shipment_number` or a `status` is left out, with a
-warning in the browser's console. A field of the wrong type is left out too, except that a `pickup_code` or a
-`compartment` written as a number is taken as text. A status written as text is read as a number, and a status the
+warning in the browser's console. A field of the wrong type is left out too, except that a `pickup_code`, a
+`pickup_qr` or a `compartment` written as a number is taken as text. A status written as text is read as a number, and a status the
 card doesn't know is shown as an exception. A package that two sensors both list is shown once, as the one that moved
 last. An integration that needs more of its own can add keys, and the card ignores what it doesn't know.
 
@@ -259,6 +274,7 @@ whose packages are made up.
 | `src/package-tracker-card.ts` | The card itself                                        |
 | `src/editor.ts`               | The visual editor                                      |
 | `src/packages.ts`             | Reading, checking, sorting and formatting the packages |
+| `src/qr.ts`                   | Drawing the QR code                                    |
 | `src/localize/languages/`     | The card's texts, one JSON file per language           |
 | `tests/`                      | Tests, run with vitest                                 |
 
@@ -267,6 +283,11 @@ whose packages are made up.
 Hey dude! Help me out for a couple of :beers: or a :coffee:!
 
 [![coffee](https://www.buymeacoffee.com/assets/img/custom_images/black_img.png)](https://www.buymeacoffee.com/jesmak)
+
+## Thanks
+
+The QR codes are drawn with [QR Code Generator](https://github.com/kazuhikoarase/qrcode-generator) by Kazuhiko Arase,
+which is bundled into the card under the MIT license, see [LICENSE-qrcode-generator](LICENSE-qrcode-generator).
 
 ## License
 

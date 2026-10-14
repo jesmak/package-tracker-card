@@ -400,6 +400,77 @@ describe("the pickup code", () => {
     });
 });
 
+describe("the QR code", () => {
+    const atCounter: Shipment = {
+        ...WAITING,
+        status: 5,
+        pickup_point: { name: "K-Market Keskusta", city: "TAMPERE" },
+        pickup_code: "582917",
+        pickup_qr: "582917",
+        pickup_deadline: "2026-09-30",
+    };
+
+    const button = (root: ShadowRoot) => root.querySelector(".qr-button") as HTMLButtonElement | null;
+    const dialog = (root: ShadowRoot) => root.querySelector("dialog.qr") as HTMLDialogElement | null;
+
+    it("has a button with the code, whether the code is shown always or when clicked", async () => {
+        for (const setting of ["always", "toggle"] as const) {
+            const root = shadow(await card(hass({ [POSTI]: [atCounter] }), { pickup_code: setting }));
+            expect(button(root)).not.toBeNull();
+        }
+    });
+
+    it("has no button when the code is never shown, the package is finished, or there is no QR code", async () => {
+        const cases: Array<[Shipment, PackageTrackerCardConfig["pickup_code"]]> = [
+            [atCounter, "hidden"],
+            [{ ...atCounter, status: 0 }, "always"],
+            [{ ...atCounter, pickup_qr: null }, "always"],
+        ];
+        for (const [item, setting] of cases) {
+            const root = shadow(await card(hass({ [POSTI]: [item] }), { pickup_code: setting }));
+            expect(button(root)).toBeNull();
+        }
+    });
+
+    it("opens with the code, the place and the deadline, without opening the carrier page", async () => {
+        const openWindow = vi.spyOn(window, "open").mockImplementation(() => null);
+        const element = await card(hass({ [POSTI]: [atCounter] }), { pickup_code: "toggle" });
+        const root = shadow(element);
+        expect(dialog(root)).toBeNull();
+
+        button(root)?.click();
+        await element.updateComplete;
+
+        const open = dialog(root);
+        expect(open?.querySelector(".qr-title")?.textContent).toBe("JJFI0001");
+        expect(open?.querySelector("svg.qr-code path")?.getAttribute("d")).toContain("M4 4h1v1h-1z");
+        expect(open?.querySelector(".qr-number")?.textContent).toBe("582917");
+        expect(open?.textContent).toContain("K-Market Keskusta, TAMPERE");
+        expect(open?.textContent).toContain("Nouda viimeistään");
+        expect(openWindow).not.toHaveBeenCalled();
+        openWindow.mockRestore();
+    });
+
+    it("closes from its button", async () => {
+        const element = await card(hass({ [POSTI]: [atCounter] }), { pickup_code: "always" });
+        const root = shadow(element);
+        button(root)?.click();
+        await element.updateComplete;
+
+        (root.querySelector(".qr-close") as HTMLButtonElement).click();
+        await element.updateComplete;
+        expect(dialog(root)).toBeNull();
+    });
+
+    it("leaves the code covered in the list", async () => {
+        const element = await card(hass({ [POSTI]: [atCounter] }), { pickup_code: "toggle" });
+        const root = shadow(element);
+        button(root)?.click();
+        await element.updateComplete;
+        expect(root.querySelector(".code")?.textContent).toContain("••••");
+    });
+});
+
 describe("the weight and parcels", () => {
     const heavy: Shipment = { ...WAITING, weight: 2.4, package_count: 2 };
 

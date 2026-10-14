@@ -75,6 +75,11 @@ describe("what a sensor writes", () => {
         expect(item?.pickup_point?.compartment).toBe("17");
     });
 
+    it("takes what a QR code holds as text, and leaves out an empty one", () => {
+        expect(shipmentOf({ shipment_number: "JJFI1", status: 5, pickup_qr: 582917 })?.pickup_qr).toBe("582917");
+        expect(shipmentOf({ shipment_number: "JJFI1", status: 5, pickup_qr: "" })?.pickup_qr).toBeUndefined();
+    });
+
     it.each([
         ["a status written as text", "0", 0],
         ["a status the card doesn't know", 9, 7],

@@ -17,6 +17,7 @@ import { trackingEntities, withTitle } from "./editor";
 import type { HomeAssistant } from "./hass";
 import { browserLanguage, translate } from "./localize/localize";
 import { entities, formatDateTime, iconFor, missingEntities, packagesOf, progressOf, sortPackages, trackingUrl } from "./packages";
+import { qrPath } from "./qr";
 import type { PackageTrackerCardConfig, PickupPoint, Shipment } from "./types";
 
 console.info(
@@ -49,6 +50,8 @@ export class PackageTrackerCard extends LitElement {
     @state() private config?: PackageTrackerCardConfig;
     /** The packages whose pickup code has been revealed by clicking it. */
     @state() private revealed = new Set<string>();
+    /** The package whose QR code is open. */
+    @state() private qr?: Shipment;
     private resizeObserver?: ResizeObserver;
     private observed?: HTMLElement;
 
@@ -137,12 +140,17 @@ export class PackageTrackerCard extends LitElement {
                               )
                     }
                 </div>
+                ${this.qrDialog()}
             </ha-card>
         `;
     }
 
     /** The list's edges fade wherever packages are scrolled out of sight, which changes as the list and the card resize. */
-    protected updated(): void {
+    protected updated(changed: PropertyValues): void {
+        // Opened only as the package is chosen, so a redraw while it is closing doesn't open it again.
+        if (changed.has("qr") && this.qr) {
+            this.renderRoot.querySelector<HTMLDialogElement>("dialog.qr")?.showModal();
+        }
         const list = this.renderRoot.querySelector<HTMLElement>(".list") ?? undefined;
         if (list !== this.observed) {
             this.resizeObserver ??= new ResizeObserver((entries) => entries.forEach((entry) => fadeEdges(entry.target as HTMLElement)));
@@ -270,22 +278,45 @@ export class PackageTrackerCard extends LitElement {
     }
 
     /**
-     * The code that collects the package: never, always, or once the field is clicked. At a locker with
-     * a keypad on every door, the door comes first, since the code only opens that one. A finished
-     * package has nothing left to collect.
+     * The code that collects the package, and a button for its QR code when the pickup point scans one. Both
+     * go by `pickup_code`: the code is shown never, always, or once the field is clicked, and the QR code is
+     * behind its button unless the code is never shown. At a locker with a keypad on every door, the door
+     * comes first, since the code only opens that one. A finished package has nothing left to collect.
      */
     private code(item: Shipment): TemplateResult | typeof nothing {
         const setting = this.config?.pickup_code ?? "hidden";
-        if (setting === "hidden" || !item.pickup_code || FINISHED.includes(item.status)) {
+        if (setting === "hidden" || (!item.pickup_code && !item.pickup_qr) || FINISHED.includes(item.status)) {
             return nothing;
         }
+        return html`
+            <span class="pickup">
+                ${item.pickup_code ? this.codeField(item) : nothing}
+                ${
+                    item.pickup_qr
+                        ? html`<button
+                              type="button"
+                              class="qr-button"
+                              title="${this.text("common.show_qr")}"
+                              aria-label="${this.text("common.show_qr")}"
+                              @click=${(event: Event) => this.showQr(event, item)}
+                          >
+                              <ha-icon icon="mdi:qrcode"></ha-icon>
+                          </button>`
+                        : nothing
+                }
+            </span>
+        `;
+    }
+
+    private codeField(item: Shipment): TemplateResult {
+        const setting = this.config?.pickup_code ?? "hidden";
         const shown = setting === "always" || this.revealed.has(item.shipment_number);
         const compartment = item.pickup_point?.compartment;
         const title = !shown ? this.text("common.show_code") : compartment ? `${this.text("common.compartment")} ${compartment}` : "";
         const toggles = setting === "toggle";
         return html`
             <span
-                class="code ${shown ? "" : "covered"}"
+                class="code ${shown ? "" : "covered"} ${toggles ? "toggles" : ""}"
                 title="${title}"
                 role="${toggles ? "button" : nothing}"
                 tabindex="${toggles ? 0 : nothing}"
@@ -297,6 +328,68 @@ export class PackageTrackerCard extends LitElement {
                 <ha-icon icon="mdi:key-variant"></ha-icon>
                 ${shown ? [compartment, item.pickup_code].filter(Boolean).join(" · ") : "••••"}
             </span>
+        `;
+    }
+
+    /** The QR code is its own button, like the code, so the package under it stays put. */
+    private showQr(event: Event, item: Shipment): void {
+        event.stopPropagation();
+        this.qr = item;
+    }
+
+    private closeQr(): void {
+        this.renderRoot.querySelector<HTMLDialogElement>("dialog.qr")?.close();
+        this.qr = undefined;
+    }
+
+    /**
+     * The QR code large enough to scan off the screen, with the code under it for a counter that types it in.
+     * A modal dialog of the card's own, in the browser's top layer, so no card or view around it can clip it.
+     * Esc, the close button and a click outside it close it.
+     */
+    private qrDialog(): TemplateResult | typeof nothing {
+        const item = this.qr;
+        if (!item?.pickup_qr) {
+            return nothing;
+        }
+        const { size, path } = qrPath(item.pickup_qr);
+        const place = placeOf(item.pickup_point) || item.destination || item.destination_city;
+        const deadline = AT_PICKUP_POINT.includes(item.status) ? item.pickup_deadline : undefined;
+        return html`
+            <dialog
+                class="qr"
+                aria-labelledby="qr-title"
+                @close=${() => (this.qr = undefined)}
+                @click=${(event: Event) => event.target === event.currentTarget && this.closeQr()}
+            >
+                <div class="qr-content">
+                    <div class="qr-header">
+                        <span id="qr-title" class="qr-title">${item.shipment_number}</span>
+                        <button
+                            type="button"
+                            class="qr-close"
+                            title="${this.text("common.close")}"
+                            aria-label="${this.text("common.close")}"
+                            @click=${() => this.closeQr()}
+                        >
+                            <ha-icon icon="mdi:close"></ha-icon>
+                        </button>
+                    </div>
+                    <svg
+                        class="qr-code"
+                        viewBox="0 0 ${size} ${size}"
+                        shape-rendering="crispEdges"
+                        role="img"
+                        aria-label="${this.text("common.qr_code")}"
+                    >
+                        <rect width="${size}" height="${size}" fill="#fff"></rect>
+                        <path d="${path}" fill="#000"></path>
+                    </svg>
+                    ${item.pickup_code ? html`<div class="qr-number">${item.pickup_code}</div>` : nothing}
+                    ${place ? html`<div class="qr-detail">${place}</div>` : nothing}
+                    ${deadline ? html`<div class="qr-detail">${this.text("common.pickup_by")} ${formatDateTime(deadline)}</div>` : nothing}
+                </div>
+            </dialog>
         `;
     }
 
@@ -441,7 +534,8 @@ export class PackageTrackerCard extends LitElement {
 
             /* Reached by keyboard, the number and the code show where the focus is, inside their edges so the scrolling list doesn't clip it. */
             .number:focus-visible,
-            .code:focus-visible {
+            .code:focus-visible,
+            .qr-button:focus-visible {
                 outline: 2px solid var(--primary-color);
                 outline-offset: -2px;
             }
@@ -535,10 +629,17 @@ export class PackageTrackerCard extends LitElement {
                 justify-content: center;
             }
 
-            /* The code sits at the end of the pickup line, covered until it is asked for. */
-            .code {
+            /* The code and its QR button sit at the end of the pickup line, the code covered until it is asked for. */
+            .pickup {
                 margin-left: auto;
                 flex: 0 0 auto;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+            }
+
+            .code {
+                cursor: default;
                 display: inline-flex;
                 align-items: center;
                 gap: 2px;
@@ -552,13 +653,133 @@ export class PackageTrackerCard extends LitElement {
                 height: 14px;
             }
 
-            .code.covered {
+            /* A code that covers again when clicked shows it can be clicked, one shown always doesn't. */
+            .code.toggles {
                 cursor: pointer;
+            }
+
+            .code.covered {
                 opacity: 0.7;
             }
 
             .code.covered:hover {
                 opacity: 1;
+            }
+
+            /* A bit taller than the line, without making it taller, so it is easier to hit. */
+            .qr-button {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 28px;
+                height: 20px;
+                margin: -2px 0;
+                padding: 0;
+                /* Not the divider colour, which is also the highlight of a package under the pointer. */
+                border: 1px solid var(--secondary-text-color, currentColor);
+                border-radius: 4px;
+                background: none;
+                color: var(--primary-text-color);
+                cursor: pointer;
+            }
+
+            .qr-button:hover {
+                background: var(--secondary-background-color, transparent);
+            }
+
+            .qr-button ha-icon {
+                --mdc-icon-size: 14px;
+                width: 14px;
+                height: 14px;
+            }
+
+            dialog.qr {
+                box-sizing: border-box;
+                width: min(384px, calc(100vw - 32px));
+                max-height: calc(100vh - 32px);
+                padding: 0;
+                border: 0;
+                border-radius: var(--ha-dialog-border-radius, 24px);
+                background: var(--ha-dialog-surface-background, var(--card-background-color, #fff));
+                color: var(--primary-text-color);
+                box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+            }
+
+            dialog.qr::backdrop {
+                background: rgba(0, 0, 0, 0.6);
+            }
+
+            .qr-content {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                padding: 12px 24px 24px 24px;
+            }
+
+            /* The number is centred over the code, with room left on both sides for the close button. */
+            .qr-header {
+                position: relative;
+                align-self: stretch;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 44px;
+                padding: 0 44px;
+                margin-bottom: 12px;
+            }
+
+            .qr-title {
+                font-size: 20px;
+                font-weight: 500;
+                text-align: center;
+                overflow-wrap: anywhere;
+            }
+
+            .qr-close {
+                position: absolute;
+                top: 0;
+                right: -12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 44px;
+                height: 44px;
+                padding: 0;
+                border: 0;
+                border-radius: 50%;
+                background: none;
+                color: inherit;
+                cursor: pointer;
+            }
+
+            .qr-close:hover {
+                background: var(--divider-color, transparent);
+            }
+
+            /* White around the code whatever the theme, as scanners need it. */
+            .qr-code {
+                display: block;
+                width: 248px;
+                max-width: 100%;
+                height: auto;
+                border-radius: 12px;
+            }
+
+            .qr-number {
+                margin-top: 16px;
+                font-size: 36px;
+                font-weight: 700;
+                font-variant-numeric: tabular-nums;
+                letter-spacing: 0.08em;
+                text-align: center;
+                overflow-wrap: anywhere;
+            }
+
+            .qr-detail {
+                margin-top: 4px;
+                font-size: 14px;
+                color: var(--secondary-text-color);
+                text-align: center;
             }
 
             /* Long texts are cut short, or wrap in full with wrap_text. */

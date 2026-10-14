@@ -9,6 +9,9 @@
         "estimated": "Estimated",
         "show_code": "Show the pickup code",
         "compartment": "Compartment",
+        "show_qr": "Show the QR code",
+        "qr_code": "QR code",
+        "close": "Close",
         "parcels": "parcels"
     },
     "statuses": {

@@ -99,6 +99,7 @@ export function shipmentOf(raw: unknown): Shipment | undefined {
         }
     }
     item.pickup_code = textOf(raw.pickup_code);
+    item.pickup_qr = textOf(raw.pickup_qr);
     if (isRecord(raw.pickup_point)) {
         const point: Record<string, unknown> = { compartment: textOf(raw.pickup_point.compartment) };
         for (const key of POINT_TEXTS) {

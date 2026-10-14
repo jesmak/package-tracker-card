@@ -53,6 +53,7 @@
                             "type": "NOUTOPISTE"
                         },
                         "pickup_code": "73X9QK",
+                        "pickup_qr": "73X9QK",
                         "source": "Posti",
                         "tracking_url": "https://www.example.com/track/JJFI0001000000000002"
                     },
@@ -119,6 +120,48 @@
                 "max_events": 1,
                 "pickup_code": "always",
                 "show_details": true
+            }
+        },
+        {
+            "name": "qr",
+            "width": 500,
+            "states": {
+                "sensor.example_posti_counter": {
+                    "state": "2026-10-14T07:55:00+00:00",
+                    "attributes": {
+                        "friendly_name": "Posti",
+                        "packages": [
+                            {
+                                "shipment_number": "JJFI0001000000000005",
+                                "shipment_date": "2026-10-11T09:30:00+00:00",
+                                "status": 5,
+                                "raw_status": "READY_FOR_PICKUP",
+                                "origin": "Example Garden Supplies",
+                                "origin_city": "KUOPIO",
+                                "destination": "Matti Meikäläinen",
+                                "destination_city": "TAMPERE",
+                                "latest_event": "The shipment can be picked up",
+                                "latest_event_city": "TAMPERE",
+                                "latest_event_date": "2026-10-14T07:55:00+00:00",
+                                "pickup_deadline": "2026-10-28T21:00:00+00:00",
+                                "pickup_point": {
+                                    "name": "Example Kiosk Kaleva",
+                                    "city": "Tampere",
+                                    "type": "NOUTOPISTE"
+                                },
+                                "pickup_code": "640275",
+                                "pickup_qr": "640275",
+                                "source": "Posti",
+                                "tracking_url": "https://www.example.com/track/JJFI0001000000000005"
+                            }
+                        ]
+                    }
+                }
+            },
+            "card": {
+                "type": "custom:package-tracker-card",
+                "entity": "sensor.example_posti_counter",
+                "pickup_code": "toggle"
             }
         }
     ]

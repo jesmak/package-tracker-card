@@ -58,7 +58,7 @@ await build({
     minify: false,
     legalComments: "none",
     banner: {
-        js: `/*! ${packageJson.name} ${packageJson.version} | MIT License */`,
+        js: `/*! ${packageJson.name} ${packageJson.version} | MIT License | includes QR Code Generator, Copyright (c) 2009 Kazuhiko Arase, MIT License */`,
     },
     define: {
         __CARD_VERSION__: JSON.stringify(packageJson.version),

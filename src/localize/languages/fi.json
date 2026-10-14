@@ -9,6 +9,9 @@
         "estimated": "Arvio",
         "show_code": "Näytä noutokoodi",
         "compartment": "Lokero",
+        "show_qr": "Näytä QR-koodi",
+        "qr_code": "QR-koodi",
+        "close": "Sulje",
         "parcels": "kollia"
     },
     "statuses": {
