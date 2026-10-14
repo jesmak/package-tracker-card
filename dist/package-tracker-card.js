@@ -1,4 +1,4 @@
-/*! package-tracker-card 2.2.0 | MIT License | includes QR Code Generator, Copyright (c) 2009 Kazuhiko Arase, MIT License */
+/*! package-tracker-card 2.3.0 | MIT License | includes QR Code Generator, Copyright (c) 2009 Kazuhiko Arase, MIT License */
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __decorateClass = (decorators, target, key, kind) => {
@@ -711,7 +711,7 @@ var c4 = e5(class extends i5 {
 });
 
 // src/const.ts
-var CARD_VERSION = "2.2.0";
+var CARD_VERSION = "2.3.0";
 var DELIVERED = 0;
 var WAITING = 1;
 var RECEIVED = 2;
@@ -720,6 +720,7 @@ var IN_DELIVERY = 4;
 var READY_FOR_PICKUP = 5;
 var RETURNED = 6;
 var UNKNOWN = 7;
+var STATUSES = [WAITING, RECEIVED, IN_TRANSPORT, IN_DELIVERY, READY_FOR_PICKUP, DELIVERED, RETURNED, UNKNOWN];
 var AT_PICKUP_POINT = [READY_FOR_PICKUP, DELIVERED, RETURNED];
 var FINISHED = [DELIVERED, RETURNED];
 var PROGRESS = {
@@ -764,6 +765,8 @@ var en_default = {
     entity: "Tracked accounts",
     entity_helper: "The accounts whose packages are shown. Packages from several are listed together.",
     title: "Title",
+    statuses: "Statuses to show",
+    statuses_helper: "Only packages with one of these statuses are listed. With none chosen, all of them are.",
     max_events: "Most packages to show",
     height: "Height",
     height_helper: "A fixed height in pixels. Leave the field empty and the card's height follows the number of packages.",
@@ -786,7 +789,12 @@ var en_default = {
     pickup_code_helper: "The code the package can be picked up with. It must be turned on in the integration's settings too.",
     pickup_code_hidden: "Never shown",
     pickup_code_always: "Always shown",
-    pickup_code_toggle: "Revealed when clicked"
+    pickup_code_toggle: "Revealed when clicked",
+    tracking_link: "Package tracking",
+    tracking_link_helper: "A click on what opens the official package tracking page.",
+    tracking_link_row: "The whole tile",
+    tracking_link_number: "The shipment number",
+    tracking_link_none: "Nothing"
   }
 };
 
@@ -821,6 +829,8 @@ var fi_default = {
     entity: "Seurattavat tilit",
     entity_helper: "Tilit, joiden paketit n\xE4ytet\xE4\xE4n. Useamman tilin paketit listataan yhdess\xE4.",
     title: "Otsikko",
+    statuses: "N\xE4ytett\xE4v\xE4t tilat",
+    statuses_helper: "Listalla n\xE4ytet\xE4\xE4n vain paketit, joilla on jokin n\xE4ist\xE4 tiloista. Jos mit\xE4\xE4n ei ole valittu, n\xE4ytet\xE4\xE4n kaikki.",
     max_events: "N\xE4ytett\xE4vi\xE4 paketteja enint\xE4\xE4n",
     height: "Korkeus",
     height_helper: "Kiinte\xE4 korkeus pikselein\xE4. J\xE4t\xE4 kentt\xE4 tyhj\xE4ksi, niin kortin korkeus mukautuu pakettien m\xE4\xE4r\xE4\xE4n.",
@@ -843,7 +853,12 @@ var fi_default = {
     pickup_code_helper: "Koodi, jolla paketin voi noutaa. Oltava p\xE4\xE4ll\xE4 my\xF6s integraation asetuksissa.",
     pickup_code_hidden: "Ei n\xE4ytet\xE4",
     pickup_code_always: "N\xE4ytet\xE4\xE4n aina",
-    pickup_code_toggle: "Paljastuu napsauttamalla"
+    pickup_code_toggle: "Paljastuu napsauttamalla",
+    tracking_link: "L\xE4hetyksen seuranta",
+    tracking_link_helper: "Mist\xE4 napsauttamalla virallinen l\xE4hetyksen seuranta avautuu.",
+    tracking_link_row: "Koko laatikosta",
+    tracking_link_number: "L\xE4hetystunnuksesta",
+    tracking_link_none: "Ei mist\xE4\xE4n"
   }
 };
 
@@ -878,6 +893,7 @@ var DEFAULTS = {
   show_details: false,
   wrap_text: false,
   pickup_code: "hidden",
+  tracking_link: "row",
   show_latest_event: true,
   show_latest_event_message: true,
   show_latest_event_location: true,
@@ -899,6 +915,16 @@ function schema(hass, text) {
       selector: { entity: { multiple: true, include_entities: trackingEntities(hass) } }
     },
     { name: "title", selector: { text: {} } },
+    {
+      name: "statuses",
+      selector: {
+        select: {
+          multiple: true,
+          mode: "list",
+          options: STATUSES.map((status) => ({ value: String(status), label: text(`statuses.${status}`) }))
+        }
+      }
+    },
     {
       type: "grid",
       name: "",
@@ -923,6 +949,19 @@ function schema(hass, text) {
             { value: "hidden", label: text("editor.pickup_code_hidden") },
             { value: "always", label: text("editor.pickup_code_always") },
             { value: "toggle", label: text("editor.pickup_code_toggle") }
+          ]
+        }
+      }
+    },
+    {
+      name: "tracking_link",
+      selector: {
+        select: {
+          mode: "dropdown",
+          options: [
+            { value: "row", label: text("editor.tracking_link_row") },
+            { value: "number", label: text("editor.tracking_link_number") },
+            { value: "none", label: text("editor.tracking_link_none") }
           ]
         }
       }
@@ -957,10 +996,11 @@ var PackageTrackerCardEditor = class extends i4 {
       return A;
     }
     const entity = typeof this.config.entity === "string" ? [this.config.entity] : this.config.entity;
+    const statuses = (this.config.statuses?.length ? this.config.statuses : STATUSES).map(String);
     return b2`
             <ha-form
                 .hass=${this.hass}
-                .data=${{ ...DEFAULTS, ...this.config, entity }}
+                .data=${{ ...DEFAULTS, ...this.config, entity, statuses }}
                 .schema=${schema(this.hass, (key) => this.text(key))}
                 .computeLabel=${(entry) => this.text(`editor.${entry.name}`)}
                 .computeHelper=${(entry) => this.helper(entry.name)}
@@ -970,6 +1010,13 @@ var PackageTrackerCardEditor = class extends i4 {
   }
   valueChanged(event) {
     const config = { ...event.detail.value };
+    const chosen = (config.statuses ?? []).map(Number);
+    const statuses = STATUSES.filter((status) => chosen.includes(status));
+    if (statuses.length === 0 || statuses.length === STATUSES.length) {
+      delete config.statuses;
+    } else {
+      config.statuses = statuses;
+    }
     for (const key of ["max_events", "height", "max_height", "title"]) {
       const value = config[key];
       if (value === void 0 || value === null || String(value) === "") {
@@ -1108,6 +1155,9 @@ function isRecord(value) {
 }
 function missingEntities(hass, entity) {
   return entities(entity).filter((id) => hass.states[id] === void 0);
+}
+function withStatuses(packages, statuses) {
+  return statuses && statuses.length > 0 ? packages.filter((item) => statuses.includes(item.status)) : packages;
 }
 function sortPackages(packages) {
   return [...packages].sort((one, other) => {
@@ -2836,13 +2886,15 @@ var PackageTrackerCard = class extends i4 {
   setConfig(config) {
     const noEntity = !config || !config.entity || Array.isArray(config.entity) && config.entity.length === 0;
     const badCount = config?.max_events != null && !(Number.isInteger(config.max_events) && config.max_events > 0);
-    if (noEntity || badCount) {
+    const badStatuses = config?.statuses != null && !(Array.isArray(config.statuses) && config.statuses.every((status) => STATUSES.includes(status)));
+    const badLink = config?.tracking_link != null && !["row", "number", "none"].includes(config.tracking_link);
+    if (noEntity || badCount || badStatuses || badLink) {
       throw new Error(translate(browserLanguage(), "common.invalid_configuration"));
     }
     this.config = withTitle(config);
   }
   getCardSize() {
-    const packages = this.hass && this.config ? packagesOf(this.hass, this.config.entity) : [];
+    const packages = this.hass && this.config ? withStatuses(packagesOf(this.hass, this.config.entity), this.config.statuses) : [];
     return 1 + Math.min(packages.length, this.config?.max_events ?? packages.length) * 2;
   }
   getGridOptions() {
@@ -2878,7 +2930,7 @@ var PackageTrackerCard = class extends i4 {
     if (missing.length === entities(this.config.entity).length) {
       return b2`<ha-card><div class="message">${this.text("common.no_entity")} ${missing.join(", ")}</div></ha-card>`;
     }
-    let packages = sortPackages(packagesOf(this.hass, this.config.entity));
+    let packages = sortPackages(withStatuses(packagesOf(this.hass, this.config.entity), this.config.statuses));
     if (this.config.max_events != null && this.config.max_events < packages.length) {
       packages = packages.slice(0, this.config.max_events);
     }
@@ -2923,16 +2975,24 @@ var PackageTrackerCard = class extends i4 {
   shipment(item) {
     const moving = !FINISHED.includes(item.status);
     const message = this.config?.show_latest_event_message !== false && moving && !!item.latest_event;
-    const url = trackingUrl(item);
+    const link = this.config?.tracking_link ?? "row";
+    const url = link === "none" ? void 0 : trackingUrl(item);
+    const row = link === "row" && !!url;
     const sender = item.origin || item.origin_city;
     return b2`
-            <div class="item status-${item.status} ${url ? "clickable" : ""}" title="${url ?? ""}" @click=${() => this.openTracking(url)}>
+            <div
+                class="item status-${item.status} ${row ? "clickable" : ""}"
+                title="${row ? url : ""}"
+                @click=${() => row && this.openTracking(url)}
+            >
                 <div class="line">
                     <ha-icon icon="${iconFor(item.status)}"></ha-icon>
                     <span
-                        class="number"
+                        class="number ${url && !row ? "link" : ""}"
+                        title="${url && !row ? url : A}"
                         role="${url ? "link" : A}"
                         tabindex="${url ? 0 : A}"
+                        @click=${() => !row && this.openTracking(url)}
                         @keydown=${(event) => activate(event, () => this.openTracking(url))}
                         >${item.shipment_number}</span
                     >
@@ -3232,6 +3292,23 @@ var PackageTrackerCard = class extends i4 {
 
             .item.clickable:hover {
                 background: var(--divider-color, var(--secondary-background-color));
+            }
+
+            /* The bar's track and the source's border are the hover's colour, so on a hovered package they take the resting one. */
+            .item.clickable:hover .track {
+                background: var(--secondary-background-color, #f5f5f5);
+            }
+
+            .item.clickable:hover .source {
+                border-color: var(--secondary-background-color, var(--secondary-text-color));
+            }
+
+            .number.link {
+                cursor: pointer;
+            }
+
+            .number.link:hover {
+                text-decoration: underline;
             }
 
             /* Reached by keyboard, the number and the code show where the focus is, inside their edges so the scrolling list doesn't clip it. */

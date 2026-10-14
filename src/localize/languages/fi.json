@@ -28,6 +28,8 @@
         "entity": "Seurattavat tilit",
         "entity_helper": "Tilit, joiden paketit näytetään. Useamman tilin paketit listataan yhdessä.",
         "title": "Otsikko",
+        "statuses": "Näytettävät tilat",
+        "statuses_helper": "Listalla näytetään vain paketit, joilla on jokin näistä tiloista. Jos mitään ei ole valittu, näytetään kaikki.",
         "max_events": "Näytettäviä paketteja enintään",
         "height": "Korkeus",
         "height_helper": "Kiinteä korkeus pikseleinä. Jätä kenttä tyhjäksi, niin kortin korkeus mukautuu pakettien määrään.",
@@ -50,6 +52,11 @@
         "pickup_code_helper": "Koodi, jolla paketin voi noutaa. Oltava päällä myös integraation asetuksissa.",
         "pickup_code_hidden": "Ei näytetä",
         "pickup_code_always": "Näytetään aina",
-        "pickup_code_toggle": "Paljastuu napsauttamalla"
+        "pickup_code_toggle": "Paljastuu napsauttamalla",
+        "tracking_link": "Lähetyksen seuranta",
+        "tracking_link_helper": "Mistä napsauttamalla virallinen lähetyksen seuranta avautuu.",
+        "tracking_link_row": "Koko laatikosta",
+        "tracking_link_number": "Lähetystunnuksesta",
+        "tracking_link_none": "Ei mistään"
     }
 }

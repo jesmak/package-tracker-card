@@ -3,12 +3,17 @@ import type { LovelaceCardConfig } from "./hass";
 /** `hidden` never shows the code, `always` shows it, `toggle` reveals it when clicked. */
 export type PickupCode = "hidden" | "always" | "toggle";
 
+/** What a click opens the carrier's page from: anywhere on the package, its number only, or nowhere. */
+export type TrackingLink = "row" | "number" | "none";
+
 export interface PackageTrackerCardConfig extends LovelaceCardConfig {
     /** One sensor of a tracking integration, or several whose packages are shown together. */
     entity: string | string[];
     /** Shown at the top of the card. `name`, as older versions documented it, is read as the title. */
     title?: string;
     name?: string;
+    /** Only packages with these statuses are listed. Left out or empty, every status is. */
+    statuses?: number[];
     /** At most this many packages are listed. */
     max_events?: number;
     /** A fixed height for the card, in pixels. The list scrolls inside it. */
@@ -24,6 +29,7 @@ export interface PackageTrackerCardConfig extends LovelaceCardConfig {
     wrap_text?: boolean;
     /** `hidden`, `always`, or `toggle` for a field that reveals the code when clicked. */
     pickup_code?: PickupCode;
+    tracking_link?: TrackingLink;
     show_origin?: boolean;
     show_destination?: boolean;
     show_latest_event?: boolean;

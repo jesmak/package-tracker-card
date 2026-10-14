@@ -134,6 +134,11 @@ export function missingEntities(hass: HomeAssistant, entity: string | string[]):
     return entities(entity).filter((id) => hass.states[id] === undefined);
 }
 
+/** The packages with one of `statuses`, or all of them when no statuses are given. */
+export function withStatuses(packages: Shipment[], statuses: number[] | undefined): Shipment[] {
+    return statuses && statuses.length > 0 ? packages.filter((item) => statuses.includes(item.status)) : packages;
+}
+
 /** Packages still on their way come first, and the most recently moved of them at the top. */
 export function sortPackages(packages: Shipment[]): Shipment[] {
     return [...packages].sort((one, other) => {

@@ -15,7 +15,7 @@ Home Assistant dashboard card that lists the packages coming to you, from any pa
 
 A custom card that shows the packages on their way to you, how far each one has got, and what happened to it last and
 when. Packages still moving are listed first, with the most recently moved at the top, and finished ones fall to the
-bottom. Clicking a package opens the carrier's own tracking page for it.
+bottom. Clicking a package, or only its number if you prefer, opens the carrier's own tracking page for it.
 
 The card doesn't know any carrier. It reads a sensor's `packages` attribute, so any integration that writes its
 packages in the [package format](#data) works, and one card can list packages from several of them together. These
@@ -55,6 +55,7 @@ hand.
 | `type`                       | string         | **Required.** `custom:package-tracker-card`                      |                      |
 | `entity`                     | string or list | **Required.** The sensor, or sensors, whose packages are listed  |                      |
 | `title`                      | string         | Shown at the top of the card                                     |                      |
+| `statuses`                   | list           | List only the packages with these [statuses](#data)              | all                  |
 | `max_events`                 | number         | List at most this many packages. A whole number above 0          | all                  |
 | `height`                     | number         | A fixed height in pixels. The packages scroll inside it          | follows the packages |
 | `max_height`                 | number         | A height the card never grows past, in pixels                    | none                 |
@@ -68,6 +69,7 @@ hand.
 | `show_details`               | boolean        | Show the weight and how many parcels the shipment has            | `false`              |
 | `wrap_text`                  | boolean        | Wrap long texts over several lines instead of cutting them short | `false`              |
 | `pickup_code`                | string         | `hidden`, `always`, or `toggle` to reveal it when clicked        | `hidden`             |
+| `tracking_link`              | string         | `row`, `number`, or `none`, what opens the tracking page         | `row`                |
 
 A line is left out when the package has nothing to put on it, so a package without a known place for its latest event
 simply shows one line fewer. A sensor that isn't there is passed over, and the card says so if none of them are.
@@ -81,8 +83,17 @@ wrong. Beside it are the status and the moment it last changed.
 Under that are the lines you have left on. They say what the carrier last said, where that happened, who sent it and
 where it is going. A chip names the service the package came from, which matters when one card lists several.
 
-Clicking a package, or pressing Enter on it, opens the tracking page its integration gives for it. A package without
-one isn't clickable.
+Clicking a package, or pressing Enter on its number, opens the tracking page its integration gives for it. A package
+without one isn't clickable.
+
+| `tracking_link` | What opens the page                                                        |
+| --------------- | -------------------------------------------------------------------------- |
+| `row`           | A click anywhere on the package                                            |
+| `number`        | A click on the shipment number only, so a stray tap elsewhere does nothing |
+| `none`          | Nothing. The packages are not links at all                                 |
+
+`statuses` lists only the packages with one of the statuses given, which makes room for a card of its own for the
+packages waiting to be picked up. `max_events` counts only the packages that are left.
 
 ### The destination line
 
@@ -159,6 +170,17 @@ height: 300
 show_latest_event_message: false
 show_latest_event_location: false
 show_origin: false
+```
+
+A card of its own for the packages ready for pickup, opened only from their numbers:
+
+```yaml
+type: custom:package-tracker-card
+title: Ready for pickup
+entity: sensor.posti_matti_meikalainen_example_com
+statuses: [5]
+tracking_link: number
+pickup_code: toggle
 ```
 
 To show the card only while something is on its way or waiting for pickup, use Home Assistant's own visibility

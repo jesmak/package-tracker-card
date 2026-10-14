@@ -5,18 +5,28 @@
  * ones last.
  *
  * Each package is one row: where it has got to, as a bar, and the latest thing
- * that happened to it. Clicking it opens the carrier's own page for it.
+ * that happened to it. Clicking it, or only its number, opens the carrier's own page for it.
  */
 import { LitElement, css, html, nothing } from "lit";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { repeat } from "lit/directives/repeat.js";
 
-import { AT_PICKUP_POINT, CARD_VERSION, FINISHED } from "./const";
+import { AT_PICKUP_POINT, CARD_VERSION, FINISHED, STATUSES } from "./const";
 import { trackingEntities, withTitle } from "./editor";
 import type { HomeAssistant } from "./hass";
 import { browserLanguage, translate } from "./localize/localize";
-import { entities, formatDateTime, iconFor, missingEntities, packagesOf, progressOf, sortPackages, trackingUrl } from "./packages";
+import {
+    entities,
+    formatDateTime,
+    iconFor,
+    missingEntities,
+    packagesOf,
+    progressOf,
+    sortPackages,
+    trackingUrl,
+    withStatuses,
+} from "./packages";
 import { qrPath } from "./qr";
 import type { PackageTrackerCardConfig, PickupPoint, Shipment } from "./types";
 
@@ -68,14 +78,17 @@ export class PackageTrackerCard extends LitElement {
         const noEntity = !config || !config.entity || (Array.isArray(config.entity) && config.entity.length === 0);
         // An empty `max_events:` in YAML is null, which means no limit, as leaving it out does.
         const badCount = config?.max_events != null && !(Number.isInteger(config.max_events) && config.max_events > 0);
-        if (noEntity || badCount) {
+        const badStatuses =
+            config?.statuses != null && !(Array.isArray(config.statuses) && config.statuses.every((status) => STATUSES.includes(status)));
+        const badLink = config?.tracking_link != null && !["row", "number", "none"].includes(config.tracking_link);
+        if (noEntity || badCount || badStatuses || badLink) {
             throw new Error(translate(browserLanguage(), "common.invalid_configuration"));
         }
         this.config = withTitle(config);
     }
 
     public getCardSize(): number {
-        const packages = this.hass && this.config ? packagesOf(this.hass, this.config.entity) : [];
+        const packages = this.hass && this.config ? withStatuses(packagesOf(this.hass, this.config.entity), this.config.statuses) : [];
         return 1 + Math.min(packages.length, this.config?.max_events ?? packages.length) * 2;
     }
 
@@ -119,7 +132,7 @@ export class PackageTrackerCard extends LitElement {
             return html`<ha-card><div class="message">${this.text("common.no_entity")} ${missing.join(", ")}</div></ha-card>`;
         }
 
-        let packages = sortPackages(packagesOf(this.hass, this.config.entity));
+        let packages = sortPackages(withStatuses(packagesOf(this.hass, this.config.entity), this.config.statuses));
         if (this.config.max_events != null && this.config.max_events < packages.length) {
             packages = packages.slice(0, this.config.max_events);
         }
@@ -176,19 +189,27 @@ export class PackageTrackerCard extends LitElement {
         // The code goes with the message that says the package can be collected; without that row
         // it rides along with the place it is collected from.
         const message = this.config?.show_latest_event_message !== false && moving && !!item.latest_event;
-        const url = trackingUrl(item);
+        const link = this.config?.tracking_link ?? "row";
+        const url = link === "none" ? undefined : trackingUrl(item);
+        const row = link === "row" && !!url;
         // The date it was sent belongs to the sender, and says nothing on its own.
         const sender = item.origin || item.origin_city;
-        // A click anywhere on the package opens its page. For the keyboard and screen readers the number is the link,
-        // so that the code's button sits beside it rather than inside it.
+        // A click anywhere on the package opens its page, or only a click on its number. For the keyboard and screen
+        // readers the number is the link either way, so that the code's button sits beside it rather than inside it.
         return html`
-            <div class="item status-${item.status} ${url ? "clickable" : ""}" title="${url ?? ""}" @click=${() => this.openTracking(url)}>
+            <div
+                class="item status-${item.status} ${row ? "clickable" : ""}"
+                title="${row ? url : ""}"
+                @click=${() => row && this.openTracking(url)}
+            >
                 <div class="line">
                     <ha-icon icon="${iconFor(item.status)}"></ha-icon>
                     <span
-                        class="number"
+                        class="number ${url && !row ? "link" : ""}"
+                        title="${url && !row ? url : nothing}"
                         role="${url ? "link" : nothing}"
                         tabindex="${url ? 0 : nothing}"
+                        @click=${() => !row && this.openTracking(url)}
                         @keydown=${(event: KeyboardEvent) => activate(event, () => this.openTracking(url))}
                         >${item.shipment_number}</span
                     >
@@ -530,6 +551,23 @@ export class PackageTrackerCard extends LitElement {
 
             .item.clickable:hover {
                 background: var(--divider-color, var(--secondary-background-color));
+            }
+
+            /* The bar's track and the source's border are the hover's colour, so on a hovered package they take the resting one. */
+            .item.clickable:hover .track {
+                background: var(--secondary-background-color, #f5f5f5);
+            }
+
+            .item.clickable:hover .source {
+                border-color: var(--secondary-background-color, var(--secondary-text-color));
+            }
+
+            .number.link {
+                cursor: pointer;
+            }
+
+            .number.link:hover {
+                text-decoration: underline;
             }
 
             /* Reached by keyboard, the number and the code show where the focus is, inside their edges so the scrolling list doesn't clip it. */

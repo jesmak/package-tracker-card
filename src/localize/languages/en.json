@@ -28,6 +28,8 @@
         "entity": "Tracked accounts",
         "entity_helper": "The accounts whose packages are shown. Packages from several are listed together.",
         "title": "Title",
+        "statuses": "Statuses to show",
+        "statuses_helper": "Only packages with one of these statuses are listed. With none chosen, all of them are.",
         "max_events": "Most packages to show",
         "height": "Height",
         "height_helper": "A fixed height in pixels. Leave the field empty and the card's height follows the number of packages.",
@@ -50,6 +52,11 @@
         "pickup_code_helper": "The code the package can be picked up with. It must be turned on in the integration's settings too.",
         "pickup_code_hidden": "Never shown",
         "pickup_code_always": "Always shown",
-        "pickup_code_toggle": "Revealed when clicked"
+        "pickup_code_toggle": "Revealed when clicked",
+        "tracking_link": "Package tracking",
+        "tracking_link_helper": "A click on what opens the official package tracking page.",
+        "tracking_link_row": "The whole tile",
+        "tracking_link_number": "The shipment number",
+        "tracking_link_none": "Nothing"
     }
 }

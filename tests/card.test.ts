@@ -90,6 +90,37 @@ describe("the list of packages", () => {
         expect(root.querySelectorAll(".item")).toHaveLength(2);
     });
 
+    it("lists only the statuses asked for, before counting them against max_events", async () => {
+        const packages = [
+            { ...WAITING, shipment_number: "P1", status: 5 },
+            { ...WAITING, shipment_number: "P2", status: 3 },
+            { ...WAITING, shipment_number: "P3", status: 5 },
+            { ...WAITING, shipment_number: "P4", status: 5 },
+        ];
+        const root = shadow(await card(hass({ [POSTI]: packages }), { statuses: [5], max_events: 2 }));
+        const numbers = [...root.querySelectorAll(".number")].map((number) => number.textContent);
+        expect(numbers).toHaveLength(2);
+        expect(numbers).not.toContain("P2");
+    });
+
+    it.each([
+        ["statuses", { statuses: null }],
+        ["tracking_link", { tracking_link: null }],
+    ])("takes an empty %s as the default", async (_what, config) => {
+        const root = shadow(await card(hass(), config as never));
+        expect(root.querySelectorAll(".item.clickable")).toHaveLength(1);
+    });
+
+    it("lists every status when the list of them is empty", async () => {
+        const root = shadow(await card(hass(), { statuses: [] }));
+        expect(root.querySelectorAll(".item")).toHaveLength(1);
+    });
+
+    it("says there is nothing to track when no package has the statuses asked for", async () => {
+        const root = shadow(await card(hass(), { statuses: [5] }));
+        expect(root.querySelector(".no-packages")).not.toBeNull();
+    });
+
     it("leaves out a line the configuration hides", async () => {
         const root = shadow(await card(hass(), { show_destination: false }));
         expect(root.textContent).not.toContain("Postin automaatti");
@@ -135,6 +166,16 @@ describe("when the configuration is wrong", () => {
     it.each([0, -1, 2.5])("refuses %s packages at most", (count) => {
         const element = document.createElement("package-tracker-card") as PackageTrackerCard;
         expect(() => element.setConfig({ type: "custom:package-tracker-card", entity: POSTI, max_events: count } as never)).toThrow();
+    });
+
+    it.each([
+        ["a status that isn't one", { statuses: [8] }],
+        ["a status as text", { statuses: ["5"] }],
+        ["statuses that aren't a list", { statuses: 5 }],
+        ["an unknown tracking link", { tracking_link: "title" }],
+    ])("refuses %s", (_what, config) => {
+        const element = document.createElement("package-tracker-card") as PackageTrackerCard;
+        expect(() => element.setConfig({ type: "custom:package-tracker-card", entity: POSTI, ...config } as never)).toThrow();
     });
 
     it("says which entity is missing instead of throwing", async () => {
@@ -212,6 +253,37 @@ describe("opening a package", () => {
 
         expect(item.classList.contains("clickable")).toBe(false);
         item.dispatchEvent(new Event("click"));
+        expect(openWindow).not.toHaveBeenCalled();
+        openWindow.mockRestore();
+    });
+});
+
+describe("the tracking_link setting", () => {
+    it("opens the page from the number only, when asked to", async () => {
+        const openWindow = vi.spyOn(window, "open").mockImplementation(() => null);
+        const root = shadow(await card(hass(), { tracking_link: "number" }));
+        const item = root.querySelector(".item") as HTMLElement;
+
+        expect(item.classList.contains("clickable")).toBe(false);
+        item.dispatchEvent(new Event("click"));
+        expect(openWindow).not.toHaveBeenCalled();
+
+        root.querySelector(".number")?.dispatchEvent(new Event("click", { bubbles: true }));
+        expect(openWindow).toHaveBeenCalledTimes(1);
+        expect(openWindow).toHaveBeenCalledWith("https://carrier.example.com/track/JJFI0001", "_blank", "noopener");
+        openWindow.mockRestore();
+    });
+
+    it("opens nothing, and offers no link, when turned off", async () => {
+        const openWindow = vi.spyOn(window, "open").mockImplementation(() => null);
+        const root = shadow(await card(hass(), { tracking_link: "none" }));
+        const number = root.querySelector(".number") as HTMLElement;
+
+        expect(number.getAttribute("role")).toBeNull();
+        expect(number.getAttribute("tabindex")).toBeNull();
+        root.querySelector(".item")?.dispatchEvent(new Event("click"));
+        number.dispatchEvent(new Event("click", { bubbles: true }));
+        number.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
         expect(openWindow).not.toHaveBeenCalled();
         openWindow.mockRestore();
     });

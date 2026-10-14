@@ -80,6 +80,29 @@ describe("the visual editor", () => {
         expect(names).toContain("show_pickup");
         expect(names).toContain("show_details");
         expect(names).toContain("pickup_code");
+        expect(names).toContain("statuses");
+        expect(names).toContain("tracking_link");
+    });
+
+    it("shows every status chosen when the configuration names none", async () => {
+        expect(form(await editor()).data.statuses).toEqual(["1", "2", "3", "4", "5", "0", "6", "7"]);
+        expect(form(await editor({ statuses: [5] })).data.statuses).toEqual(["5"]);
+    });
+
+    it.each([
+        ["some of them, as numbers in the order a package goes", ["0", "5"], [5, 0]],
+        ["all of them, as no setting", ["1", "2", "3", "4", "5", "0", "6", "7"], undefined],
+        ["none of them, as no setting", [], undefined],
+    ])("saves %s", async (_what, chosen, saved) => {
+        const element = await editor();
+        const changes = changesOf(element);
+        form(element).dispatchEvent(
+            new CustomEvent("value-changed", {
+                detail: { value: { type: "custom:package-tracker-card", entity: ["sensor.posti_omaposti"], statuses: chosen } },
+            }),
+        );
+        expect(changes[0].statuses).toEqual(saved);
+        expect("statuses" in changes[0]).toBe(saved !== undefined);
     });
 
     it("shows an old name in the title field, so the next save writes it as the title", async () => {
@@ -130,6 +153,7 @@ describe("the visual editor", () => {
                         show_pickup: true,
                         show_details: false,
                         pickup_code: "toggle",
+                        tracking_link: "row",
                     },
                 },
             }),

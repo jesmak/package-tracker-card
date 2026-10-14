@@ -1,11 +1,12 @@
 /**
- * The card's visual editor: the tracking sensors, the title, how many packages
- * are listed, the card's height, and which lines a package shows.
+ * The card's visual editor: the tracking sensors, the title, which packages and
+ * how many of them are listed, the card's height, and which lines a package shows.
  */
 import { LitElement, html, nothing } from "lit";
 import type { TemplateResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 
+import { STATUSES } from "./const";
 import type { HomeAssistant } from "./hass";
 import { browserLanguage, translate } from "./localize/localize";
 import type { PackageTrackerCardConfig } from "./types";
@@ -20,6 +21,7 @@ const DEFAULTS: Record<string, unknown> = {
     show_details: false,
     wrap_text: false,
     pickup_code: "hidden",
+    tracking_link: "row",
     show_latest_event: true,
     show_latest_event_message: true,
     show_latest_event_location: true,
@@ -52,6 +54,16 @@ function schema(hass: HomeAssistant, text: (key: string) => string) {
         },
         { name: "title", selector: { text: {} } },
         {
+            name: "statuses",
+            selector: {
+                select: {
+                    multiple: true,
+                    mode: "list",
+                    options: STATUSES.map((status) => ({ value: String(status), label: text(`statuses.${status}`) })),
+                },
+            },
+        },
+        {
             type: "grid",
             name: "",
             schema: [
@@ -75,6 +87,19 @@ function schema(hass: HomeAssistant, text: (key: string) => string) {
                         { value: "hidden", label: text("editor.pickup_code_hidden") },
                         { value: "always", label: text("editor.pickup_code_always") },
                         { value: "toggle", label: text("editor.pickup_code_toggle") },
+                    ],
+                },
+            },
+        },
+        {
+            name: "tracking_link",
+            selector: {
+                select: {
+                    mode: "dropdown",
+                    options: [
+                        { value: "row", label: text("editor.tracking_link_row") },
+                        { value: "number", label: text("editor.tracking_link_number") },
+                        { value: "none", label: text("editor.tracking_link_none") },
                     ],
                 },
             },
@@ -112,10 +137,12 @@ export class PackageTrackerCardEditor extends LitElement {
         }
         // One sensor named in YAML is a string; the picker works with a list.
         const entity = typeof this.config.entity === "string" ? [this.config.entity] : this.config.entity;
+        // The form's options are text, and with none chosen in the configuration every status is shown.
+        const statuses = (this.config.statuses?.length ? this.config.statuses : STATUSES).map(String);
         return html`
             <ha-form
                 .hass=${this.hass}
-                .data=${{ ...DEFAULTS, ...this.config, entity }}
+                .data=${{ ...DEFAULTS, ...this.config, entity, statuses }}
                 .schema=${schema(this.hass, (key) => this.text(key))}
                 .computeLabel=${(entry: SchemaEntry) => this.text(`editor.${entry.name}`)}
                 .computeHelper=${(entry: SchemaEntry) => this.helper(entry.name)}
@@ -126,6 +153,15 @@ export class PackageTrackerCardEditor extends LitElement {
 
     private valueChanged(event: CustomEvent<{ value: PackageTrackerCardConfig }>): void {
         const config: PackageTrackerCardConfig = { ...event.detail.value };
+
+        // Every status, or none at all, is the same as showing them all, which needs no setting.
+        const chosen = (config.statuses ?? []).map(Number);
+        const statuses = STATUSES.filter((status) => chosen.includes(status));
+        if (statuses.length === 0 || statuses.length === STATUSES.length) {
+            delete config.statuses;
+        } else {
+            config.statuses = statuses;
+        }
 
         // An emptied number means "no limit", and an empty title means no title at all.
         for (const key of ["max_events", "height", "max_height", "title"] as const) {
