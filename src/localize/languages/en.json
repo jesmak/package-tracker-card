@@ -24,12 +24,21 @@
         "6": "Returned to sender",
         "7": "Exception"
     },
+    "direction": {
+        "incoming": "Incoming",
+        "outgoing": "Sent"
+    },
     "editor": {
         "entity": "Tracked accounts",
         "entity_helper": "The accounts whose packages are shown. Packages from several are listed together.",
         "title": "Title",
         "statuses": "Statuses to show",
         "statuses_helper": "Only packages with one of these statuses are listed. With none chosen, all of them are.",
+        "direction": "Direction",
+        "direction_helper": "Incoming packages, sent ones, or both. When the card shows both, each package has a marker that says which way it goes. A package whose direction the integration doesn't give is incoming.",
+        "direction_all": "All",
+        "direction_incoming": "Incoming",
+        "direction_outgoing": "Sent",
         "max_events": "Most packages to show",
         "height": "Height",
         "height_helper": "A fixed height in pixels. Leave the field empty and the card's height follows the number of packages.",

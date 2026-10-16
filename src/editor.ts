@@ -22,6 +22,7 @@ const DEFAULTS: Record<string, unknown> = {
     wrap_text: false,
     pickup_code: "hidden",
     tracking_link: "row",
+    direction: "all",
     show_latest_event: true,
     show_latest_event_message: true,
     show_latest_event_location: true,
@@ -60,6 +61,19 @@ function schema(hass: HomeAssistant, text: (key: string) => string) {
                     multiple: true,
                     mode: "list",
                     options: STATUSES.map((status) => ({ value: String(status), label: text(`statuses.${status}`) })),
+                },
+            },
+        },
+        {
+            name: "direction",
+            selector: {
+                select: {
+                    mode: "dropdown",
+                    options: [
+                        { value: "all", label: text("editor.direction_all") },
+                        { value: "incoming", label: text("editor.direction_incoming") },
+                        { value: "outgoing", label: text("editor.direction_outgoing") },
+                    ],
                 },
             },
         },

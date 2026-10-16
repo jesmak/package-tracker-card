@@ -1,6 +1,6 @@
 import { DELIVERED, FINISHED, PROGRESS, UNKNOWN } from "./const";
 import type { HomeAssistant } from "./hass";
-import type { Shipment } from "./types";
+import type { Direction, Shipment } from "./types";
 
 /** One icon per status, in the order the tracking integrations number them. */
 const ICONS = [
@@ -57,6 +57,7 @@ let lastDropped = 0;
 const TEXTS = [
     "shipment_date",
     "raw_status",
+    "direction",
     "origin",
     "origin_city",
     "destination",
@@ -137,6 +138,24 @@ export function missingEntities(hass: HomeAssistant, entity: string | string[]):
 /** The packages with one of `statuses`, or all of them when no statuses are given. */
 export function withStatuses(packages: Shipment[], statuses: number[] | undefined): Shipment[] {
     return statuses && statuses.length > 0 ? packages.filter((item) => statuses.includes(item.status)) : packages;
+}
+
+/** Whether the user sent the package. One whose direction the integration doesn't give is coming to them. */
+export function isOutgoing(item: Shipment): boolean {
+    return item.direction?.toLowerCase() === "outgoing";
+}
+
+/** The packages going the chosen way, or all of them. */
+export function withDirection(packages: Shipment[], direction: Direction | undefined): Shipment[] {
+    if (!direction || direction === "all") {
+        return packages;
+    }
+    return packages.filter((item) => isOutgoing(item) === (direction === "outgoing"));
+}
+
+/** Whether a list holds packages going both ways, so that each of them needs to say which. */
+export function bothDirections(packages: Shipment[]): boolean {
+    return packages.some(isOutgoing) && packages.some((item) => !isOutgoing(item));
 }
 
 /** Packages still on their way come first, and the most recently moved of them at the top. */

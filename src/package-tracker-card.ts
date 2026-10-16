@@ -1,5 +1,5 @@
 /**
- * A dashboard card that lists the packages on their way to you, from any
+ * A dashboard card that lists the packages on their way to you, or sent by you, from any
  * tracking integration whose sensor lists them in a `packages` attribute in the
  * format README.md documents. Packages still moving are listed first, finished
  * ones last.
@@ -17,14 +17,17 @@ import { trackingEntities, withTitle } from "./editor";
 import type { HomeAssistant } from "./hass";
 import { browserLanguage, translate } from "./localize/localize";
 import {
+    bothDirections,
     entities,
     formatDateTime,
     iconFor,
+    isOutgoing,
     missingEntities,
     packagesOf,
     progressOf,
     sortPackages,
     trackingUrl,
+    withDirection,
     withStatuses,
 } from "./packages";
 import { qrPath } from "./qr";
@@ -81,14 +84,15 @@ export class PackageTrackerCard extends LitElement {
         const badStatuses =
             config?.statuses != null && !(Array.isArray(config.statuses) && config.statuses.every((status) => STATUSES.includes(status)));
         const badLink = config?.tracking_link != null && !["row", "number", "none"].includes(config.tracking_link);
-        if (noEntity || badCount || badStatuses || badLink) {
+        const badDirection = config?.direction != null && !["all", "incoming", "outgoing"].includes(config.direction);
+        if (noEntity || badCount || badStatuses || badLink || badDirection) {
             throw new Error(translate(browserLanguage(), "common.invalid_configuration"));
         }
         this.config = withTitle(config);
     }
 
     public getCardSize(): number {
-        const packages = this.hass && this.config ? withStatuses(packagesOf(this.hass, this.config.entity), this.config.statuses) : [];
+        const packages = this.hass && this.config ? this.chosen(this.hass, this.config) : [];
         return 1 + Math.min(packages.length, this.config?.max_events ?? packages.length) * 2;
     }
 
@@ -132,11 +136,13 @@ export class PackageTrackerCard extends LitElement {
             return html`<ha-card><div class="message">${this.text("common.no_entity")} ${missing.join(", ")}</div></ha-card>`;
         }
 
-        let packages = sortPackages(withStatuses(packagesOf(this.hass, this.config.entity), this.config.statuses));
+        let packages = sortPackages(this.chosen(this.hass, this.config));
         if (this.config.max_events != null && this.config.max_events < packages.length) {
             packages = packages.slice(0, this.config.max_events);
         }
 
+        // Each package says which way it goes only when the list shows both ways.
+        const marked = bothDirections(packages);
         const title = this.config.title;
 
         return html`
@@ -149,7 +155,7 @@ export class PackageTrackerCard extends LitElement {
                             : repeat(
                                   packages,
                                   (item) => item.shipment_number,
-                                  (item) => this.shipment(item),
+                                  (item) => this.shipment(item, marked),
                               )
                     }
                 </div>
@@ -178,13 +184,18 @@ export class PackageTrackerCard extends LitElement {
         }
     }
 
+    /** The packages of the card's sensors with the chosen statuses, going the chosen way. */
+    private chosen(hass: HomeAssistant, config: PackageTrackerCardConfig): Shipment[] {
+        return withDirection(withStatuses(packagesOf(hass, config.entity), config.statuses), config.direction);
+    }
+
     /** A fixed height, a limit, or neither. The list scrolls inside whatever the card gets. */
     private heights(): string {
         const { height, max_height: maxHeight } = this.config ?? {};
         return [height === undefined ? "" : `height:${height}px;`, maxHeight === undefined ? "" : `max-height:${maxHeight}px;`].join("");
     }
 
-    private shipment(item: Shipment): TemplateResult {
+    private shipment(item: Shipment, marked: boolean): TemplateResult {
         const moving = !FINISHED.includes(item.status);
         // The code goes with the message that says the package can be collected; without that row
         // it rides along with the place it is collected from.
@@ -213,7 +224,7 @@ export class PackageTrackerCard extends LitElement {
                         @keydown=${(event: KeyboardEvent) => activate(event, () => this.openTracking(url))}
                         >${item.shipment_number}</span
                     >
-                    ${item.source ? html`<span class="source">${item.source}</span>` : nothing}
+                    ${this.badges(item, marked)}
                 </div>
                 ${this.progress(item)} ${this.details(item)}
                 ${this.row(
@@ -230,6 +241,19 @@ export class PackageTrackerCard extends LitElement {
                 ])}
                 ${this.destination(item, !message)}
             </div>
+        `;
+    }
+
+    /** Which way the package goes, when the list shows both ways, and which service it came from. */
+    private badges(item: Shipment, marked: boolean): TemplateResult | typeof nothing {
+        if (!marked && !item.source) {
+            return nothing;
+        }
+        return html`
+            <span class="badges">
+                ${marked ? html`<span class="badge direction">${this.text(isOutgoing(item) ? "direction.outgoing" : "direction.incoming")}</span>` : nothing}
+                ${item.source ? html`<span class="badge source">${item.source}</span>` : nothing}
+            </span>
         `;
     }
 
@@ -553,12 +577,12 @@ export class PackageTrackerCard extends LitElement {
                 background: var(--divider-color, var(--secondary-background-color));
             }
 
-            /* The bar's track and the source's border are the hover's colour, so on a hovered package they take the resting one. */
+            /* The bar's track and the badges' borders are the hover's colour, so on a hovered package they take the resting one. */
             .item.clickable:hover .track {
                 background: var(--secondary-background-color, #f5f5f5);
             }
 
-            .item.clickable:hover .source {
+            .item.clickable:hover .badge {
                 border-color: var(--secondary-background-color, var(--secondary-text-color));
             }
 
@@ -592,10 +616,15 @@ export class PackageTrackerCard extends LitElement {
                 overflow-wrap: anywhere;
             }
 
-            /* Which service the package came from, small and out of the way. */
-            .source {
+            /* Which way the package goes and which service it came from, small and out of the way. */
+            .badges {
                 margin-left: auto;
                 flex: 0 0 auto;
+                display: flex;
+                gap: 4px;
+            }
+
+            .badge {
                 font-size: 11px;
                 color: var(--secondary-text-color);
                 border: 1px solid var(--divider-color, var(--secondary-text-color));
@@ -835,6 +864,13 @@ export class PackageTrackerCard extends LitElement {
 
             /* On a narrow card the bar gets a line of its own, with the status under it and its time at the end. */
             @container (max-width: 360px) {
+                /* The badges go one above the other, so the number keeps its room. */
+                .badges {
+                    flex-direction: column;
+                    align-items: flex-end;
+                    gap: 2px;
+                }
+
                 .progress-row {
                     flex-wrap: wrap;
                     row-gap: 6px;

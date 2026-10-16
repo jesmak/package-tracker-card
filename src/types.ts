@@ -6,6 +6,9 @@ export type PickupCode = "hidden" | "always" | "toggle";
 /** What a click opens the carrier's page from: anywhere on the package, its number only, or nowhere. */
 export type TrackingLink = "row" | "number" | "none";
 
+/** Every package, only those coming to the user, or only those the user sent. */
+export type Direction = "all" | "incoming" | "outgoing";
+
 export interface PackageTrackerCardConfig extends LovelaceCardConfig {
     /** One sensor of a tracking integration, or several whose packages are shown together. */
     entity: string | string[];
@@ -14,6 +17,8 @@ export interface PackageTrackerCardConfig extends LovelaceCardConfig {
     name?: string;
     /** Only packages with these statuses are listed. Left out or empty, every status is. */
     statuses?: number[];
+    /** Which way the packages listed go. Left out, both ways. */
+    direction?: Direction;
     /** At most this many packages are listed. */
     max_events?: number;
     /** A fixed height for the card, in pixels. The list scrolls inside it. */
@@ -43,6 +48,8 @@ export interface Shipment {
     shipment_date?: string;
     status: number;
     raw_status?: string;
+    /** `outgoing` for a package the user sent. `incoming`, anything else or nothing is a package coming to them. */
+    direction?: string | null;
     origin?: string | null;
     origin_city?: string | null;
     destination?: string | null;

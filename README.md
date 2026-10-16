@@ -13,9 +13,9 @@ Home Assistant dashboard card that lists the packages coming to you, from any pa
 
 ## What is it?
 
-A custom card that shows the packages on their way to you, how far each one has got, and what happened to it last and
-when. Packages still moving are listed first, with the most recently moved at the top, and finished ones fall to the
-bottom. Clicking a package, or only its number if you prefer, opens the carrier's own tracking page for it.
+A custom card that shows the packages on their way to you, or sent by you, how far each one has got, and what happened
+to it last and when. Packages still moving are listed first, with the most recently moved at the top, and finished ones
+fall to the bottom. Clicking a package, or only its number if you prefer, opens the carrier's own tracking page for it.
 
 The card doesn't know any carrier. It reads a sensor's `packages` attribute, so any integration that writes its
 packages in the [package format](#data) works, and one card can list packages from several of them together. These
@@ -56,6 +56,7 @@ hand.
 | `entity`                     | string or list | **Required.** The sensor, or sensors, whose packages are listed  |                      |
 | `title`                      | string         | Shown at the top of the card                                     |                      |
 | `statuses`                   | list           | List only the packages with these [statuses](#data)              | all                  |
+| `direction`                  | string         | `all`, `incoming` or `outgoing`, the packages sent by the user   | `all`                |
 | `max_events`                 | number         | List at most this many packages. A whole number above 0          | all                  |
 | `height`                     | number         | A fixed height in pixels. The packages scroll inside it          | follows the packages |
 | `max_height`                 | number         | A height the card never grows past, in pixels                    | none                 |
@@ -93,7 +94,12 @@ without one isn't clickable.
 | `none`          | Nothing. The packages are not links at all                                 |
 
 `statuses` lists only the packages with one of the statuses given, which makes room for a card of its own for the
-packages waiting to be picked up. `max_events` counts only the packages that are left.
+packages waiting to be picked up. `direction` lists only the packages coming to you, or only those you sent, when the
+integration says which way a package goes. `max_events` counts only the packages that are left.
+
+When the list holds packages going both ways, each package says which way it goes, **Incoming** or **Sent**, beside
+the label of the service it came from. When every package listed goes the same way, they say nothing. On a narrow card
+the two labels sit one above the other. A package whose direction the integration doesn't give counts as incoming.
 
 ### The destination line
 
@@ -220,6 +226,7 @@ the line that would show it is left out too.
 | -------------------- | ------ | ----------------------------------------------------------------------------------------------------------------- |
 | `shipment_number`    | string | **Required.** Shown as the package's name                                                                         |
 | `status`             | number | **Required.** One of the statuses below. Sets the icon, the bar and the colour                                    |
+| `direction`          | string | `outgoing` for a package the user sent. Anything else is incoming. Filters the list and sets its badge            |
 | `latest_event_date`  | string | When the status last changed, in ISO 8601. Shown with the status, and sorts the list                              |
 | `latest_event`       | string | What the carrier last said, in its own words                                                                      |
 | `latest_event_city`  | string | Where that happened                                                                                               |

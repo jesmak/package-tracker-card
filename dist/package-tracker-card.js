@@ -1,4 +1,4 @@
-/*! package-tracker-card 2.3.0 | MIT License | includes QR Code Generator, Copyright (c) 2009 Kazuhiko Arase, MIT License */
+/*! package-tracker-card 2.4.0 | MIT License | includes QR Code Generator, Copyright (c) 2009 Kazuhiko Arase, MIT License */
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __decorateClass = (decorators, target, key, kind) => {
@@ -711,7 +711,7 @@ var c4 = e5(class extends i5 {
 });
 
 // src/const.ts
-var CARD_VERSION = "2.3.0";
+var CARD_VERSION = "2.4.0";
 var DELIVERED = 0;
 var WAITING = 1;
 var RECEIVED = 2;
@@ -761,12 +761,21 @@ var en_default = {
     "6": "Returned to sender",
     "7": "Exception"
   },
+  direction: {
+    incoming: "Incoming",
+    outgoing: "Sent"
+  },
   editor: {
     entity: "Tracked accounts",
     entity_helper: "The accounts whose packages are shown. Packages from several are listed together.",
     title: "Title",
     statuses: "Statuses to show",
     statuses_helper: "Only packages with one of these statuses are listed. With none chosen, all of them are.",
+    direction: "Direction",
+    direction_helper: "Incoming packages, sent ones, or both. When the card shows both, each package has a marker that says which way it goes. A package whose direction the integration doesn't give is incoming.",
+    direction_all: "All",
+    direction_incoming: "Incoming",
+    direction_outgoing: "Sent",
     max_events: "Most packages to show",
     height: "Height",
     height_helper: "A fixed height in pixels. Leave the field empty and the card's height follows the number of packages.",
@@ -825,12 +834,21 @@ var fi_default = {
     "6": "Palautettu l\xE4hett\xE4j\xE4lle",
     "7": "Poikkeama"
   },
+  direction: {
+    incoming: "Saapuva",
+    outgoing: "L\xE4hetetty"
+  },
   editor: {
     entity: "Seurattavat tilit",
     entity_helper: "Tilit, joiden paketit n\xE4ytet\xE4\xE4n. Useamman tilin paketit listataan yhdess\xE4.",
     title: "Otsikko",
     statuses: "N\xE4ytett\xE4v\xE4t tilat",
     statuses_helper: "Listalla n\xE4ytet\xE4\xE4n vain paketit, joilla on jokin n\xE4ist\xE4 tiloista. Jos mit\xE4\xE4n ei ole valittu, n\xE4ytet\xE4\xE4n kaikki.",
+    direction: "Suunta",
+    direction_helper: "Saapuvat paketit, l\xE4hetetyt tai molemmat. Kun kortti n\xE4ytt\xE4\xE4 molemmat, jokaisen paketin kohdalla on ilmaisin, joka kertoo kumpaan suuntaan se kulkee. Paketti, jonka suuntaa integraatio ei kerro, on saapuva.",
+    direction_all: "Kaikki",
+    direction_incoming: "Saapuvat",
+    direction_outgoing: "L\xE4hetetyt",
     max_events: "N\xE4ytett\xE4vi\xE4 paketteja enint\xE4\xE4n",
     height: "Korkeus",
     height_helper: "Kiinte\xE4 korkeus pikselein\xE4. J\xE4t\xE4 kentt\xE4 tyhj\xE4ksi, niin kortin korkeus mukautuu pakettien m\xE4\xE4r\xE4\xE4n.",
@@ -894,6 +912,7 @@ var DEFAULTS = {
   wrap_text: false,
   pickup_code: "hidden",
   tracking_link: "row",
+  direction: "all",
   show_latest_event: true,
   show_latest_event_message: true,
   show_latest_event_location: true,
@@ -922,6 +941,19 @@ function schema(hass, text) {
           multiple: true,
           mode: "list",
           options: STATUSES.map((status) => ({ value: String(status), label: text(`statuses.${status}`) }))
+        }
+      }
+    },
+    {
+      name: "direction",
+      selector: {
+        select: {
+          mode: "dropdown",
+          options: [
+            { value: "all", label: text("editor.direction_all") },
+            { value: "incoming", label: text("editor.direction_incoming") },
+            { value: "outgoing", label: text("editor.direction_outgoing") }
+          ]
         }
       }
     },
@@ -1097,6 +1129,7 @@ var lastDropped = 0;
 var TEXTS = [
   "shipment_date",
   "raw_status",
+  "direction",
   "origin",
   "origin_city",
   "destination",
@@ -1158,6 +1191,18 @@ function missingEntities(hass, entity) {
 }
 function withStatuses(packages, statuses) {
   return statuses && statuses.length > 0 ? packages.filter((item) => statuses.includes(item.status)) : packages;
+}
+function isOutgoing(item) {
+  return item.direction?.toLowerCase() === "outgoing";
+}
+function withDirection(packages, direction) {
+  if (!direction || direction === "all") {
+    return packages;
+  }
+  return packages.filter((item) => isOutgoing(item) === (direction === "outgoing"));
+}
+function bothDirections(packages) {
+  return packages.some(isOutgoing) && packages.some((item) => !isOutgoing(item));
 }
 function sortPackages(packages) {
   return [...packages].sort((one, other) => {
@@ -2888,13 +2933,14 @@ var PackageTrackerCard = class extends i4 {
     const badCount = config?.max_events != null && !(Number.isInteger(config.max_events) && config.max_events > 0);
     const badStatuses = config?.statuses != null && !(Array.isArray(config.statuses) && config.statuses.every((status) => STATUSES.includes(status)));
     const badLink = config?.tracking_link != null && !["row", "number", "none"].includes(config.tracking_link);
-    if (noEntity || badCount || badStatuses || badLink) {
+    const badDirection = config?.direction != null && !["all", "incoming", "outgoing"].includes(config.direction);
+    if (noEntity || badCount || badStatuses || badLink || badDirection) {
       throw new Error(translate(browserLanguage(), "common.invalid_configuration"));
     }
     this.config = withTitle(config);
   }
   getCardSize() {
-    const packages = this.hass && this.config ? withStatuses(packagesOf(this.hass, this.config.entity), this.config.statuses) : [];
+    const packages = this.hass && this.config ? this.chosen(this.hass, this.config) : [];
     return 1 + Math.min(packages.length, this.config?.max_events ?? packages.length) * 2;
   }
   getGridOptions() {
@@ -2930,10 +2976,11 @@ var PackageTrackerCard = class extends i4 {
     if (missing.length === entities(this.config.entity).length) {
       return b2`<ha-card><div class="message">${this.text("common.no_entity")} ${missing.join(", ")}</div></ha-card>`;
     }
-    let packages = sortPackages(withStatuses(packagesOf(this.hass, this.config.entity), this.config.statuses));
+    let packages = sortPackages(this.chosen(this.hass, this.config));
     if (this.config.max_events != null && this.config.max_events < packages.length) {
       packages = packages.slice(0, this.config.max_events);
     }
+    const marked = bothDirections(packages);
     const title = this.config.title;
     return b2`
             <ha-card class="${this.config.wrap_text ? "wrap" : ""}" style="${this.heights()}">
@@ -2942,7 +2989,7 @@ var PackageTrackerCard = class extends i4 {
                     ${packages.length === 0 ? b2`<div class="no-packages">${this.text("common.no_packages")}</div>` : c4(
       packages,
       (item) => item.shipment_number,
-      (item) => this.shipment(item)
+      (item) => this.shipment(item, marked)
     )}
                 </div>
                 ${this.qrDialog()}
@@ -2967,12 +3014,16 @@ var PackageTrackerCard = class extends i4 {
       fadeEdges(list);
     }
   }
+  /** The packages of the card's sensors with the chosen statuses, going the chosen way. */
+  chosen(hass, config) {
+    return withDirection(withStatuses(packagesOf(hass, config.entity), config.statuses), config.direction);
+  }
   /** A fixed height, a limit, or neither. The list scrolls inside whatever the card gets. */
   heights() {
     const { height, max_height: maxHeight } = this.config ?? {};
     return [height === void 0 ? "" : `height:${height}px;`, maxHeight === void 0 ? "" : `max-height:${maxHeight}px;`].join("");
   }
-  shipment(item) {
+  shipment(item, marked) {
     const moving = !FINISHED.includes(item.status);
     const message = this.config?.show_latest_event_message !== false && moving && !!item.latest_event;
     const link = this.config?.tracking_link ?? "row";
@@ -2996,7 +3047,7 @@ var PackageTrackerCard = class extends i4 {
                         @keydown=${(event) => activate(event, () => this.openTracking(url))}
                         >${item.shipment_number}</span
                     >
-                    ${item.source ? b2`<span class="source">${item.source}</span>` : A}
+                    ${this.badges(item, marked)}
                 </div>
                 ${this.progress(item)} ${this.details(item)}
                 ${this.row(
@@ -3013,6 +3064,18 @@ var PackageTrackerCard = class extends i4 {
     ])}
                 ${this.destination(item, !message)}
             </div>
+        `;
+  }
+  /** Which way the package goes, when the list shows both ways, and which service it came from. */
+  badges(item, marked) {
+    if (!marked && !item.source) {
+      return A;
+    }
+    return b2`
+            <span class="badges">
+                ${marked ? b2`<span class="badge direction">${this.text(isOutgoing(item) ? "direction.outgoing" : "direction.incoming")}</span>` : A}
+                ${item.source ? b2`<span class="badge source">${item.source}</span>` : A}
+            </span>
         `;
   }
   /** How far the package has got, with its status and when it last moved. */
@@ -3294,12 +3357,12 @@ var PackageTrackerCard = class extends i4 {
                 background: var(--divider-color, var(--secondary-background-color));
             }
 
-            /* The bar's track and the source's border are the hover's colour, so on a hovered package they take the resting one. */
+            /* The bar's track and the badges' borders are the hover's colour, so on a hovered package they take the resting one. */
             .item.clickable:hover .track {
                 background: var(--secondary-background-color, #f5f5f5);
             }
 
-            .item.clickable:hover .source {
+            .item.clickable:hover .badge {
                 border-color: var(--secondary-background-color, var(--secondary-text-color));
             }
 
@@ -3333,10 +3396,15 @@ var PackageTrackerCard = class extends i4 {
                 overflow-wrap: anywhere;
             }
 
-            /* Which service the package came from, small and out of the way. */
-            .source {
+            /* Which way the package goes and which service it came from, small and out of the way. */
+            .badges {
                 margin-left: auto;
                 flex: 0 0 auto;
+                display: flex;
+                gap: 4px;
+            }
+
+            .badge {
                 font-size: 11px;
                 color: var(--secondary-text-color);
                 border: 1px solid var(--divider-color, var(--secondary-text-color));
@@ -3576,6 +3644,13 @@ var PackageTrackerCard = class extends i4 {
 
             /* On a narrow card the bar gets a line of its own, with the status under it and its time at the end. */
             @container (max-width: 360px) {
+                /* The badges go one above the other, so the number keeps its room. */
+                .badges {
+                    flex-direction: column;
+                    align-items: flex-end;
+                    gap: 2px;
+                }
+
                 .progress-row {
                     flex-wrap: wrap;
                     row-gap: 6px;

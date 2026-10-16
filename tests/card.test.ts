@@ -566,3 +566,56 @@ describe("the weight and parcels", () => {
         expect(text).not.toContain("kollia");
     });
 });
+
+describe("which way a package goes", () => {
+    const SENT: Shipment = { ...WAITING, shipment_number: "JJFI0002", direction: "outgoing", latest_event_date: "2026-09-16T09:00:00Z" };
+    const COMING: Shipment = { ...WAITING, shipment_number: "JJFI0003", direction: "incoming", latest_event_date: "2026-09-16T07:00:00Z" };
+
+    function badges(root: ShadowRoot): Record<string, string> {
+        return Object.fromEntries(
+            [...root.querySelectorAll(".item")].map((item) => [
+                item.querySelector(".number")?.textContent ?? "",
+                item.querySelector(".badge.direction")?.textContent ?? "",
+            ]),
+        );
+    }
+
+    it("marks every package when the list shows both ways, one without a direction as incoming", async () => {
+        const root = shadow(await card(hass({ [POSTI]: [WAITING, SENT] })));
+        expect(badges(root)).toEqual({ JJFI0002: "Lähetetty", JJFI0001: "Saapuva" });
+        expect(root.querySelectorAll(".badge.source")).toHaveLength(2);
+    });
+
+    it("marks nothing when every package listed goes the same way", async () => {
+        const root = shadow(await card(hass({ [POSTI]: [WAITING, COMING] })));
+        expect(root.querySelectorAll(".badge.direction")).toHaveLength(0);
+        expect(root.querySelectorAll(".badge.source")).toHaveLength(2);
+    });
+
+    it("lists only the packages going the chosen way, and marks none of them", async () => {
+        const sent = shadow(await card(hass({ [POSTI]: [WAITING, SENT, COMING] }), { direction: "outgoing" }));
+        expect(Object.keys(badges(sent))).toEqual(["JJFI0002"]);
+        expect(sent.querySelectorAll(".badge.direction")).toHaveLength(0);
+
+        document.body.innerHTML = "";
+        const incoming = shadow(await card(hass({ [POSTI]: [WAITING, SENT, COMING] }), { direction: "incoming" }));
+        expect(Object.keys(badges(incoming))).toEqual(["JJFI0001", "JJFI0003"]);
+        expect(incoming.querySelectorAll(".badge.direction")).toHaveLength(0);
+    });
+
+    it("goes by the packages it lists, not by those max_events leaves out", async () => {
+        const root = shadow(await card(hass({ [POSTI]: [WAITING, SENT] }), { max_events: 1 }));
+        expect(Object.keys(badges(root))).toEqual(["JJFI0002"]);
+        expect(root.querySelectorAll(".badge.direction")).toHaveLength(0);
+    });
+
+    it("sizes itself by the packages going the chosen way", async () => {
+        const element = await card(hass({ [POSTI]: [WAITING, SENT, COMING] }), { direction: "outgoing" });
+        expect(element.getCardSize()).toBe(3);
+    });
+
+    it("refuses a direction it doesn't know", () => {
+        const element = document.createElement("package-tracker-card") as PackageTrackerCard;
+        expect(() => element.setConfig({ type: "custom:package-tracker-card", entity: POSTI, direction: "sideways" } as never)).toThrow();
+    });
+});

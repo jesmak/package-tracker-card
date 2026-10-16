@@ -164,4 +164,21 @@ describe("the visual editor", () => {
             pickup_code: "toggle",
         });
     });
+
+    it("keeps both directions out as the default, and a chosen one in", async () => {
+        const element = await editor();
+        const changes = changesOf(element);
+        for (const direction of ["all", "outgoing"]) {
+            form(element).dispatchEvent(
+                new CustomEvent("value-changed", {
+                    detail: { value: { type: "custom:package-tracker-card", entity: ["sensor.posti_omaposti"], direction } },
+                }),
+            );
+        }
+        expect(changes).toEqual([
+            { type: "custom:package-tracker-card", entity: ["sensor.posti_omaposti"] },
+            { type: "custom:package-tracker-card", entity: ["sensor.posti_omaposti"], direction: "outgoing" },
+        ]);
+        expect(form(element).schema.map((entry) => entry.name)).toContain("direction");
+    });
 });

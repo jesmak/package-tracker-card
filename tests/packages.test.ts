@@ -1,6 +1,17 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { entities, formatDateTime, iconFor, missingEntities, packagesOf, shipmentOf, sortPackages } from "../src/packages";
+import {
+    bothDirections,
+    entities,
+    formatDateTime,
+    iconFor,
+    isOutgoing,
+    missingEntities,
+    packagesOf,
+    shipmentOf,
+    sortPackages,
+    withDirection,
+} from "../src/packages";
 import type { HomeAssistant } from "../src/hass";
 import type { Shipment } from "../src/types";
 
@@ -161,5 +172,36 @@ describe("dates", () => {
         expect(formatDateTime("2026-10-15")).toBe("2026-10-15");
         expect(formatDateTime("2026-13-45")).toBe("");
         expect(formatDateTime("2026-02-30")).toBe("");
+    });
+});
+
+describe("which way a package goes", () => {
+    const sent = { shipment_number: "JJFI1", status: 3, direction: "outgoing" } as Shipment;
+    const coming = { shipment_number: "JJFI2", status: 3, direction: "incoming" } as Shipment;
+    const unknown = { shipment_number: "JJFI3", status: 3 } as Shipment;
+
+    it("is read from the sensor as text, and left out when it is something else", () => {
+        expect(shipmentOf({ shipment_number: "JJFI1", status: 3, direction: "outgoing" })?.direction).toBe("outgoing");
+        expect(shipmentOf({ shipment_number: "JJFI1", status: 3, direction: 1 })?.direction).toBeUndefined();
+    });
+
+    it("is outgoing only when the integration says so, in any case", () => {
+        expect([sent, coming, unknown].map(isOutgoing)).toEqual([true, false, false]);
+        expect(isOutgoing({ ...sent, direction: "OUTGOING" })).toBe(true);
+    });
+
+    it("filters the packages, and all of them when no way is chosen", () => {
+        const all = [sent, coming, unknown];
+        expect(withDirection(all, "outgoing")).toEqual([sent]);
+        expect(withDirection(all, "incoming")).toEqual([coming, unknown]);
+        expect(withDirection(all, "all")).toEqual(all);
+        expect(withDirection(all, undefined)).toEqual(all);
+    });
+
+    it("tells when a list holds both ways", () => {
+        expect(bothDirections([sent, unknown])).toBe(true);
+        expect(bothDirections([coming, unknown])).toBe(false);
+        expect(bothDirections([sent])).toBe(false);
+        expect(bothDirections([])).toBe(false);
     });
 });
