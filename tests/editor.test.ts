@@ -111,6 +111,12 @@ describe("the visual editor", () => {
         expect(data.name).toBeUndefined();
     });
 
+    it("offers a limit for each direction", async () => {
+        const names = JSON.stringify(form(await editor()).schema);
+        expect(names).toContain('"name":"max_events"');
+        expect(names).toContain('"name":"max_sent_events"');
+    });
+
     it("shows one sensor as a list, the way the picker works", async () => {
         expect(form(await editor({ entity: "sensor.posti_omaposti" })).data.entity).toEqual(["sensor.posti_omaposti"]);
     });
@@ -126,6 +132,8 @@ describe("the visual editor", () => {
                         entity: ["sensor.posti_omaposti"],
                         title: "",
                         height: null,
+                        max_events: "",
+                        max_sent_events: null,
                         max_height: 300,
                         show_progress: true,
                         show_origin: false,

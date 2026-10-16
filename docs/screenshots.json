@@ -11,6 +11,7 @@
                         "shipment_date": "2026-10-10T14:20:00+00:00",
                         "status": 5,
                         "raw_status": "READY_FOR_PICKUP",
+                        "direction": "incoming",
                         "origin": "Example Shop",
                         "origin_city": "HELSINKI",
                         "destination": "Matti Meikäläinen",
@@ -37,6 +38,7 @@
                         "shipment_date": "2026-10-12T08:05:00+00:00",
                         "status": 3,
                         "raw_status": "IN_TRANSPORT",
+                        "direction": "incoming",
                         "origin": "Example Books",
                         "origin_city": "TURKU",
                         "destination": "Matti Meikäläinen",
@@ -62,6 +64,7 @@
                         "shipment_date": "2026-10-01T10:00:00+00:00",
                         "status": 0,
                         "raw_status": "DELIVERED",
+                        "direction": "incoming",
                         "origin": "Example Outdoor Gear",
                         "origin_city": "OULU",
                         "destination": "Matti Meikäläinen",
@@ -72,6 +75,26 @@
                         "package_count": 2,
                         "source": "Posti",
                         "tracking_url": "https://www.example.com/track/JJFI0001000000000003"
+                    },
+                    {
+                        "shipment_number": "JJFI0001000000000006",
+                        "shipment_date": "2026-10-13T15:40:00+00:00",
+                        "status": 3,
+                        "raw_status": "IN_TRANSPORT",
+                        "direction": "outgoing",
+                        "origin": null,
+                        "origin_city": null,
+                        "recipient": "Maija Mallikas",
+                        "destination": "Example Service Point Toppila",
+                        "destination_city": "OULU",
+                        "latest_event": "The shipment is on its way to the destination",
+                        "latest_event_city": "TAMPERE",
+                        "latest_event_date": "2026-10-14T04:20:00+00:00",
+                        "estimated_delivery": "2026-10-15T12:00:00+00:00",
+                        "weight": 1.2,
+                        "package_count": 1,
+                        "source": "Posti",
+                        "tracking_url": "https://www.example.com/track/JJFI0001000000000006"
                     }
                 ]
             }
@@ -86,6 +109,7 @@
                         "shipment_date": "2026-10-13T11:00:00+00:00",
                         "status": 1,
                         "raw_status": "WAITING",
+                        "direction": "incoming",
                         "origin": "Example Electronics",
                         "origin_city": "JYVÄSKYLÄ",
                         "destination": "Example Service Point Hervanta",
@@ -117,6 +141,7 @@
             "card": {
                 "type": "custom:package-tracker-card",
                 "entity": "sensor.example_posti",
+                "direction": "incoming",
                 "max_events": 1,
                 "pickup_code": "always",
                 "show_details": true
@@ -136,6 +161,7 @@
                                 "shipment_date": "2026-10-11T09:30:00+00:00",
                                 "status": 5,
                                 "raw_status": "READY_FOR_PICKUP",
+                                "direction": "incoming",
                                 "origin": "Example Garden Supplies",
                                 "origin_city": "KUOPIO",
                                 "destination": "Matti Meikäläinen",

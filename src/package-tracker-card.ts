@@ -17,7 +17,6 @@ import { trackingEntities, withTitle } from "./editor";
 import type { HomeAssistant } from "./hass";
 import { browserLanguage, translate } from "./localize/localize";
 import {
-    bothDirections,
     entities,
     formatDateTime,
     iconFor,
@@ -28,6 +27,7 @@ import {
     sortPackages,
     trackingUrl,
     withDirection,
+    withinLimits,
     withStatuses,
 } from "./packages";
 import { qrPath } from "./qr";
@@ -80,7 +80,9 @@ export class PackageTrackerCard extends LitElement {
     public setConfig(config: PackageTrackerCardConfig): void {
         const noEntity = !config || !config.entity || (Array.isArray(config.entity) && config.entity.length === 0);
         // An empty `max_events:` in YAML is null, which means no limit, as leaving it out does.
-        const badCount = config?.max_events != null && !(Number.isInteger(config.max_events) && config.max_events > 0);
+        const badCount = [config?.max_events, config?.max_sent_events].some(
+            (limit) => limit != null && !(Number.isInteger(limit) && limit > 0),
+        );
         const badStatuses =
             config?.statuses != null && !(Array.isArray(config.statuses) && config.statuses.every((status) => STATUSES.includes(status)));
         const badLink = config?.tracking_link != null && !["row", "number", "none"].includes(config.tracking_link);
@@ -92,8 +94,8 @@ export class PackageTrackerCard extends LitElement {
     }
 
     public getCardSize(): number {
-        const packages = this.hass && this.config ? this.chosen(this.hass, this.config) : [];
-        return 1 + Math.min(packages.length, this.config?.max_events ?? packages.length) * 2;
+        const packages = this.hass && this.config ? this.shown(this.hass, this.config) : [];
+        return 1 + packages.length * 2;
     }
 
     public getGridOptions(): Record<string, unknown> {
@@ -136,13 +138,11 @@ export class PackageTrackerCard extends LitElement {
             return html`<ha-card><div class="message">${this.text("common.no_entity")} ${missing.join(", ")}</div></ha-card>`;
         }
 
-        let packages = sortPackages(this.chosen(this.hass, this.config));
-        if (this.config.max_events != null && this.config.max_events < packages.length) {
-            packages = packages.slice(0, this.config.max_events);
-        }
+        const packages = this.shown(this.hass, this.config);
 
-        // Each package says which way it goes only when the list shows both ways.
-        const marked = bothDirections(packages);
+        // Each package says which way it goes when the card is set to list both ways, whatever the packages happen to be.
+        // A card set to one way has nothing to tell apart.
+        const marked = (this.config.direction ?? "all") === "all";
         const title = this.config.title;
 
         return html`
@@ -184,6 +184,11 @@ export class PackageTrackerCard extends LitElement {
         }
     }
 
+    /** The packages listed: the chosen ones in order, up to the most of each direction. */
+    private shown(hass: HomeAssistant, config: PackageTrackerCardConfig): Shipment[] {
+        return withinLimits(sortPackages(this.chosen(hass, config)), config.max_events, config.max_sent_events);
+    }
+
     /** The packages of the card's sensors with the chosen statuses, going the chosen way. */
     private chosen(hass: HomeAssistant, config: PackageTrackerCardConfig): Shipment[] {
         return withDirection(withStatuses(packagesOf(hass, config.entity), config.statuses), config.direction);
@@ -203,8 +208,10 @@ export class PackageTrackerCard extends LitElement {
         const link = this.config?.tracking_link ?? "row";
         const url = link === "none" ? undefined : trackingUrl(item);
         const row = link === "row" && !!url;
-        // The date it was sent belongs to the sender, and says nothing on its own.
+        // The date it was sent belongs to the sender, and says nothing on its own. A package the user sent names who it
+        // goes to in the sender's place, since its sender is the user.
         const sender = item.origin || item.origin_city;
+        const outgoing = isOutgoing(item);
         // A click anywhere on the package opens its page, or only a click on its number. For the keyboard and screen
         // readers the number is the link either way, so that the code's button sits beside it rather than inside it.
         return html`
@@ -235,10 +242,14 @@ export class PackageTrackerCard extends LitElement {
                     message ? this.code(item) : nothing,
                 )}
                 ${this.row("mdi:map-marker", this.config?.show_latest_event_location, moving, [item.latest_event_city])}
-                ${this.row("mdi:arrow-up-bold-box", this.config?.show_origin, true, [
-                    sender,
-                    sender && item.shipment_date ? ` (${formatDateTime(item.shipment_date)})` : "",
-                ])}
+                ${
+                    outgoing
+                        ? this.row("mdi:account-arrow-right", this.config?.show_origin, true, [item.recipient])
+                        : this.row("mdi:arrow-up-bold-box", this.config?.show_origin, true, [
+                              sender,
+                              sender && item.shipment_date ? ` (${formatDateTime(item.shipment_date)})` : "",
+                          ])
+                }
                 ${this.destination(item, !message)}
             </div>
         `;
@@ -282,8 +293,10 @@ export class PackageTrackerCard extends LitElement {
                 ${
                     this.config?.show_latest_event === false
                         ? nothing
-                        : html`<span class="status-text">${this.text(`statuses.${item.status}`)}</span>
-                              <span class="when">${formatDateTime(item.latest_event_date)}</span>`
+                        : html`<span class="latest">
+                              <span class="status-text">${this.text(`statuses.${item.status}`)}</span>
+                              <span class="when">${formatDateTime(item.latest_event_date)}</span>
+                          </span>`
                 }
             </div>
         `;
@@ -327,12 +340,18 @@ export class PackageTrackerCard extends LitElement {
      * go by `pickup_code`: the code is shown never, always, or once the field is clicked, and the QR code is
      * behind its button unless the code is never shown. At a locker with a keypad on every door, the door
      * comes first, since the code only opens that one. A compartment without a code is the shelf a counter
-     * keeps the package on, which is no secret. A finished package has nothing left to collect.
+     * keeps the package on, which is no secret. A finished package has nothing left to collect, and the code of a
+     * package the user sent is the recipient's.
      */
     private code(item: Shipment): TemplateResult | typeof nothing {
         const setting = this.config?.pickup_code ?? "hidden";
         const shelf = item.pickup_code ? undefined : item.pickup_point?.compartment;
-        if (setting === "hidden" || (!item.pickup_code && !item.pickup_qr && !shelf) || FINISHED.includes(item.status)) {
+        if (
+            setting === "hidden" ||
+            (!item.pickup_code && !item.pickup_qr && !shelf) ||
+            FINISHED.includes(item.status) ||
+            isOutgoing(item)
+        ) {
             return nothing;
         }
         return html`
@@ -612,19 +631,28 @@ export class PackageTrackerCard extends LitElement {
                 min-width: 0;
             }
 
-            /* The number is never cut short. It wraps when the card is too narrow for it. */
+            /* The number is never cut short, and gives way last: the badges beside it go one above the other first, and
+               only when the line is still too short does the number wrap. The badges' far larger share of the shrinking
+               keeps it whole until then. Both shares stay above 1, since shares that add up to less than 1 take only that
+               part of the missing room, and the rest would stick out of the card. */
             .number {
+                flex: 0 1 auto;
                 min-width: 0;
                 font-weight: 600;
                 overflow-wrap: anywhere;
             }
 
             /* Which way the package goes and which service it came from, small and out of the way. */
+            /* Side by side while the line has room for them and the whole number, one above the other when it hasn't, as
+               the room runs out rather than at a set width. */
             .badges {
                 margin-left: auto;
-                flex: 0 0 auto;
+                flex: 0 1000 auto;
+                min-width: min-content;
                 display: flex;
-                gap: 4px;
+                flex-wrap: wrap;
+                justify-content: flex-end;
+                gap: 2px 4px;
             }
 
             .badge {
@@ -637,17 +665,21 @@ export class PackageTrackerCard extends LitElement {
 
             /* The bar keeps the height of a row of text, so hiding the status doesn't
                change how tall a package is, and it lines up with the icons above and below. */
+            /* The bar takes the room the status and its time leave it, and gets a line of its own when that would make it
+               shorter than it can be read at, whatever the card's width or the status. The status and its time then
+               spread over the next line, the time at its end. */
             .progress-row {
                 display: flex;
+                flex-wrap: wrap;
                 align-items: center;
-                gap: 8px;
+                gap: 6px 8px;
                 min-height: 18px;
                 margin: 4px 0 2px 0;
                 padding: 0 2px;
             }
 
             .track {
-                flex: 1 1 auto;
+                flex: 1000 1 120px;
                 height: 4px;
                 border-radius: 2px;
                 background: var(--divider-color, #ddd);
@@ -658,6 +690,21 @@ export class PackageTrackerCard extends LitElement {
                 height: 100%;
                 border-radius: 2px;
                 background: currentColor;
+            }
+
+            /* On a line of its own the status and its time may still not fit side by side, such as a long status on the
+               narrowest card: then the time goes under the status. */
+            .latest {
+                flex: 1 1 auto;
+                min-width: 0;
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 6px 8px;
+            }
+
+            .latest .when {
+                margin-left: auto;
             }
 
             .status-text {
@@ -870,28 +917,6 @@ export class PackageTrackerCard extends LitElement {
             }
 
             /* On a narrow card the bar gets a line of its own, with the status under it and its time at the end. */
-            @container (max-width: 360px) {
-                /* The badges go one above the other, so the number keeps its room. */
-                .badges {
-                    flex-direction: column;
-                    align-items: flex-end;
-                    gap: 2px;
-                }
-
-                .progress-row {
-                    flex-wrap: wrap;
-                    row-gap: 6px;
-                }
-
-                .track {
-                    flex-basis: 100%;
-                }
-
-                .when {
-                    margin-left: auto;
-                }
-            }
-
             /* The status colours the icon, the bar and the status text of a package. */
             .item {
                 color: var(--primary-text-color);

@@ -777,7 +777,8 @@ var en_default = {
     direction_all: "All",
     direction_incoming: "Incoming",
     direction_outgoing: "Sent",
-    max_events: "Most packages to show",
+    max_events: "Most incoming packages to show",
+    max_sent_events: "Most sent packages to show",
     height: "Height",
     height_helper: "A fixed height in pixels. Leave the field empty and the card's height follows the number of packages.",
     max_height: "Maximum height",
@@ -851,7 +852,8 @@ var fi_default = {
     direction_all: "Kaikki",
     direction_incoming: "Saapuvat",
     direction_outgoing: "L\xE4hetetyt",
-    max_events: "N\xE4ytett\xE4vi\xE4 paketteja enint\xE4\xE4n",
+    max_events: "Saapuvia paketteja enint\xE4\xE4n",
+    max_sent_events: "L\xE4hetettyj\xE4 paketteja enint\xE4\xE4n",
     height: "Korkeus",
     height_helper: "Kiinte\xE4 korkeus pikselein\xE4. J\xE4t\xE4 kentt\xE4 tyhj\xE4ksi, niin kortin korkeus mukautuu pakettien m\xE4\xE4r\xE4\xE4n.",
     max_height: "Enimm\xE4iskorkeus",
@@ -964,6 +966,7 @@ function schema(hass, text) {
       name: "",
       schema: [
         { name: "max_events", selector: { number: { min: 1, max: 50, step: 1, mode: "box" } } },
+        { name: "max_sent_events", selector: { number: { min: 1, max: 50, step: 1, mode: "box" } } },
         {
           name: "height",
           selector: { number: { min: 100, max: 1200, step: 10, unit_of_measurement: "px", mode: "box" } }
@@ -1051,7 +1054,7 @@ var PackageTrackerCardEditor = class extends i4 {
     } else {
       config.statuses = statuses;
     }
-    for (const key of ["max_events", "height", "max_height", "title"]) {
+    for (const key of ["max_events", "max_sent_events", "height", "max_height", "title"]) {
       const value = config[key];
       if (value === void 0 || value === null || String(value) === "") {
         delete config[key];
@@ -1133,6 +1136,7 @@ var TEXTS = [
   "raw_status",
   "direction",
   "origin",
+  "recipient",
   "origin_city",
   "destination",
   "destination_city",
@@ -1203,8 +1207,17 @@ function withDirection(packages, direction) {
   }
   return packages.filter((item) => isOutgoing(item) === (direction === "outgoing"));
 }
-function bothDirections(packages) {
-  return packages.some(isOutgoing) && packages.some((item) => !isOutgoing(item));
+function withinLimits(packages, maxIncoming, maxSent) {
+  let incoming = 0;
+  let sent = 0;
+  return packages.filter((item) => {
+    if (isOutgoing(item)) {
+      sent++;
+      return maxSent == null || sent <= maxSent;
+    }
+    incoming++;
+    return maxIncoming == null || incoming <= maxIncoming;
+  });
 }
 function sortPackages(packages) {
   return [...packages].sort((one, other) => {
@@ -2932,7 +2945,9 @@ var PackageTrackerCard = class extends i4 {
   }
   setConfig(config) {
     const noEntity = !config || !config.entity || Array.isArray(config.entity) && config.entity.length === 0;
-    const badCount = config?.max_events != null && !(Number.isInteger(config.max_events) && config.max_events > 0);
+    const badCount = [config?.max_events, config?.max_sent_events].some(
+      (limit) => limit != null && !(Number.isInteger(limit) && limit > 0)
+    );
     const badStatuses = config?.statuses != null && !(Array.isArray(config.statuses) && config.statuses.every((status) => STATUSES.includes(status)));
     const badLink = config?.tracking_link != null && !["row", "number", "none"].includes(config.tracking_link);
     const badDirection = config?.direction != null && !["all", "incoming", "outgoing"].includes(config.direction);
@@ -2942,8 +2957,8 @@ var PackageTrackerCard = class extends i4 {
     this.config = withTitle(config);
   }
   getCardSize() {
-    const packages = this.hass && this.config ? this.chosen(this.hass, this.config) : [];
-    return 1 + Math.min(packages.length, this.config?.max_events ?? packages.length) * 2;
+    const packages = this.hass && this.config ? this.shown(this.hass, this.config) : [];
+    return 1 + packages.length * 2;
   }
   getGridOptions() {
     return { columns: 12, rows: "auto", min_columns: 6 };
@@ -2978,11 +2993,8 @@ var PackageTrackerCard = class extends i4 {
     if (missing.length === entities(this.config.entity).length) {
       return b2`<ha-card><div class="message">${this.text("common.no_entity")} ${missing.join(", ")}</div></ha-card>`;
     }
-    let packages = sortPackages(this.chosen(this.hass, this.config));
-    if (this.config.max_events != null && this.config.max_events < packages.length) {
-      packages = packages.slice(0, this.config.max_events);
-    }
-    const marked = bothDirections(packages);
+    const packages = this.shown(this.hass, this.config);
+    const marked = (this.config.direction ?? "all") === "all";
     const title = this.config.title;
     return b2`
             <ha-card class="${this.config.wrap_text ? "wrap" : ""}" style="${this.heights()}">
@@ -3016,6 +3028,10 @@ var PackageTrackerCard = class extends i4 {
       fadeEdges(list);
     }
   }
+  /** The packages listed: the chosen ones in order, up to the most of each direction. */
+  shown(hass, config) {
+    return withinLimits(sortPackages(this.chosen(hass, config)), config.max_events, config.max_sent_events);
+  }
   /** The packages of the card's sensors with the chosen statuses, going the chosen way. */
   chosen(hass, config) {
     return withDirection(withStatuses(packagesOf(hass, config.entity), config.statuses), config.direction);
@@ -3032,6 +3048,7 @@ var PackageTrackerCard = class extends i4 {
     const url = link === "none" ? void 0 : trackingUrl(item);
     const row = link === "row" && !!url;
     const sender = item.origin || item.origin_city;
+    const outgoing = isOutgoing(item);
     return b2`
             <div
                 class="item status-${item.status} ${row ? "clickable" : ""}"
@@ -3060,7 +3077,7 @@ var PackageTrackerCard = class extends i4 {
       message ? this.code(item) : A
     )}
                 ${this.row("mdi:map-marker", this.config?.show_latest_event_location, moving, [item.latest_event_city])}
-                ${this.row("mdi:arrow-up-bold-box", this.config?.show_origin, true, [
+                ${outgoing ? this.row("mdi:account-arrow-right", this.config?.show_origin, true, [item.recipient]) : this.row("mdi:arrow-up-bold-box", this.config?.show_origin, true, [
       sender,
       sender && item.shipment_date ? ` (${formatDateTime(item.shipment_date)})` : ""
     ])}
@@ -3098,8 +3115,10 @@ var PackageTrackerCard = class extends i4 {
                           >
                               <div class="bar" style="width:${percent}%"></div>
                           </div>`}
-                ${this.config?.show_latest_event === false ? A : b2`<span class="status-text">${this.text(`statuses.${item.status}`)}</span>
-                              <span class="when">${formatDateTime(item.latest_event_date)}</span>`}
+                ${this.config?.show_latest_event === false ? A : b2`<span class="latest">
+                              <span class="status-text">${this.text(`statuses.${item.status}`)}</span>
+                              <span class="when">${formatDateTime(item.latest_event_date)}</span>
+                          </span>`}
             </div>
         `;
   }
@@ -3133,12 +3152,13 @@ var PackageTrackerCard = class extends i4 {
    * go by `pickup_code`: the code is shown never, always, or once the field is clicked, and the QR code is
    * behind its button unless the code is never shown. At a locker with a keypad on every door, the door
    * comes first, since the code only opens that one. A compartment without a code is the shelf a counter
-   * keeps the package on, which is no secret. A finished package has nothing left to collect.
+   * keeps the package on, which is no secret. A finished package has nothing left to collect, and the code of a
+   * package the user sent is the recipient's.
    */
   code(item) {
     const setting = this.config?.pickup_code ?? "hidden";
     const shelf = item.pickup_code ? void 0 : item.pickup_point?.compartment;
-    if (setting === "hidden" || !item.pickup_code && !item.pickup_qr && !shelf || FINISHED.includes(item.status)) {
+    if (setting === "hidden" || !item.pickup_code && !item.pickup_qr && !shelf || FINISHED.includes(item.status) || isOutgoing(item)) {
       return A;
     }
     return b2`
@@ -3394,19 +3414,28 @@ var PackageTrackerCard = class extends i4 {
                 min-width: 0;
             }
 
-            /* The number is never cut short. It wraps when the card is too narrow for it. */
+            /* The number is never cut short, and gives way last: the badges beside it go one above the other first, and
+               only when the line is still too short does the number wrap. The badges' far larger share of the shrinking
+               keeps it whole until then. Both shares stay above 1, since shares that add up to less than 1 take only that
+               part of the missing room, and the rest would stick out of the card. */
             .number {
+                flex: 0 1 auto;
                 min-width: 0;
                 font-weight: 600;
                 overflow-wrap: anywhere;
             }
 
             /* Which way the package goes and which service it came from, small and out of the way. */
+            /* Side by side while the line has room for them and the whole number, one above the other when it hasn't, as
+               the room runs out rather than at a set width. */
             .badges {
                 margin-left: auto;
-                flex: 0 0 auto;
+                flex: 0 1000 auto;
+                min-width: min-content;
                 display: flex;
-                gap: 4px;
+                flex-wrap: wrap;
+                justify-content: flex-end;
+                gap: 2px 4px;
             }
 
             .badge {
@@ -3419,17 +3448,21 @@ var PackageTrackerCard = class extends i4 {
 
             /* The bar keeps the height of a row of text, so hiding the status doesn't
                change how tall a package is, and it lines up with the icons above and below. */
+            /* The bar takes the room the status and its time leave it, and gets a line of its own when that would make it
+               shorter than it can be read at, whatever the card's width or the status. The status and its time then
+               spread over the next line, the time at its end. */
             .progress-row {
                 display: flex;
+                flex-wrap: wrap;
                 align-items: center;
-                gap: 8px;
+                gap: 6px 8px;
                 min-height: 18px;
                 margin: 4px 0 2px 0;
                 padding: 0 2px;
             }
 
             .track {
-                flex: 1 1 auto;
+                flex: 1000 1 120px;
                 height: 4px;
                 border-radius: 2px;
                 background: var(--divider-color, #ddd);
@@ -3440,6 +3473,21 @@ var PackageTrackerCard = class extends i4 {
                 height: 100%;
                 border-radius: 2px;
                 background: currentColor;
+            }
+
+            /* On a line of its own the status and its time may still not fit side by side, such as a long status on the
+               narrowest card: then the time goes under the status. */
+            .latest {
+                flex: 1 1 auto;
+                min-width: 0;
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 6px 8px;
+            }
+
+            .latest .when {
+                margin-left: auto;
             }
 
             .status-text {
@@ -3652,28 +3700,6 @@ var PackageTrackerCard = class extends i4 {
             }
 
             /* On a narrow card the bar gets a line of its own, with the status under it and its time at the end. */
-            @container (max-width: 360px) {
-                /* The badges go one above the other, so the number keeps its room. */
-                .badges {
-                    flex-direction: column;
-                    align-items: flex-end;
-                    gap: 2px;
-                }
-
-                .progress-row {
-                    flex-wrap: wrap;
-                    row-gap: 6px;
-                }
-
-                .track {
-                    flex-basis: 100%;
-                }
-
-                .when {
-                    margin-left: auto;
-                }
-            }
-
             /* The status colours the icon, the bar and the status text of a package. */
             .item {
                 color: var(--primary-text-color);

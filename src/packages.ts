@@ -59,6 +59,7 @@ const TEXTS = [
     "raw_status",
     "direction",
     "origin",
+    "recipient",
     "origin_city",
     "destination",
     "destination_city",
@@ -153,9 +154,21 @@ export function withDirection(packages: Shipment[], direction: Direction | undef
     return packages.filter((item) => isOutgoing(item) === (direction === "outgoing"));
 }
 
-/** Whether a list holds packages going both ways, so that each of them needs to say which. */
-export function bothDirections(packages: Shipment[]): boolean {
-    return packages.some(isOutgoing) && packages.some((item) => !isOutgoing(item));
+/**
+ * The packages, in the order given, up to a limit of each direction: sent packages up to maxSent, the others up to
+ * maxIncoming. No limit means all of them.
+ */
+export function withinLimits(packages: Shipment[], maxIncoming: number | null | undefined, maxSent: number | null | undefined): Shipment[] {
+    let incoming = 0;
+    let sent = 0;
+    return packages.filter((item) => {
+        if (isOutgoing(item)) {
+            sent++;
+            return maxSent == null || sent <= maxSent;
+        }
+        incoming++;
+        return maxIncoming == null || incoming <= maxIncoming;
+    });
 }
 
 /** Packages still on their way come first, and the most recently moved of them at the top. */

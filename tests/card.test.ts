@@ -580,15 +580,16 @@ describe("which way a package goes", () => {
         );
     }
 
-    it("marks every package when the list shows both ways, one without a direction as incoming", async () => {
+    it("marks every package when the card lists both ways, one without a direction as incoming", async () => {
         const root = shadow(await card(hass({ [POSTI]: [WAITING, SENT] })));
         expect(badges(root)).toEqual({ JJFI0002: "Lähetetty", JJFI0001: "Saapuva" });
         expect(root.querySelectorAll(".badge.source")).toHaveLength(2);
     });
 
-    it("marks nothing when every package listed goes the same way", async () => {
+    it("marks every package when the card lists both ways, also when every package goes the same way", async () => {
+        // The setting decides, not what the integrations happen to send at the moment.
         const root = shadow(await card(hass({ [POSTI]: [WAITING, COMING] })));
-        expect(root.querySelectorAll(".badge.direction")).toHaveLength(0);
+        expect(badges(root)).toEqual({ JJFI0001: "Saapuva", JJFI0003: "Saapuva" });
         expect(root.querySelectorAll(".badge.source")).toHaveLength(2);
     });
 
@@ -603,10 +604,58 @@ describe("which way a package goes", () => {
         expect(incoming.querySelectorAll(".badge.direction")).toHaveLength(0);
     });
 
-    it("goes by the packages it lists, not by those max_events leaves out", async () => {
-        const root = shadow(await card(hass({ [POSTI]: [WAITING, SENT] }), { max_events: 1 }));
-        expect(Object.keys(badges(root))).toEqual(["JJFI0002"]);
-        expect(root.querySelectorAll(".badge.direction")).toHaveLength(0);
+    it("lists at most max_events incoming packages and max_sent_events sent ones", async () => {
+        const sent2: Shipment = { ...SENT, shipment_number: "JJFI0004", latest_event_date: "2026-09-16T10:00:00Z" };
+        const all = hass({ [POSTI]: [WAITING, COMING, SENT, sent2] });
+        const incomingOnly = shadow(await card(all, { max_events: 1 }));
+        expect(Object.keys(badges(incomingOnly))).toEqual(["JJFI0004", "JJFI0002", "JJFI0001"]);
+
+        document.body.innerHTML = "";
+        const both = shadow(await card(all, { max_events: 1, max_sent_events: 1 }));
+        expect(Object.keys(badges(both))).toEqual(["JJFI0004", "JJFI0001"]);
+    });
+
+    it("sizes itself by the packages it lists", async () => {
+        const element = await card(hass({ [POSTI]: [WAITING, COMING, SENT] }), { max_events: 1, max_sent_events: 1 });
+        expect(element.getCardSize()).toBe(5);
+    });
+
+    it("names the recipient of a sent package where the sender would be, and never shows its code", async () => {
+        const sentWithCode: Shipment = { ...SENT, status: 5, recipient: "Maija Mallikas", pickup_code: "123456", pickup_qr: "123456" };
+        const root = shadow(await card(hass({ [POSTI]: [sentWithCode] }), { pickup_code: "always" }));
+        expect(root.textContent).toContain("Maija Mallikas");
+        expect(root.textContent).not.toContain("Example Shop");
+        expect(root.querySelector(".code")).toBeNull();
+        expect(root.querySelector(".qr-button")).toBeNull();
+    });
+
+    it.each([0, -1, 2.5])("refuses %s sent packages at most", (count) => {
+        const element = document.createElement("package-tracker-card") as PackageTrackerCard;
+        expect(() => element.setConfig({ type: "custom:package-tracker-card", entity: POSTI, max_sent_events: count } as never)).toThrow();
+    });
+
+    it("takes an empty max_sent_events as no limit", async () => {
+        const sent2: Shipment = { ...SENT, shipment_number: "JJFI0004" };
+        const root = shadow(await card(hass({ [POSTI]: [SENT, sent2] }), { max_sent_events: null as never }));
+        expect(root.querySelectorAll(".item")).toHaveLength(2);
+    });
+
+    it("leaves the recipient out when the card hides the sender, and when the package doesn't name one", async () => {
+        const named: Shipment = { ...SENT, recipient: "Maija Mallikas" };
+        const hidden = shadow(await card(hass({ [POSTI]: [named] }), { show_origin: false }));
+        expect(hidden.textContent).not.toContain("Maija Mallikas");
+
+        document.body.innerHTML = "";
+        // A sent package's origin is the user, so with no recipient the row is left out rather than showing that.
+        const unnamed = shadow(await card(hass({ [POSTI]: [SENT] })));
+        expect(unnamed.querySelector('ha-icon[icon="mdi:account-arrow-right"]')).toBeNull();
+        expect(unnamed.querySelector('ha-icon[icon="mdi:arrow-up-bold-box"]')).toBeNull();
+    });
+
+    it("never shows a shelf for a sent package", async () => {
+        const onShelf: Shipment = { ...SENT, status: 5, pickup_point: { name: "Example Service Point", compartment: "B12" } };
+        const root = shadow(await card(hass({ [POSTI]: [onShelf] }), { pickup_code: "always" }));
+        expect(root.querySelector(".shelf")).toBeNull();
     });
 
     it("sizes itself by the packages going the chosen way", async () => {

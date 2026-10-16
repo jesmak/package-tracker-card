@@ -82,6 +82,7 @@ function schema(hass: HomeAssistant, text: (key: string) => string) {
             name: "",
             schema: [
                 { name: "max_events", selector: { number: { min: 1, max: 50, step: 1, mode: "box" } } },
+                { name: "max_sent_events", selector: { number: { min: 1, max: 50, step: 1, mode: "box" } } },
                 {
                     name: "height",
                     selector: { number: { min: 100, max: 1200, step: 10, unit_of_measurement: "px", mode: "box" } },
@@ -178,7 +179,7 @@ export class PackageTrackerCardEditor extends LitElement {
         }
 
         // An emptied number means "no limit", and an empty title means no title at all.
-        for (const key of ["max_events", "height", "max_height", "title"] as const) {
+        for (const key of ["max_events", "max_sent_events", "height", "max_height", "title"] as const) {
             const value = config[key];
             if (value === undefined || value === null || String(value) === "") {
                 delete config[key];

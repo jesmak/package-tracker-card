@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
-    bothDirections,
     entities,
     formatDateTime,
     iconFor,
@@ -196,12 +195,5 @@ describe("which way a package goes", () => {
         expect(withDirection(all, "incoming")).toEqual([coming, unknown]);
         expect(withDirection(all, "all")).toEqual(all);
         expect(withDirection(all, undefined)).toEqual(all);
-    });
-
-    it("tells when a list holds both ways", () => {
-        expect(bothDirections([sent, unknown])).toBe(true);
-        expect(bothDirections([coming, unknown])).toBe(false);
-        expect(bothDirections([sent])).toBe(false);
-        expect(bothDirections([])).toBe(false);
     });
 });

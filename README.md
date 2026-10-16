@@ -5,8 +5,8 @@ Home Assistant dashboard card that lists the packages coming to you, from any pa
 [![GitHub Release][releases-shield]][releases] [![GitHub Release Date][release-date-shield]][releases] [![HACS][hacs-shield]][hacs] [![License][license-shield]](LICENSE)
 
 <p>
-<img src="https://raw.githubusercontent.com/jesmak/package-tracker-card/main/docs/images/packages-light.png#gh-light-mode-only" width="400" alt="Four packages from two carriers, one ready for pickup, two on their way and one delivered, each with a progress bar, its status and its latest event">
-<img src="https://raw.githubusercontent.com/jesmak/package-tracker-card/main/docs/images/packages-dark.png#gh-dark-mode-only" width="400" alt="Four packages from two carriers, one ready for pickup, two on their way and one delivered, each with a progress bar, its status and its latest event">
+<img src="https://raw.githubusercontent.com/jesmak/package-tracker-card/main/docs/images/packages-light.png#gh-light-mode-only" width="400" alt="Five packages from two carriers, four coming and one sent, each marked which way it goes, one ready for pickup, three on their way and one delivered, each with a progress bar, its status and its latest event">
+<img src="https://raw.githubusercontent.com/jesmak/package-tracker-card/main/docs/images/packages-dark.png#gh-dark-mode-only" width="400" alt="Five packages from two carriers, four coming and one sent, each marked which way it goes, one ready for pickup, three on their way and one delivered, each with a progress bar, its status and its latest event">
 <img src="https://raw.githubusercontent.com/jesmak/package-tracker-card/main/docs/images/pickup-light.png#gh-light-mode-only" width="400" alt="A package ready for pickup at a parcel locker, with its weight, the locker door and the pickup code, and the deadline for picking it up">
 <img src="https://raw.githubusercontent.com/jesmak/package-tracker-card/main/docs/images/pickup-dark.png#gh-dark-mode-only" width="400" alt="A package ready for pickup at a parcel locker, with its weight, the locker door and the pickup code, and the deadline for picking it up">
 </p>
@@ -57,14 +57,15 @@ hand.
 | `title`                      | string         | Shown at the top of the card                                     |                      |
 | `statuses`                   | list           | List only the packages with these [statuses](#data)              | all                  |
 | `direction`                  | string         | `all`, `incoming` or `outgoing`, the packages sent by the user   | `all`                |
-| `max_events`                 | number         | List at most this many packages. A whole number above 0          | all                  |
+| `max_events`                 | number         | List at most this many incoming packages. Above 0                | all                  |
+| `max_sent_events`            | number         | List at most this many sent packages. Above 0                    | all                  |
 | `height`                     | number         | A fixed height in pixels. The packages scroll inside it          | follows the packages |
 | `max_height`                 | number         | A height the card never grows past, in pixels                    | none                 |
 | `show_progress`              | boolean        | Show how far the package has got, as a bar                       | `true`               |
 | `show_latest_event`          | boolean        | Show the status and when it last changed                         | `true`               |
 | `show_latest_event_message`  | boolean        | Show what the tracking service last said                         | `true`               |
 | `show_latest_event_location` | boolean        | Show where that happened                                         | `true`               |
-| `show_origin`                | boolean        | Show who sent the package                                        | `true`               |
+| `show_origin`                | boolean        | Show who sent the package, or who a sent one goes to             | `true`               |
 | `show_destination`           | boolean        | Show where it is going, or where it is picked up                 | `true`               |
 | `show_pickup`                | boolean        | Add the pickup deadline, or the estimate, to that line           | `true`               |
 | `show_details`               | boolean        | Show the weight and how many parcels the shipment has            | `false`              |
@@ -95,11 +96,16 @@ without one isn't clickable.
 
 `statuses` lists only the packages with one of the statuses given, which makes room for a card of its own for the
 packages waiting to be picked up. `direction` lists only the packages coming to you, or only those you sent, when the
-integration says which way a package goes. `max_events` counts only the packages that are left.
+integration says which way a package goes. `max_events` counts only the incoming packages that are left, and
+`max_sent_events` the sent ones, so that many sent packages can't push those coming to you off the card.
 
-When the list holds packages going both ways, each package says which way it goes, **Incoming** or **Sent**, beside
-the label of the service it came from. When every package listed goes the same way, they say nothing. On a narrow card
-the two labels sit one above the other. A package whose direction the integration doesn't give counts as incoming.
+When `direction` is `all`, as it is by default, each package says which way it goes, **Incoming** or **Sent**, beside
+the label of the service it came from. When it lists only one way, they say nothing, since there is nothing to tell
+apart. On a narrow card the two labels sit one above the other. A package whose direction the integration doesn't
+give counts as incoming.
+
+A package you sent names its recipient where a received one names its sender. It never shows a pickup code or a QR
+code, whatever `pickup_code` says, since those are the recipient's.
 
 ### The destination line
 
@@ -231,6 +237,7 @@ the line that would show it is left out too.
 | `latest_event`       | string | What the carrier last said, in its own words                                                                                                                                                   |
 | `latest_event_city`  | string | Where that happened                                                                                                                                                                            |
 | `origin`             | string | Who sent it. `origin_city` stands in when there is no name                                                                                                                                     |
+| `recipient`          | string | Who a package the user sent goes to. Shown in the sender's place                                                                                                                               |
 | `origin_city`        | string | Where it was sent from                                                                                                                                                                         |
 | `shipment_date`      | string | When it was sent, in ISO 8601. Shown after the sender                                                                                                                                          |
 | `destination`        | string | Where it is going. `destination_city` stands in when there is no name                                                                                                                          |

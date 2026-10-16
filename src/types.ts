@@ -19,8 +19,9 @@ export interface PackageTrackerCardConfig extends LovelaceCardConfig {
     statuses?: number[];
     /** Which way the packages listed go. Left out, both ways. */
     direction?: Direction;
-    /** At most this many packages are listed. */
+    /** At most this many incoming packages are listed, and of sent ones at most max_sent_events. */
     max_events?: number;
+    max_sent_events?: number;
     /** A fixed height for the card, in pixels. The list scrolls inside it. */
     height?: number;
     /** A height the card never grows past, in pixels. The list scrolls once it is reached. */
@@ -51,6 +52,8 @@ export interface Shipment {
     /** `outgoing` for a package the user sent. `incoming`, anything else or nothing is a package coming to them. */
     direction?: string | null;
     origin?: string | null;
+    /** Who a package the user sent goes to. */
+    recipient?: string | null;
     origin_city?: string | null;
     destination?: string | null;
     destination_city?: string | null;
