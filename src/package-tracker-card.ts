@@ -326,16 +326,19 @@ export class PackageTrackerCard extends LitElement {
      * The code that collects the package, and a button for its QR code when the pickup point scans one. Both
      * go by `pickup_code`: the code is shown never, always, or once the field is clicked, and the QR code is
      * behind its button unless the code is never shown. At a locker with a keypad on every door, the door
-     * comes first, since the code only opens that one. A finished package has nothing left to collect.
+     * comes first, since the code only opens that one. A compartment without a code is the shelf a counter
+     * keeps the package on, which is no secret. A finished package has nothing left to collect.
      */
     private code(item: Shipment): TemplateResult | typeof nothing {
         const setting = this.config?.pickup_code ?? "hidden";
-        if (setting === "hidden" || (!item.pickup_code && !item.pickup_qr) || FINISHED.includes(item.status)) {
+        const shelf = item.pickup_code ? undefined : item.pickup_point?.compartment;
+        if (setting === "hidden" || (!item.pickup_code && !item.pickup_qr && !shelf) || FINISHED.includes(item.status)) {
             return nothing;
         }
         return html`
             <span class="pickup">
                 ${item.pickup_code ? this.codeField(item) : nothing}
+                ${shelf ? html`<span class="shelf">${this.text("common.shelf")} ${shelf}</span>` : nothing}
                 ${
                     item.pickup_qr
                         ? html`<button
@@ -703,6 +706,10 @@ export class PackageTrackerCard extends LitElement {
                 display: inline-flex;
                 align-items: center;
                 gap: 6px;
+            }
+
+            .shelf {
+                white-space: nowrap;
             }
 
             .code {

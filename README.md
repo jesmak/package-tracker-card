@@ -222,28 +222,28 @@ The card lists the packages of every sensor it is given, from the sensor's `pack
 object per package. Only `shipment_number` and `status` are required. Anything else may be left out or `null`, and
 the line that would show it is left out too.
 
-| Key                  | Type   | What the card does with it                                                                                        |
-| -------------------- | ------ | ----------------------------------------------------------------------------------------------------------------- |
-| `shipment_number`    | string | **Required.** Shown as the package's name                                                                         |
-| `status`             | number | **Required.** One of the statuses below. Sets the icon, the bar and the colour                                    |
-| `direction`          | string | `outgoing` for a package the user sent. Anything else is incoming. Filters the list and sets its badge            |
-| `latest_event_date`  | string | When the status last changed, in ISO 8601. Shown with the status, and sorts the list                              |
-| `latest_event`       | string | What the carrier last said, in its own words                                                                      |
-| `latest_event_city`  | string | Where that happened                                                                                               |
-| `origin`             | string | Who sent it. `origin_city` stands in when there is no name                                                        |
-| `origin_city`        | string | Where it was sent from                                                                                            |
-| `shipment_date`      | string | When it was sent, in ISO 8601. Shown after the sender                                                             |
-| `destination`        | string | Where it is going. `destination_city` stands in when there is no name                                             |
-| `destination_city`   | string | The city it is going to                                                                                           |
-| `estimated_delivery` | string | When it is expected, in ISO 8601. Shown until it can be picked up                                                 |
-| `pickup_deadline`    | string | How long it is kept at the pickup point, in ISO 8601. Shown once it can be picked up                              |
-| `pickup_point`       | object | Where it is picked up. `name` and `city` replace the destination, and `compartment`, the door, goes with the code |
-| `pickup_code`        | string | The code that collects it. Shown only as `pickup_code` allows                                                     |
-| `pickup_qr`          | string | What a QR code for the pickup point holds, opened from its button. Shown only as `pickup_code` allows             |
-| `weight`             | number | Kilograms, with `show_details`                                                                                    |
-| `package_count`      | number | How many parcels the shipment has, with `show_details`                                                            |
-| `source`             | string | The service it came from, shown as a chip                                                                         |
-| `tracking_url`       | string | The carrier's page for the package, opened when it is clicked. Only `http` and `https` open                       |
+| Key                  | Type   | What the card does with it                                                                                                                                                                     |
+| -------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `shipment_number`    | string | **Required.** Shown as the package's name                                                                                                                                                      |
+| `status`             | number | **Required.** One of the statuses below. Sets the icon, the bar and the colour                                                                                                                 |
+| `direction`          | string | `outgoing` for a package the user sent. Anything else is incoming. Filters the list and sets its badge                                                                                         |
+| `latest_event_date`  | string | When the status last changed, in ISO 8601. Shown with the status, and sorts the list                                                                                                           |
+| `latest_event`       | string | What the carrier last said, in its own words                                                                                                                                                   |
+| `latest_event_city`  | string | Where that happened                                                                                                                                                                            |
+| `origin`             | string | Who sent it. `origin_city` stands in when there is no name                                                                                                                                     |
+| `origin_city`        | string | Where it was sent from                                                                                                                                                                         |
+| `shipment_date`      | string | When it was sent, in ISO 8601. Shown after the sender                                                                                                                                          |
+| `destination`        | string | Where it is going. `destination_city` stands in when there is no name                                                                                                                          |
+| `destination_city`   | string | The city it is going to                                                                                                                                                                        |
+| `estimated_delivery` | string | When it is expected, in ISO 8601. Shown until it can be picked up                                                                                                                              |
+| `pickup_deadline`    | string | How long it is kept at the pickup point, in ISO 8601. Shown once it can be picked up                                                                                                           |
+| `pickup_point`       | object | Where it is picked up. `name` and `city` replace the destination, and `compartment`, the door, goes with the code. A `compartment` without a code is a counter shelf, shown beside the QR code |
+| `pickup_code`        | string | The code that collects it. Shown only as `pickup_code` allows                                                                                                                                  |
+| `pickup_qr`          | string | What a QR code for the pickup point holds, opened from its button. Shown only as `pickup_code` allows                                                                                          |
+| `weight`             | number | Kilograms, with `show_details`                                                                                                                                                                 |
+| `package_count`      | number | How many parcels the shipment has, with `show_details`                                                                                                                                         |
+| `source`             | string | The service it came from, shown as a chip                                                                                                                                                      |
+| `tracking_url`       | string | The carrier's page for the package, opened when it is clicked. Only `http` and `https` open                                                                                                    |
 
 The statuses:
 

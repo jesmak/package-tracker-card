@@ -9,6 +9,7 @@
         "estimated": "Estimated",
         "show_code": "Show the pickup code",
         "compartment": "Compartment",
+        "shelf": "Shelf",
         "show_qr": "Show the QR code",
         "qr_code": "QR code",
         "close": "Close",

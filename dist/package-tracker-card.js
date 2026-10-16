@@ -746,6 +746,7 @@ var en_default = {
     estimated: "Estimated",
     show_code: "Show the pickup code",
     compartment: "Compartment",
+    shelf: "Shelf",
     show_qr: "Show the QR code",
     qr_code: "QR code",
     close: "Close",
@@ -819,6 +820,7 @@ var fi_default = {
     estimated: "Arvio",
     show_code: "N\xE4yt\xE4 noutokoodi",
     compartment: "Lokero",
+    shelf: "Hylly",
     show_qr: "N\xE4yt\xE4 QR-koodi",
     qr_code: "QR-koodi",
     close: "Sulje",
@@ -3130,16 +3132,19 @@ var PackageTrackerCard = class extends i4 {
    * The code that collects the package, and a button for its QR code when the pickup point scans one. Both
    * go by `pickup_code`: the code is shown never, always, or once the field is clicked, and the QR code is
    * behind its button unless the code is never shown. At a locker with a keypad on every door, the door
-   * comes first, since the code only opens that one. A finished package has nothing left to collect.
+   * comes first, since the code only opens that one. A compartment without a code is the shelf a counter
+   * keeps the package on, which is no secret. A finished package has nothing left to collect.
    */
   code(item) {
     const setting = this.config?.pickup_code ?? "hidden";
-    if (setting === "hidden" || !item.pickup_code && !item.pickup_qr || FINISHED.includes(item.status)) {
+    const shelf = item.pickup_code ? void 0 : item.pickup_point?.compartment;
+    if (setting === "hidden" || !item.pickup_code && !item.pickup_qr && !shelf || FINISHED.includes(item.status)) {
       return A;
     }
     return b2`
             <span class="pickup">
                 ${item.pickup_code ? this.codeField(item) : A}
+                ${shelf ? b2`<span class="shelf">${this.text("common.shelf")} ${shelf}</span>` : A}
                 ${item.pickup_qr ? b2`<button
                               type="button"
                               class="qr-button"
@@ -3483,6 +3488,10 @@ var PackageTrackerCard = class extends i4 {
                 display: inline-flex;
                 align-items: center;
                 gap: 6px;
+            }
+
+            .shelf {
+                white-space: nowrap;
             }
 
             .code {

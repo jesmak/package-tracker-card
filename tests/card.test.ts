@@ -619,3 +619,36 @@ describe("which way a package goes", () => {
         expect(() => element.setConfig({ type: "custom:package-tracker-card", entity: POSTI, direction: "sideways" } as never)).toThrow();
     });
 });
+
+describe("a counter shelf", () => {
+    const onShelf: Shipment = {
+        ...WAITING,
+        status: 5,
+        pickup_point: { name: "Example Service Point", compartment: "B12" },
+        pickup_qr: "ITEM-1",
+    };
+
+    it("is shown beside the QR code when the package has no code", async () => {
+        const root = shadow(await card(hass({ [POSTI]: [onShelf] }), { pickup_code: "toggle" }));
+        expect(root.querySelector(".shelf")?.textContent?.trim()).toBe("Hylly B12");
+        expect(root.querySelector(".qr-button")).not.toBeNull();
+        expect(root.querySelector(".code")).toBeNull();
+    });
+
+    it("is shown without a QR code too", async () => {
+        const root = shadow(await card(hass({ [POSTI]: [{ ...onShelf, pickup_qr: null }] }), { pickup_code: "always" }));
+        expect(root.querySelector(".shelf")?.textContent?.trim()).toBe("Hylly B12");
+    });
+
+    it("is not shown when the card hides the pickup details", async () => {
+        const root = shadow(await card(hass({ [POSTI]: [onShelf] })));
+        expect(root.querySelector(".shelf")).toBeNull();
+    });
+
+    it("is no shelf when the package has a code: the compartment is then the locker door, with the code", async () => {
+        const locker = { ...onShelf, pickup_code: "123456", pickup_qr: null };
+        const root = shadow(await card(hass({ [POSTI]: [locker] }), { pickup_code: "always" }));
+        expect(root.querySelector(".shelf")).toBeNull();
+        expect(root.querySelector(".code")?.textContent).toContain("B12 · 123456");
+    });
+});
