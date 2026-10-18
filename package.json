@@ -32,6 +32,7 @@
         "qrcode-generator": "^2.0.4"
     },
     "devDependencies": {
+        "@eslint/compat": "^2.1.1",
         "@eslint/js": "^10.0.1",
         "esbuild": "^0.28.2",
         "eslint": "^10.12.0",
