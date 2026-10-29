@@ -14,7 +14,9 @@ import { repeat } from "lit/directives/repeat.js";
 
 import { AT_PICKUP_POINT, CARD_VERSION, FINISHED, STATUSES } from "./const";
 import { trackingEntities, withTitle } from "./editor";
+import { ScrollFade, fadeStyles } from "./fade";
 import type { HomeAssistant } from "./hass";
+import { gridMinRows, heightCardSize, heightStyle, validHeight } from "./height";
 import { browserLanguage, translate } from "./localize/localize";
 import {
     entities,
@@ -60,13 +62,19 @@ registry.customCards.push({
 @customElement("package-tracker-card")
 export class PackageTrackerCard extends LitElement {
     @property({ attribute: false }) public hass?: HomeAssistant;
+    /** Set by the dashboard: "grid" in a sections view. */
+    @property({ attribute: false }) public layout?: string;
     @state() private config?: PackageTrackerCardConfig;
     /** The packages whose pickup code has been revealed by clicking it. */
     @state() private revealed = new Set<string>();
     /** The package whose QR code is open. */
     @state() private qr?: Shipment;
-    private resizeObserver?: ResizeObserver;
-    private observed?: HTMLElement;
+
+    constructor() {
+        super();
+        // Fades the list's edges while the card is held to a height, through the card's own lifecycle.
+        new ScrollFade(this, () => (this.heightStyle() ? this.renderRoot.querySelectorAll<HTMLElement>(".list") : []));
+    }
 
     public static getConfigElement(): HTMLElement {
         return document.createElement("package-tracker-card-editor");
@@ -90,30 +98,43 @@ export class PackageTrackerCard extends LitElement {
         if (noEntity || badCount || badStatuses || badLink || badDirection) {
             throw new Error(translate(browserLanguage(), "common.invalid_configuration"));
         }
+        if (!validHeight(config)) {
+            throw new Error(translate(browserLanguage(), "common.invalid_height"));
+        }
         this.config = withTitle(config);
     }
 
     public getCardSize(): number {
         const packages = this.hass && this.config ? this.shown(this.hass, this.config) : [];
-        return 1 + packages.length * 2;
+        return heightCardSize(this.config ?? {}, 1 + packages.length * 2, this.minimumHeight());
     }
 
     public getGridOptions(): Record<string, unknown> {
-        return { columns: 12, rows: "auto", min_columns: 6 };
+        return { columns: 12, rows: "auto", min_columns: 6, min_rows: gridMinRows(this.minimumHeight()) };
     }
 
-    /** Home Assistant takes cards out of the page and puts them back, such as when the view changes. */
-    public connectedCallback(): void {
-        super.connectedCallback();
-        if (this.observed) {
-            this.resizeObserver?.observe(this.observed);
-            fadeEdges(this.observed);
+    /**
+     * Held to a height, the title and one whole package still fit: its number, its progress line and the lines the
+     * configuration shows, each on one line, as measured on a full section's width.
+     */
+    private minimumHeight(): number {
+        const config = this.config;
+        if (!config) {
+            return 0;
         }
-    }
-
-    public disconnectedCallback(): void {
-        super.disconnectedCallback();
-        this.resizeObserver?.disconnect();
+        const padding = 24;
+        const header = config.title ? 45 : 0;
+        const numberLine = 12 + 24;
+        const progress = config.show_latest_event === false && config.show_progress === false ? 0 : 24;
+        const line = 16;
+        const lines = [
+            config.show_details === true,
+            config.show_latest_event_message !== false,
+            config.show_latest_event_location !== false,
+            config.show_origin !== false,
+            config.show_destination !== false || config.show_pickup !== false,
+        ].filter(Boolean).length;
+        return padding + header + numberLine + progress + lines * line;
     }
 
     protected shouldUpdate(changed: PropertyValues): boolean {
@@ -135,7 +156,9 @@ export class PackageTrackerCard extends LitElement {
 
         const missing = missingEntities(this.hass, this.config.entity);
         if (missing.length === entities(this.config.entity).length) {
-            return html`<ha-card><div class="message">${this.text("common.no_entity")} ${missing.join(", ")}</div></ha-card>`;
+            return html`<ha-card style="${this.heightStyle()}"
+                ><div class="message">${this.text("common.no_entity")} ${missing.join(", ")}</div></ha-card
+            >`;
         }
 
         const packages = this.shown(this.hass, this.config);
@@ -146,9 +169,9 @@ export class PackageTrackerCard extends LitElement {
         const title = this.config.title;
 
         return html`
-            <ha-card class="${this.config.wrap_text ? "wrap" : ""}" style="${this.heights()}">
+            <ha-card class="${this.config.wrap_text ? "wrap" : ""}" style="${this.heightStyle()}">
                 ${title ? html`<div class="header">${title}</div>` : nothing}
-                <div class="list" @scroll=${(event: Event) => fadeEdges(event.currentTarget as HTMLElement)}>
+                <div class="list">
                     ${
                         packages.length === 0
                             ? html`<div class="no-packages">${this.text("common.no_packages")}</div>`
@@ -164,24 +187,15 @@ export class PackageTrackerCard extends LitElement {
         `;
     }
 
-    /** The list's edges fade wherever packages are scrolled out of sight, which changes as the list and the card resize. */
     protected updated(changed: PropertyValues): void {
         // Opened only as the package is chosen, so a redraw while it is closing doesn't open it again.
         if (changed.has("qr") && this.qr) {
             this.renderRoot.querySelector<HTMLDialogElement>("dialog.qr")?.showModal();
         }
-        const list = this.renderRoot.querySelector<HTMLElement>(".list") ?? undefined;
-        if (list !== this.observed) {
-            this.resizeObserver ??= new ResizeObserver((entries) => entries.forEach((entry) => fadeEdges(entry.target as HTMLElement)));
-            this.resizeObserver.disconnect();
-            if (list) {
-                this.resizeObserver.observe(list);
-            }
-            this.observed = list;
-        }
-        if (list) {
-            fadeEdges(list);
-        }
+    }
+
+    private heightStyle(): string {
+        return heightStyle(this.config ?? {}, this.layout, this.minimumHeight());
     }
 
     /** The packages listed: the chosen ones in order, up to the most of each direction. */
@@ -192,12 +206,6 @@ export class PackageTrackerCard extends LitElement {
     /** The packages of the card's sensors with the chosen statuses, going the chosen way. */
     private chosen(hass: HomeAssistant, config: PackageTrackerCardConfig): Shipment[] {
         return withDirection(withStatuses(packagesOf(hass, config.entity), config.statuses), config.direction);
-    }
-
-    /** A fixed height, a limit, or neither. The list scrolls inside whatever the card gets. */
-    private heights(): string {
-        const { height, max_height: maxHeight } = this.config ?? {};
-        return [height === undefined ? "" : `height:${height}px;`, maxHeight === undefined ? "" : `max-height:${maxHeight}px;`].join("");
     }
 
     private shipment(item: Shipment, marked: boolean): TemplateResult {
@@ -536,424 +544,415 @@ export class PackageTrackerCard extends LitElement {
     }
 
     static get styles(): CSSResultGroup {
-        return css`
-            /* The header stays put and the packages scroll under it, so a card given a
+        return [
+            css`
+                /* The header stays put and the packages scroll under it, so a card given a
                height, by its options or by the rows of a sections view, never spills its text outside.
                The card is the container its layout measures, so it follows its own width wherever it is. */
-            ha-card {
-                display: flex;
-                flex-direction: column;
-                box-sizing: border-box;
-                height: 100%;
-                overflow: hidden;
-                padding: 12px;
-                container-type: inline-size;
-            }
+                ha-card {
+                    display: flex;
+                    flex-direction: column;
+                    box-sizing: border-box;
+                    overflow: hidden;
+                    padding: 12px;
+                    container-type: inline-size;
+                }
 
-            .header {
-                flex: 0 0 auto;
-                font-size: var(--ha-card-header-font-size, 24px);
-                line-height: 1.2;
-                padding: 4px 4px 12px 4px;
-            }
+                .header {
+                    flex: none;
+                    font-size: var(--ha-card-header-font-size, 24px);
+                    line-height: 1.2;
+                    padding: 4px 4px 12px 4px;
+                }
 
-            .list {
-                flex: 1 1 auto;
-                min-height: 0;
-                overflow-y: auto;
-                display: flex;
-                flex-direction: column;
-                gap: 10px;
-            }
+                .list {
+                    flex: 1 1 auto;
+                    min-height: 0;
+                    overflow-y: auto;
+                    overscroll-behavior: contain;
+                    scrollbar-width: thin;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 10px;
+                }
 
-            /* An edge with packages scrolled past it fades out, so it's clear there's more. */
-            .list.fade-top {
-                mask-image: linear-gradient(to bottom, transparent, #000 24px);
-            }
+                .no-packages,
+                .message {
+                    color: var(--secondary-text-color);
+                    padding: 4px;
+                }
 
-            .list.fade-bottom {
-                mask-image: linear-gradient(to top, transparent, #000 24px);
-            }
+                .item {
+                    border-radius: 8px;
+                    padding: 6px;
+                    background: var(--secondary-background-color, transparent);
+                }
 
-            .list.fade-top.fade-bottom {
-                mask-image: linear-gradient(to bottom, transparent, #000 24px, #000 calc(100% - 24px), transparent);
-            }
+                .item.clickable {
+                    cursor: pointer;
+                }
 
-            .no-packages,
-            .message {
-                color: var(--secondary-text-color);
-                padding: 4px;
-            }
+                .item.clickable:hover {
+                    background: var(--divider-color, var(--secondary-background-color));
+                }
 
-            .item {
-                border-radius: 8px;
-                padding: 6px;
-                background: var(--secondary-background-color, transparent);
-            }
+                /* The bar's track and the badges' borders are the hover's colour, so on a hovered package they take the resting one. */
+                .item.clickable:hover .track {
+                    background: var(--secondary-background-color, #f5f5f5);
+                }
 
-            .item.clickable {
-                cursor: pointer;
-            }
+                .item.clickable:hover .badge {
+                    border-color: var(--secondary-background-color, var(--secondary-text-color));
+                }
 
-            .item.clickable:hover {
-                background: var(--divider-color, var(--secondary-background-color));
-            }
+                .number.link {
+                    cursor: pointer;
+                }
 
-            /* The bar's track and the badges' borders are the hover's colour, so on a hovered package they take the resting one. */
-            .item.clickable:hover .track {
-                background: var(--secondary-background-color, #f5f5f5);
-            }
+                .number.link:hover {
+                    text-decoration: underline;
+                }
 
-            .item.clickable:hover .badge {
-                border-color: var(--secondary-background-color, var(--secondary-text-color));
-            }
+                /* Reached by keyboard, the number and the code show where the focus is, inside their edges so the scrolling list doesn't clip it. */
+                .number:focus-visible,
+                .code:focus-visible,
+                .qr-button:focus-visible {
+                    outline: 2px solid var(--primary-color);
+                    outline-offset: -2px;
+                }
 
-            .number.link {
-                cursor: pointer;
-            }
+                .line {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    min-width: 0;
+                }
 
-            .number.link:hover {
-                text-decoration: underline;
-            }
-
-            /* Reached by keyboard, the number and the code show where the focus is, inside their edges so the scrolling list doesn't clip it. */
-            .number:focus-visible,
-            .code:focus-visible,
-            .qr-button:focus-visible {
-                outline: 2px solid var(--primary-color);
-                outline-offset: -2px;
-            }
-
-            .line {
-                display: flex;
-                align-items: center;
-                gap: 6px;
-                min-width: 0;
-            }
-
-            /* The number is never cut short, and gives way last: the badges beside it go one above the other first, and
+                /* The number is never cut short, and gives way last: the badges beside it go one above the other first, and
                only when the line is still too short does the number wrap. The badges' far larger share of the shrinking
                keeps it whole until then. Both shares stay above 1, since shares that add up to less than 1 take only that
                part of the missing room, and the rest would stick out of the card. */
-            .number {
-                flex: 0 1 auto;
-                min-width: 0;
-                font-weight: 600;
-                overflow-wrap: anywhere;
-            }
+                .number {
+                    flex: 0 1 auto;
+                    min-width: 0;
+                    font-weight: 600;
+                    overflow-wrap: anywhere;
+                }
 
-            /* Which way the package goes and which service it came from, small and out of the way. */
-            /* Side by side while the line has room for them and the whole number, one above the other when it hasn't, as
+                /* Which way the package goes and which service it came from, small and out of the way. */
+                /* Side by side while the line has room for them and the whole number, one above the other when it hasn't, as
                the room runs out rather than at a set width. */
-            .badges {
-                margin-left: auto;
-                flex: 0 1000 auto;
-                min-width: min-content;
-                display: flex;
-                flex-wrap: wrap;
-                justify-content: flex-end;
-                gap: 2px 4px;
-            }
+                .badges {
+                    margin-left: auto;
+                    flex: 0 1000 auto;
+                    min-width: min-content;
+                    display: flex;
+                    flex-wrap: wrap;
+                    justify-content: flex-end;
+                    gap: 2px 4px;
+                }
 
-            .badge {
-                font-size: 11px;
-                color: var(--secondary-text-color);
-                border: 1px solid var(--divider-color, var(--secondary-text-color));
-                border-radius: 999px;
-                padding: 0 6px;
-            }
+                .badge {
+                    font-size: 11px;
+                    color: var(--secondary-text-color);
+                    border: 1px solid var(--divider-color, var(--secondary-text-color));
+                    border-radius: 999px;
+                    padding: 0 6px;
+                }
 
-            /* The bar keeps the height of a row of text, so hiding the status doesn't
+                /* The bar keeps the height of a row of text, so hiding the status doesn't
                change how tall a package is, and it lines up with the icons above and below. */
-            /* The bar takes the room the status and its time leave it, and gets a line of its own when that would make it
+                /* The bar takes the room the status and its time leave it, and gets a line of its own when that would make it
                shorter than it can be read at, whatever the card's width or the status. The status and its time then
                spread over the next line, the time at its end. */
-            .progress-row {
-                display: flex;
-                flex-wrap: wrap;
-                align-items: center;
-                gap: 6px 8px;
-                min-height: 18px;
-                margin: 4px 0 2px 0;
-                padding: 0 2px;
-            }
+                .progress-row {
+                    display: flex;
+                    flex-wrap: wrap;
+                    align-items: center;
+                    gap: 6px 8px;
+                    min-height: 18px;
+                    margin: 4px 0 2px 0;
+                    padding: 0 2px;
+                }
 
-            .track {
-                flex: 1000 1 120px;
-                height: 4px;
-                border-radius: 2px;
-                background: var(--divider-color, #ddd);
-                overflow: hidden;
-            }
+                .track {
+                    flex: 1000 1 120px;
+                    height: 4px;
+                    border-radius: 2px;
+                    background: var(--divider-color, #ddd);
+                    overflow: hidden;
+                }
 
-            .bar {
-                height: 100%;
-                border-radius: 2px;
-                background: currentColor;
-            }
+                .bar {
+                    height: 100%;
+                    border-radius: 2px;
+                    background: currentColor;
+                }
 
-            /* On a line of its own the status and its time may still not fit side by side, such as a long status on the
+                /* On a line of its own the status and its time may still not fit side by side, such as a long status on the
                narrowest card: then the time goes under the status. */
-            .latest {
-                flex: 1 1 auto;
-                min-width: 0;
-                display: flex;
-                flex-wrap: wrap;
-                align-items: center;
-                gap: 6px 8px;
-            }
+                .latest {
+                    flex: 1 1 auto;
+                    min-width: 0;
+                    display: flex;
+                    flex-wrap: wrap;
+                    align-items: center;
+                    gap: 6px 8px;
+                }
 
-            .latest .when {
-                margin-left: auto;
-            }
+                .latest .when {
+                    margin-left: auto;
+                }
 
-            .status-text {
-                flex: 0 0 auto;
-                font-size: 12px;
-                line-height: 1;
-                font-weight: 600;
-            }
+                .status-text {
+                    flex: 0 0 auto;
+                    font-size: 12px;
+                    line-height: 1;
+                    font-weight: 600;
+                }
 
-            .when {
-                flex: 0 0 auto;
-                font-size: 12px;
-                line-height: 1;
-                color: var(--secondary-text-color);
-            }
+                .when {
+                    flex: 0 0 auto;
+                    font-size: 12px;
+                    line-height: 1;
+                    color: var(--secondary-text-color);
+                }
 
-            /* Rows align to their first line, so the icon stays beside the start of a wrapped text. */
-            .row {
-                display: flex;
-                align-items: flex-start;
-                gap: 4px;
-                min-width: 0;
-            }
+                /* Rows align to their first line, so the icon stays beside the start of a wrapped text. */
+                .row {
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 4px;
+                    min-width: 0;
+                }
 
-            .row.secondary {
-                color: var(--secondary-text-color);
-                font-size: 12px;
-                line-height: 16px;
-            }
+                .row.secondary {
+                    color: var(--secondary-text-color);
+                    font-size: 12px;
+                    line-height: 16px;
+                }
 
-            /* The icon is a box of its own, so its middle lines up with the middle of the text. */
-            .row.secondary ha-icon {
-                --mdc-icon-size: 16px;
-                flex: 0 0 auto;
-                width: 16px;
-                height: 16px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
+                /* The icon is a box of its own, so its middle lines up with the middle of the text. */
+                .row.secondary ha-icon {
+                    --mdc-icon-size: 16px;
+                    flex: 0 0 auto;
+                    width: 16px;
+                    height: 16px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
 
-            /* The code and its QR button sit at the end of the pickup line, the code covered until it is asked for. */
-            .pickup {
-                margin-left: auto;
-                flex: 0 0 auto;
-                display: inline-flex;
-                align-items: center;
-                gap: 6px;
-            }
+                /* The code and its QR button sit at the end of the pickup line, the code covered until it is asked for. */
+                .pickup {
+                    margin-left: auto;
+                    flex: 0 0 auto;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                }
 
-            .shelf {
-                white-space: nowrap;
-            }
+                .shelf {
+                    white-space: nowrap;
+                }
 
-            .code {
-                cursor: default;
-                display: inline-flex;
-                align-items: center;
-                gap: 2px;
-                font-variant-numeric: tabular-nums;
-                letter-spacing: 0.02em;
-            }
+                .code {
+                    cursor: default;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 2px;
+                    font-variant-numeric: tabular-nums;
+                    letter-spacing: 0.02em;
+                }
 
-            .code ha-icon {
-                --mdc-icon-size: 14px;
-                width: 14px;
-                height: 14px;
-            }
+                .code ha-icon {
+                    --mdc-icon-size: 14px;
+                    width: 14px;
+                    height: 14px;
+                }
 
-            /* A code that covers again when clicked shows it can be clicked, one shown always doesn't. */
-            .code.toggles {
-                cursor: pointer;
-            }
+                /* A code that covers again when clicked shows it can be clicked, one shown always doesn't. */
+                .code.toggles {
+                    cursor: pointer;
+                }
 
-            .code.covered {
-                opacity: 0.7;
-            }
+                .code.covered {
+                    opacity: 0.7;
+                }
 
-            .code.covered:hover {
-                opacity: 1;
-            }
+                .code.covered:hover {
+                    opacity: 1;
+                }
 
-            /* A bit taller than the line, without making it taller, so it is easier to hit. */
-            .qr-button {
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                width: 28px;
-                height: 20px;
-                margin: -2px 0;
-                padding: 0;
-                /* Not the divider colour, which is also the highlight of a package under the pointer. */
-                border: 1px solid var(--secondary-text-color, currentColor);
-                border-radius: 4px;
-                background: none;
-                color: var(--primary-text-color);
-                cursor: pointer;
-            }
+                /* A bit taller than the line, without making it taller, so it is easier to hit. */
+                .qr-button {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 28px;
+                    height: 20px;
+                    margin: -2px 0;
+                    padding: 0;
+                    /* Not the divider colour, which is also the highlight of a package under the pointer. */
+                    border: 1px solid var(--secondary-text-color, currentColor);
+                    border-radius: 4px;
+                    background: none;
+                    color: var(--primary-text-color);
+                    cursor: pointer;
+                }
 
-            .qr-button:hover {
-                background: var(--secondary-background-color, transparent);
-            }
+                .qr-button:hover {
+                    background: var(--secondary-background-color, transparent);
+                }
 
-            .qr-button ha-icon {
-                --mdc-icon-size: 14px;
-                width: 14px;
-                height: 14px;
-            }
+                .qr-button ha-icon {
+                    --mdc-icon-size: 14px;
+                    width: 14px;
+                    height: 14px;
+                }
 
-            dialog.qr {
-                box-sizing: border-box;
-                width: min(384px, calc(100vw - 32px));
-                max-height: calc(100vh - 32px);
-                padding: 0;
-                border: 0;
-                border-radius: var(--ha-dialog-border-radius, 24px);
-                background: var(--ha-dialog-surface-background, var(--card-background-color, #fff));
-                color: var(--primary-text-color);
-                box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
-            }
+                dialog.qr {
+                    box-sizing: border-box;
+                    width: min(384px, calc(100vw - 32px));
+                    max-height: calc(100vh - 32px);
+                    padding: 0;
+                    border: 0;
+                    border-radius: var(--ha-dialog-border-radius, 24px);
+                    background: var(--ha-dialog-surface-background, var(--card-background-color, #fff));
+                    color: var(--primary-text-color);
+                    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+                }
 
-            dialog.qr::backdrop {
-                background: rgba(0, 0, 0, 0.6);
-            }
+                dialog.qr::backdrop {
+                    background: rgba(0, 0, 0, 0.6);
+                }
 
-            .qr-content {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                padding: 12px 24px 24px 24px;
-            }
+                .qr-content {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    padding: 12px 24px 24px 24px;
+                }
 
-            /* The number is centred over the code, with room left on both sides for the close button. */
-            .qr-header {
-                position: relative;
-                align-self: stretch;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                min-height: 44px;
-                padding: 0 44px;
-                margin-bottom: 12px;
-            }
+                /* The number is centred over the code, with room left on both sides for the close button. */
+                .qr-header {
+                    position: relative;
+                    align-self: stretch;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 44px;
+                    padding: 0 44px;
+                    margin-bottom: 12px;
+                }
 
-            .qr-title {
-                font-size: 20px;
-                font-weight: 500;
-                text-align: center;
-                overflow-wrap: anywhere;
-            }
+                .qr-title {
+                    font-size: 20px;
+                    font-weight: 500;
+                    text-align: center;
+                    overflow-wrap: anywhere;
+                }
 
-            .qr-close {
-                position: absolute;
-                top: 0;
-                right: -12px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                width: 44px;
-                height: 44px;
-                padding: 0;
-                border: 0;
-                border-radius: 50%;
-                background: none;
-                color: inherit;
-                cursor: pointer;
-            }
+                .qr-close {
+                    position: absolute;
+                    top: 0;
+                    right: -12px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 44px;
+                    height: 44px;
+                    padding: 0;
+                    border: 0;
+                    border-radius: 50%;
+                    background: none;
+                    color: inherit;
+                    cursor: pointer;
+                }
 
-            .qr-close:hover {
-                background: var(--divider-color, transparent);
-            }
+                .qr-close:hover {
+                    background: var(--divider-color, transparent);
+                }
 
-            /* White around the code whatever the theme, as scanners need it. */
-            .qr-code {
-                display: block;
-                width: 248px;
-                max-width: 100%;
-                height: auto;
-                border-radius: 12px;
-            }
+                /* White around the code whatever the theme, as scanners need it. */
+                .qr-code {
+                    display: block;
+                    width: 248px;
+                    max-width: 100%;
+                    height: auto;
+                    border-radius: 12px;
+                }
 
-            .qr-number {
-                margin-top: 16px;
-                font-size: 36px;
-                font-weight: 700;
-                font-variant-numeric: tabular-nums;
-                letter-spacing: 0.08em;
-                text-align: center;
-                overflow-wrap: anywhere;
-            }
+                .qr-number {
+                    margin-top: 16px;
+                    font-size: 36px;
+                    font-weight: 700;
+                    font-variant-numeric: tabular-nums;
+                    letter-spacing: 0.08em;
+                    text-align: center;
+                    overflow-wrap: anywhere;
+                }
 
-            .qr-detail {
-                margin-top: 4px;
-                font-size: 14px;
-                color: var(--secondary-text-color);
-                text-align: center;
-            }
+                .qr-detail {
+                    margin-top: 4px;
+                    font-size: 14px;
+                    color: var(--secondary-text-color);
+                    text-align: center;
+                }
 
-            /* Long texts are cut short, or wrap in full with wrap_text. */
-            .text-content {
-                min-width: 0;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-            }
+                /* Long texts are cut short, or wrap in full with wrap_text. */
+                .text-content {
+                    min-width: 0;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
 
-            .wrap .text-content {
-                white-space: normal;
-                overflow-wrap: anywhere;
-            }
+                .wrap .text-content {
+                    white-space: normal;
+                    overflow-wrap: anywhere;
+                }
 
-            /* On a narrow card the bar gets a line of its own, with the status under it and its time at the end. */
-            /* The status colours the icon, the bar and the status text of a package. */
-            .item {
-                color: var(--primary-text-color);
-            }
+                /* On a narrow card the bar gets a line of its own, with the status under it and its time at the end. */
+                /* The status colours the icon, the bar and the status text of a package. */
+                .item {
+                    color: var(--primary-text-color);
+                }
 
-            .status-1,
-            .status-2 {
-                color: var(--info-color, cornflowerblue);
-            }
+                .status-1,
+                .status-2 {
+                    color: var(--info-color, cornflowerblue);
+                }
 
-            .status-3,
-            .status-4 {
-                color: var(--state-icon-color, #44739e);
-            }
+                .status-3,
+                .status-4 {
+                    color: var(--state-icon-color, #44739e);
+                }
 
-            .status-5 {
-                color: var(--success-color, #43a047);
-            }
+                .status-5 {
+                    color: var(--success-color, #43a047);
+                }
 
-            .status-0 {
-                color: var(--secondary-text-color);
-            }
+                .status-0 {
+                    color: var(--secondary-text-color);
+                }
 
-            .status-6,
-            .status-7 {
-                color: var(--error-color, #db4437);
-            }
+                .status-6,
+                .status-7 {
+                    color: var(--error-color, #db4437);
+                }
 
-            .item .number,
-            .item .text-content {
-                color: var(--primary-text-color);
-            }
+                .item .number,
+                .item .text-content {
+                    color: var(--primary-text-color);
+                }
 
-            .status-0 .number {
-                color: var(--secondary-text-color);
-            }
-        `;
+                .status-0 .number {
+                    color: var(--secondary-text-color);
+                }
+            `,
+            fadeStyles,
+        ];
     }
 }
 
@@ -963,12 +962,6 @@ function activate(event: KeyboardEvent, action: () => void): void {
         event.preventDefault();
         action();
     }
-}
-
-/** Marks the edges of a scrolling list that have packages beyond them. A pixel of slack absorbs fractional scrolling. */
-function fadeEdges(list: HTMLElement): void {
-    list.classList.toggle("fade-top", list.scrollTop > 1);
-    list.classList.toggle("fade-bottom", list.scrollTop + list.clientHeight < list.scrollHeight - 1);
 }
 
 /** The pickup point as one line: its name, and the city when they differ. */

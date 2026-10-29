@@ -8,6 +8,7 @@ import { customElement, property, state } from "lit/decorators.js";
 
 import { STATUSES } from "./const";
 import type { HomeAssistant } from "./hass";
+import { heightData, heightSchema, tidyHeight } from "./height";
 import { browserLanguage, translate } from "./localize/localize";
 import type { PackageTrackerCardConfig } from "./types";
 
@@ -46,7 +47,7 @@ export function trackingEntities(hass: HomeAssistant): string[] {
         .sort();
 }
 
-function schema(hass: HomeAssistant, text: (key: string) => string) {
+function schema(hass: HomeAssistant, config: PackageTrackerCardConfig, text: (key: string) => string) {
     return [
         {
             name: "entity",
@@ -83,16 +84,9 @@ function schema(hass: HomeAssistant, text: (key: string) => string) {
             schema: [
                 { name: "max_events", selector: { number: { min: 1, max: 50, step: 1, mode: "box" } } },
                 { name: "max_sent_events", selector: { number: { min: 1, max: 50, step: 1, mode: "box" } } },
-                {
-                    name: "height",
-                    selector: { number: { min: 100, max: 1200, step: 10, unit_of_measurement: "px", mode: "box" } },
-                },
-                {
-                    name: "max_height",
-                    selector: { number: { min: 100, max: 1200, step: 10, unit_of_measurement: "px", mode: "box" } },
-                },
             ],
         },
+        ...heightSchema(config, text),
         {
             name: "pickup_code",
             selector: {
@@ -157,8 +151,8 @@ export class PackageTrackerCardEditor extends LitElement {
         return html`
             <ha-form
                 .hass=${this.hass}
-                .data=${{ ...DEFAULTS, ...this.config, entity, statuses }}
-                .schema=${schema(this.hass, (key) => this.text(key))}
+                .data=${{ ...DEFAULTS, ...heightData(this.config), entity, statuses }}
+                .schema=${schema(this.hass, this.config, (key) => this.text(key))}
                 .computeLabel=${(entry: SchemaEntry) => this.text(`editor.${entry.name}`)}
                 .computeHelper=${(entry: SchemaEntry) => this.helper(entry.name)}
                 @value-changed=${this.valueChanged}
@@ -167,7 +161,7 @@ export class PackageTrackerCardEditor extends LitElement {
     }
 
     private valueChanged(event: CustomEvent<{ value: PackageTrackerCardConfig }>): void {
-        const config: PackageTrackerCardConfig = { ...event.detail.value };
+        const config: PackageTrackerCardConfig = tidyHeight(event.detail.value);
 
         // Every status, or none at all, is the same as showing them all, which needs no setting.
         const chosen = (config.statuses ?? []).map(Number);
@@ -179,7 +173,7 @@ export class PackageTrackerCardEditor extends LitElement {
         }
 
         // An emptied number means "no limit", and an empty title means no title at all.
-        for (const key of ["max_events", "max_sent_events", "height", "max_height", "title"] as const) {
+        for (const key of ["max_events", "max_sent_events", "title"] as const) {
             const value = config[key];
             if (value === undefined || value === null || String(value) === "") {
                 delete config[key];

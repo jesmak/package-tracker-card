@@ -1,4 +1,4 @@
-/*! package-tracker-card 2.4.0 | MIT License | includes QR Code Generator, Copyright (c) 2009 Kazuhiko Arase, MIT License */
+/*! package-tracker-card 2.5.0 | MIT License | includes QR Code Generator, Copyright (c) 2009 Kazuhiko Arase, MIT License */
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __decorateClass = (decorators, target, key, kind) => {
@@ -711,7 +711,7 @@ var c4 = e5(class extends i5 {
 });
 
 // src/const.ts
-var CARD_VERSION = "2.4.0";
+var CARD_VERSION = "2.5.0";
 var DELIVERED = 0;
 var WAITING = 1;
 var RECEIVED = 2;
@@ -734,10 +734,75 @@ var PROGRESS = {
   [UNKNOWN]: 0
 };
 
+// src/height.ts
+var HEIGHT_MODES = ["auto", "fixed", "max"];
+var pixels = (value) => value == null || typeof value === "number" && Number.isFinite(value) && value > 0;
+function validHeight(config) {
+  return (config.height_mode == null || HEIGHT_MODES.includes(config.height_mode)) && pixels(config.height) && pixels(config.max_height);
+}
+function heightMode(config) {
+  return config.height_mode ?? (config.height ? "fixed" : config.max_height ? "max" : "auto");
+}
+var ROW_HEIGHT = 56;
+var ROW_GAP = 8;
+function heightStyle(config, layout, minimum = 0) {
+  const rows = config.grid_options ? config.grid_options.rows : config.layout_options?.grid_rows;
+  if (layout === "grid" && typeof rows === "number") {
+    return "height: 100%";
+  }
+  const mode = heightMode(config);
+  if (mode === "fixed" && config.height) {
+    return `height: ${Math.max(config.height, minimum)}px`;
+  }
+  return mode === "max" && config.max_height ? `max-height: ${Math.max(config.max_height, minimum)}px` : "";
+}
+function gridMinRows(minimum) {
+  return Math.max(1, Math.ceil((minimum + ROW_GAP) / (ROW_HEIGHT + ROW_GAP)));
+}
+function heightCardSize(config, content, minimum = 0) {
+  const mode = heightMode(config);
+  if (mode === "fixed" && config.height) {
+    return Math.max(1, Math.round(Math.max(config.height, minimum) / 50));
+  }
+  return mode === "max" && config.max_height ? Math.max(1, Math.min(content, Math.round(Math.max(config.max_height, minimum) / 50))) : content;
+}
+function heightSchema(config, text) {
+  const mode = heightMode(config);
+  const field = (name) => ({
+    name,
+    selector: { number: { min: 100, max: 2e3, step: 10, unit_of_measurement: "px", mode: "box" } }
+  });
+  return [
+    {
+      name: "height_mode",
+      selector: {
+        select: { mode: "dropdown", options: HEIGHT_MODES.map((value) => ({ value, label: text(`editor.height_mode_${value}`) })) }
+      }
+    },
+    ...mode === "fixed" ? [field("height")] : mode === "max" ? [field("max_height")] : []
+  ];
+}
+function heightData(config) {
+  return { ...config, height_mode: heightMode(config) };
+}
+function tidyHeight(config) {
+  const tidied = { ...config };
+  for (const key of ["height", "max_height"]) {
+    if (!tidied[key]) {
+      delete tidied[key];
+    }
+  }
+  if (!tidied.height_mode || heightMode({ ...tidied, height_mode: void 0 }) === tidied.height_mode) {
+    delete tidied.height_mode;
+  }
+  return tidied;
+}
+
 // src/localize/languages/en.json
 var en_default = {
   common: {
     invalid_configuration: "Invalid configuration",
+    invalid_height: "Invalid height. height and max_height must be positive numbers of pixels, and height_mode auto, fixed or max.",
     description: "Package tracker card for tracking parcels",
     name: "Package tracker card",
     no_packages: "No packages to track at the moment",
@@ -779,10 +844,15 @@ var en_default = {
     direction_outgoing: "Sent",
     max_events: "Most incoming packages to show",
     max_sent_events: "Most sent packages to show",
-    height: "Height",
-    height_helper: "A fixed height in pixels. Leave the field empty and the card's height follows the number of packages.",
+    height_mode: "Height",
+    height_mode_helper: "A height set in the layout tab of a sections view is used instead.",
+    height_mode_auto: "Fits the content",
+    height_mode_fixed: "Fixed",
+    height_mode_max: "Grows up to a limit",
+    height: "Fixed height",
+    height_helper: "The card is always this tall, and the list scrolls inside it.",
     max_height: "Maximum height",
-    max_height_helper: "A height the card never grows past. Leave the field empty and the card's height has no limit.",
+    max_height_helper: "The card grows with its content up to this height, and then the list scrolls.",
     show_progress: "Progress bar",
     show_latest_event: "Status and time",
     show_latest_event_message: "Latest event",
@@ -813,6 +883,7 @@ var en_default = {
 var fi_default = {
   common: {
     invalid_configuration: "Virheellinen konfiguraatio",
+    invalid_height: "Virheellinen korkeus. Korkeuksien (height ja max_height) on oltava positiivisia lukuja pikselein\xE4, ja korkeustilan (height_mode) auto, fixed tai max.",
     description: "Kortti pakettil\xE4hetysten seuraamiseen",
     name: "L\xE4hetysten seuranta",
     no_packages: "Ei seurattavia paketteja t\xE4ll\xE4 hetkell\xE4",
@@ -854,10 +925,15 @@ var fi_default = {
     direction_outgoing: "L\xE4hetetyt",
     max_events: "Saapuvia paketteja enint\xE4\xE4n",
     max_sent_events: "L\xE4hetettyj\xE4 paketteja enint\xE4\xE4n",
-    height: "Korkeus",
-    height_helper: "Kiinte\xE4 korkeus pikselein\xE4. J\xE4t\xE4 kentt\xE4 tyhj\xE4ksi, niin kortin korkeus mukautuu pakettien m\xE4\xE4r\xE4\xE4n.",
+    height_mode: "Korkeus",
+    height_mode_helper: "Osioihin jaetun n\xE4kym\xE4n asettelu-v\xE4lilehdell\xE4 asetettu korkeus ohittaa t\xE4m\xE4n.",
+    height_mode_auto: "Sis\xE4ll\xF6n mukaan",
+    height_mode_fixed: "Kiinte\xE4",
+    height_mode_max: "Kasvaa rajaan asti",
+    height: "Kiinte\xE4 korkeus",
+    height_helper: "Kortti on aina n\xE4in korkea, ja lista vierii sen sis\xE4ll\xE4.",
     max_height: "Enimm\xE4iskorkeus",
-    max_height_helper: "Korkeus, jota kortti ei ylit\xE4. J\xE4t\xE4 kentt\xE4 tyhj\xE4ksi, niin kortin korkeudella ei ole yl\xE4rajaa.",
+    max_height_helper: "Kortti kasvaa sis\xE4lt\xF6ns\xE4 mukana t\xE4h\xE4n korkeuteen asti, ja sen j\xE4lkeen lista vierii.",
     show_progress: "Edistymispalkki",
     show_latest_event: "Tila ja aika",
     show_latest_event_message: "Viimeisin tapahtuma",
@@ -930,7 +1006,7 @@ function withTitle(config) {
 function trackingEntities(hass) {
   return Object.keys(hass.states).filter((id) => Array.isArray(hass.states[id]?.attributes?.packages)).sort();
 }
-function schema(hass, text) {
+function schema(hass, config, text) {
   return [
     {
       name: "entity",
@@ -966,17 +1042,10 @@ function schema(hass, text) {
       name: "",
       schema: [
         { name: "max_events", selector: { number: { min: 1, max: 50, step: 1, mode: "box" } } },
-        { name: "max_sent_events", selector: { number: { min: 1, max: 50, step: 1, mode: "box" } } },
-        {
-          name: "height",
-          selector: { number: { min: 100, max: 1200, step: 10, unit_of_measurement: "px", mode: "box" } }
-        },
-        {
-          name: "max_height",
-          selector: { number: { min: 100, max: 1200, step: 10, unit_of_measurement: "px", mode: "box" } }
-        }
+        { name: "max_sent_events", selector: { number: { min: 1, max: 50, step: 1, mode: "box" } } }
       ]
     },
+    ...heightSchema(config, text),
     {
       name: "pickup_code",
       selector: {
@@ -1037,8 +1106,8 @@ var PackageTrackerCardEditor = class extends i4 {
     return b2`
             <ha-form
                 .hass=${this.hass}
-                .data=${{ ...DEFAULTS, ...this.config, entity, statuses }}
-                .schema=${schema(this.hass, (key) => this.text(key))}
+                .data=${{ ...DEFAULTS, ...heightData(this.config), entity, statuses }}
+                .schema=${schema(this.hass, this.config, (key) => this.text(key))}
                 .computeLabel=${(entry) => this.text(`editor.${entry.name}`)}
                 .computeHelper=${(entry) => this.helper(entry.name)}
                 @value-changed=${this.valueChanged}
@@ -1046,7 +1115,7 @@ var PackageTrackerCardEditor = class extends i4 {
         `;
   }
   valueChanged(event) {
-    const config = { ...event.detail.value };
+    const config = tidyHeight(event.detail.value);
     const chosen = (config.statuses ?? []).map(Number);
     const statuses = STATUSES.filter((status) => chosen.includes(status));
     if (statuses.length === 0 || statuses.length === STATUSES.length) {
@@ -1054,7 +1123,7 @@ var PackageTrackerCardEditor = class extends i4 {
     } else {
       config.statuses = statuses;
     }
-    for (const key of ["max_events", "max_sent_events", "height", "max_height", "title"]) {
+    for (const key of ["max_events", "max_sent_events", "title"]) {
       const value = config[key];
       if (value === void 0 || value === null || String(value) === "") {
         delete config[key];
@@ -1088,6 +1157,104 @@ __decorateClass([
 PackageTrackerCardEditor = __decorateClass([
   t3("package-tracker-card-editor")
 ], PackageTrackerCardEditor);
+
+// src/fade.ts
+var fadeStyles = i`
+    .fades {
+        --fade-length: min(24px, 25%);
+        scroll-padding-block: calc(var(--fade-top-offset, 0px) + var(--fade-length, 24px)) var(--fade-length, 24px);
+    }
+
+    .fade-top {
+        mask-image: linear-gradient(
+            to bottom,
+            #000 var(--fade-top-offset, 0px),
+            transparent var(--fade-top-offset, 0px),
+            #000 calc(var(--fade-top-offset, 0px) + var(--fade-length, 24px))
+        );
+    }
+
+    .fade-bottom {
+        mask-image: linear-gradient(to top, transparent, #000 var(--fade-length, 24px));
+    }
+
+    .fade-top.fade-bottom {
+        mask-image: linear-gradient(
+            to bottom,
+            #000 var(--fade-top-offset, 0px),
+            transparent var(--fade-top-offset, 0px),
+            #000 calc(var(--fade-top-offset, 0px) + var(--fade-length, 24px)),
+            #000 calc(100% - var(--fade-length, 24px)),
+            transparent
+        );
+    }
+`;
+function markFade(part) {
+  const hidden = part.scrollHeight - part.clientHeight;
+  part.classList.toggle("fade-top", hidden > 1 && part.scrollTop > 1);
+  part.classList.toggle("fade-bottom", hidden > 1 && hidden - part.scrollTop > 1);
+}
+var onScroll = (event) => markFade(event.currentTarget);
+var ScrollFade = class {
+  constructor(host, parts) {
+    this.host = host;
+    this.parts = parts;
+    /** Each followed part with the children whose size it watches. */
+    this.followed = /* @__PURE__ */ new Map();
+    this.resized = typeof ResizeObserver === "undefined" ? void 0 : new ResizeObserver((entries) => {
+      for (const { target } of entries) {
+        const part = this.followed.has(target) ? target : target.parentElement;
+        if (part && this.followed.has(part)) {
+          markFade(part);
+        }
+      }
+    });
+    host.addController(this);
+  }
+  hostConnected() {
+    if (this.host.hasUpdated) {
+      this.follow();
+    }
+  }
+  hostUpdated() {
+    if (this.host.isConnected) {
+      this.follow();
+    }
+  }
+  hostDisconnected() {
+    for (const part of [...this.followed.keys()]) {
+      this.forget(part);
+    }
+  }
+  follow() {
+    const now = new Set(this.parts());
+    for (const part of [...this.followed.keys()]) {
+      if (!now.has(part)) {
+        this.forget(part);
+      }
+    }
+    for (const part of now) {
+      if (!this.followed.has(part)) {
+        part.addEventListener("scroll", onScroll, { passive: true });
+        this.resized?.observe(part);
+      }
+      part.classList.add("fades");
+      const before = this.followed.get(part) ?? [];
+      const children = [...part.children];
+      before.filter((child) => !children.includes(child)).forEach((child) => this.resized?.unobserve(child));
+      children.filter((child) => !before.includes(child)).forEach((child) => this.resized?.observe(child));
+      this.followed.set(part, children);
+      markFade(part);
+    }
+  }
+  forget(part) {
+    this.followed.get(part)?.forEach((child) => this.resized?.unobserve(child));
+    this.followed.delete(part);
+    part.removeEventListener("scroll", onScroll);
+    this.resized?.unobserve(part);
+    part.classList.remove("fades", "fade-top", "fade-bottom");
+  }
+};
 
 // src/packages.ts
 var ICONS = [
@@ -2933,8 +3100,9 @@ registry.customCards.push({
 });
 var PackageTrackerCard = class extends i4 {
   constructor() {
-    super(...arguments);
+    super();
     this.revealed = /* @__PURE__ */ new Set();
+    new ScrollFade(this, () => this.heightStyle() ? this.renderRoot.querySelectorAll(".list") : []);
   }
   static getConfigElement() {
     return document.createElement("package-tracker-card-editor");
@@ -2954,26 +3122,40 @@ var PackageTrackerCard = class extends i4 {
     if (noEntity || badCount || badStatuses || badLink || badDirection) {
       throw new Error(translate(browserLanguage(), "common.invalid_configuration"));
     }
+    if (!validHeight(config)) {
+      throw new Error(translate(browserLanguage(), "common.invalid_height"));
+    }
     this.config = withTitle(config);
   }
   getCardSize() {
     const packages = this.hass && this.config ? this.shown(this.hass, this.config) : [];
-    return 1 + packages.length * 2;
+    return heightCardSize(this.config ?? {}, 1 + packages.length * 2, this.minimumHeight());
   }
   getGridOptions() {
-    return { columns: 12, rows: "auto", min_columns: 6 };
+    return { columns: 12, rows: "auto", min_columns: 6, min_rows: gridMinRows(this.minimumHeight()) };
   }
-  /** Home Assistant takes cards out of the page and puts them back, such as when the view changes. */
-  connectedCallback() {
-    super.connectedCallback();
-    if (this.observed) {
-      this.resizeObserver?.observe(this.observed);
-      fadeEdges(this.observed);
+  /**
+   * Held to a height, the title and one whole package still fit: its number, its progress line and the lines the
+   * configuration shows, each on one line, as measured on a full section's width.
+   */
+  minimumHeight() {
+    const config = this.config;
+    if (!config) {
+      return 0;
     }
-  }
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    this.resizeObserver?.disconnect();
+    const padding = 24;
+    const header = config.title ? 45 : 0;
+    const numberLine = 12 + 24;
+    const progress = config.show_latest_event === false && config.show_progress === false ? 0 : 24;
+    const line = 16;
+    const lines = [
+      config.show_details === true,
+      config.show_latest_event_message !== false,
+      config.show_latest_event_location !== false,
+      config.show_origin !== false,
+      config.show_destination !== false || config.show_pickup !== false
+    ].filter(Boolean).length;
+    return padding + header + numberLine + progress + lines * line;
   }
   shouldUpdate(changed) {
     if (!this.config || [...changed.keys()].some((key) => key !== "hass")) {
@@ -2991,15 +3173,17 @@ var PackageTrackerCard = class extends i4 {
     }
     const missing = missingEntities(this.hass, this.config.entity);
     if (missing.length === entities(this.config.entity).length) {
-      return b2`<ha-card><div class="message">${this.text("common.no_entity")} ${missing.join(", ")}</div></ha-card>`;
+      return b2`<ha-card style="${this.heightStyle()}"
+                ><div class="message">${this.text("common.no_entity")} ${missing.join(", ")}</div></ha-card
+            >`;
     }
     const packages = this.shown(this.hass, this.config);
     const marked = (this.config.direction ?? "all") === "all";
     const title = this.config.title;
     return b2`
-            <ha-card class="${this.config.wrap_text ? "wrap" : ""}" style="${this.heights()}">
+            <ha-card class="${this.config.wrap_text ? "wrap" : ""}" style="${this.heightStyle()}">
                 ${title ? b2`<div class="header">${title}</div>` : A}
-                <div class="list" @scroll=${(event) => fadeEdges(event.currentTarget)}>
+                <div class="list">
                     ${packages.length === 0 ? b2`<div class="no-packages">${this.text("common.no_packages")}</div>` : c4(
       packages,
       (item) => item.shipment_number,
@@ -3010,23 +3194,13 @@ var PackageTrackerCard = class extends i4 {
             </ha-card>
         `;
   }
-  /** The list's edges fade wherever packages are scrolled out of sight, which changes as the list and the card resize. */
   updated(changed) {
     if (changed.has("qr") && this.qr) {
       this.renderRoot.querySelector("dialog.qr")?.showModal();
     }
-    const list = this.renderRoot.querySelector(".list") ?? void 0;
-    if (list !== this.observed) {
-      this.resizeObserver ?? (this.resizeObserver = new ResizeObserver((entries) => entries.forEach((entry) => fadeEdges(entry.target))));
-      this.resizeObserver.disconnect();
-      if (list) {
-        this.resizeObserver.observe(list);
-      }
-      this.observed = list;
-    }
-    if (list) {
-      fadeEdges(list);
-    }
+  }
+  heightStyle() {
+    return heightStyle(this.config ?? {}, this.layout, this.minimumHeight());
   }
   /** The packages listed: the chosen ones in order, up to the most of each direction. */
   shown(hass, config) {
@@ -3035,11 +3209,6 @@ var PackageTrackerCard = class extends i4 {
   /** The packages of the card's sensors with the chosen statuses, going the chosen way. */
   chosen(hass, config) {
     return withDirection(withStatuses(packagesOf(hass, config.entity), config.statuses), config.direction);
-  }
-  /** A fixed height, a limit, or neither. The list scrolls inside whatever the card gets. */
-  heights() {
-    const { height, max_height: maxHeight } = this.config ?? {};
-    return [height === void 0 ? "" : `height:${height}px;`, maxHeight === void 0 ? "" : `max-height:${maxHeight}px;`].join("");
   }
   shipment(item, marked) {
     const moving = !FINISHED.includes(item.status);
@@ -3319,429 +3488,423 @@ var PackageTrackerCard = class extends i4 {
     return this.hass?.locale?.language ?? this.hass?.language ?? browserLanguage();
   }
   static get styles() {
-    return i`
-            /* The header stays put and the packages scroll under it, so a card given a
+    return [
+      i`
+                /* The header stays put and the packages scroll under it, so a card given a
                height, by its options or by the rows of a sections view, never spills its text outside.
                The card is the container its layout measures, so it follows its own width wherever it is. */
-            ha-card {
-                display: flex;
-                flex-direction: column;
-                box-sizing: border-box;
-                height: 100%;
-                overflow: hidden;
-                padding: 12px;
-                container-type: inline-size;
-            }
+                ha-card {
+                    display: flex;
+                    flex-direction: column;
+                    box-sizing: border-box;
+                    overflow: hidden;
+                    padding: 12px;
+                    container-type: inline-size;
+                }
 
-            .header {
-                flex: 0 0 auto;
-                font-size: var(--ha-card-header-font-size, 24px);
-                line-height: 1.2;
-                padding: 4px 4px 12px 4px;
-            }
+                .header {
+                    flex: none;
+                    font-size: var(--ha-card-header-font-size, 24px);
+                    line-height: 1.2;
+                    padding: 4px 4px 12px 4px;
+                }
 
-            .list {
-                flex: 1 1 auto;
-                min-height: 0;
-                overflow-y: auto;
-                display: flex;
-                flex-direction: column;
-                gap: 10px;
-            }
+                .list {
+                    flex: 1 1 auto;
+                    min-height: 0;
+                    overflow-y: auto;
+                    overscroll-behavior: contain;
+                    scrollbar-width: thin;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 10px;
+                }
 
-            /* An edge with packages scrolled past it fades out, so it's clear there's more. */
-            .list.fade-top {
-                mask-image: linear-gradient(to bottom, transparent, #000 24px);
-            }
+                .no-packages,
+                .message {
+                    color: var(--secondary-text-color);
+                    padding: 4px;
+                }
 
-            .list.fade-bottom {
-                mask-image: linear-gradient(to top, transparent, #000 24px);
-            }
+                .item {
+                    border-radius: 8px;
+                    padding: 6px;
+                    background: var(--secondary-background-color, transparent);
+                }
 
-            .list.fade-top.fade-bottom {
-                mask-image: linear-gradient(to bottom, transparent, #000 24px, #000 calc(100% - 24px), transparent);
-            }
+                .item.clickable {
+                    cursor: pointer;
+                }
 
-            .no-packages,
-            .message {
-                color: var(--secondary-text-color);
-                padding: 4px;
-            }
+                .item.clickable:hover {
+                    background: var(--divider-color, var(--secondary-background-color));
+                }
 
-            .item {
-                border-radius: 8px;
-                padding: 6px;
-                background: var(--secondary-background-color, transparent);
-            }
+                /* The bar's track and the badges' borders are the hover's colour, so on a hovered package they take the resting one. */
+                .item.clickable:hover .track {
+                    background: var(--secondary-background-color, #f5f5f5);
+                }
 
-            .item.clickable {
-                cursor: pointer;
-            }
+                .item.clickable:hover .badge {
+                    border-color: var(--secondary-background-color, var(--secondary-text-color));
+                }
 
-            .item.clickable:hover {
-                background: var(--divider-color, var(--secondary-background-color));
-            }
+                .number.link {
+                    cursor: pointer;
+                }
 
-            /* The bar's track and the badges' borders are the hover's colour, so on a hovered package they take the resting one. */
-            .item.clickable:hover .track {
-                background: var(--secondary-background-color, #f5f5f5);
-            }
+                .number.link:hover {
+                    text-decoration: underline;
+                }
 
-            .item.clickable:hover .badge {
-                border-color: var(--secondary-background-color, var(--secondary-text-color));
-            }
+                /* Reached by keyboard, the number and the code show where the focus is, inside their edges so the scrolling list doesn't clip it. */
+                .number:focus-visible,
+                .code:focus-visible,
+                .qr-button:focus-visible {
+                    outline: 2px solid var(--primary-color);
+                    outline-offset: -2px;
+                }
 
-            .number.link {
-                cursor: pointer;
-            }
+                .line {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    min-width: 0;
+                }
 
-            .number.link:hover {
-                text-decoration: underline;
-            }
-
-            /* Reached by keyboard, the number and the code show where the focus is, inside their edges so the scrolling list doesn't clip it. */
-            .number:focus-visible,
-            .code:focus-visible,
-            .qr-button:focus-visible {
-                outline: 2px solid var(--primary-color);
-                outline-offset: -2px;
-            }
-
-            .line {
-                display: flex;
-                align-items: center;
-                gap: 6px;
-                min-width: 0;
-            }
-
-            /* The number is never cut short, and gives way last: the badges beside it go one above the other first, and
+                /* The number is never cut short, and gives way last: the badges beside it go one above the other first, and
                only when the line is still too short does the number wrap. The badges' far larger share of the shrinking
                keeps it whole until then. Both shares stay above 1, since shares that add up to less than 1 take only that
                part of the missing room, and the rest would stick out of the card. */
-            .number {
-                flex: 0 1 auto;
-                min-width: 0;
-                font-weight: 600;
-                overflow-wrap: anywhere;
-            }
+                .number {
+                    flex: 0 1 auto;
+                    min-width: 0;
+                    font-weight: 600;
+                    overflow-wrap: anywhere;
+                }
 
-            /* Which way the package goes and which service it came from, small and out of the way. */
-            /* Side by side while the line has room for them and the whole number, one above the other when it hasn't, as
+                /* Which way the package goes and which service it came from, small and out of the way. */
+                /* Side by side while the line has room for them and the whole number, one above the other when it hasn't, as
                the room runs out rather than at a set width. */
-            .badges {
-                margin-left: auto;
-                flex: 0 1000 auto;
-                min-width: min-content;
-                display: flex;
-                flex-wrap: wrap;
-                justify-content: flex-end;
-                gap: 2px 4px;
-            }
+                .badges {
+                    margin-left: auto;
+                    flex: 0 1000 auto;
+                    min-width: min-content;
+                    display: flex;
+                    flex-wrap: wrap;
+                    justify-content: flex-end;
+                    gap: 2px 4px;
+                }
 
-            .badge {
-                font-size: 11px;
-                color: var(--secondary-text-color);
-                border: 1px solid var(--divider-color, var(--secondary-text-color));
-                border-radius: 999px;
-                padding: 0 6px;
-            }
+                .badge {
+                    font-size: 11px;
+                    color: var(--secondary-text-color);
+                    border: 1px solid var(--divider-color, var(--secondary-text-color));
+                    border-radius: 999px;
+                    padding: 0 6px;
+                }
 
-            /* The bar keeps the height of a row of text, so hiding the status doesn't
+                /* The bar keeps the height of a row of text, so hiding the status doesn't
                change how tall a package is, and it lines up with the icons above and below. */
-            /* The bar takes the room the status and its time leave it, and gets a line of its own when that would make it
+                /* The bar takes the room the status and its time leave it, and gets a line of its own when that would make it
                shorter than it can be read at, whatever the card's width or the status. The status and its time then
                spread over the next line, the time at its end. */
-            .progress-row {
-                display: flex;
-                flex-wrap: wrap;
-                align-items: center;
-                gap: 6px 8px;
-                min-height: 18px;
-                margin: 4px 0 2px 0;
-                padding: 0 2px;
-            }
+                .progress-row {
+                    display: flex;
+                    flex-wrap: wrap;
+                    align-items: center;
+                    gap: 6px 8px;
+                    min-height: 18px;
+                    margin: 4px 0 2px 0;
+                    padding: 0 2px;
+                }
 
-            .track {
-                flex: 1000 1 120px;
-                height: 4px;
-                border-radius: 2px;
-                background: var(--divider-color, #ddd);
-                overflow: hidden;
-            }
+                .track {
+                    flex: 1000 1 120px;
+                    height: 4px;
+                    border-radius: 2px;
+                    background: var(--divider-color, #ddd);
+                    overflow: hidden;
+                }
 
-            .bar {
-                height: 100%;
-                border-radius: 2px;
-                background: currentColor;
-            }
+                .bar {
+                    height: 100%;
+                    border-radius: 2px;
+                    background: currentColor;
+                }
 
-            /* On a line of its own the status and its time may still not fit side by side, such as a long status on the
+                /* On a line of its own the status and its time may still not fit side by side, such as a long status on the
                narrowest card: then the time goes under the status. */
-            .latest {
-                flex: 1 1 auto;
-                min-width: 0;
-                display: flex;
-                flex-wrap: wrap;
-                align-items: center;
-                gap: 6px 8px;
-            }
+                .latest {
+                    flex: 1 1 auto;
+                    min-width: 0;
+                    display: flex;
+                    flex-wrap: wrap;
+                    align-items: center;
+                    gap: 6px 8px;
+                }
 
-            .latest .when {
-                margin-left: auto;
-            }
+                .latest .when {
+                    margin-left: auto;
+                }
 
-            .status-text {
-                flex: 0 0 auto;
-                font-size: 12px;
-                line-height: 1;
-                font-weight: 600;
-            }
+                .status-text {
+                    flex: 0 0 auto;
+                    font-size: 12px;
+                    line-height: 1;
+                    font-weight: 600;
+                }
 
-            .when {
-                flex: 0 0 auto;
-                font-size: 12px;
-                line-height: 1;
-                color: var(--secondary-text-color);
-            }
+                .when {
+                    flex: 0 0 auto;
+                    font-size: 12px;
+                    line-height: 1;
+                    color: var(--secondary-text-color);
+                }
 
-            /* Rows align to their first line, so the icon stays beside the start of a wrapped text. */
-            .row {
-                display: flex;
-                align-items: flex-start;
-                gap: 4px;
-                min-width: 0;
-            }
+                /* Rows align to their first line, so the icon stays beside the start of a wrapped text. */
+                .row {
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 4px;
+                    min-width: 0;
+                }
 
-            .row.secondary {
-                color: var(--secondary-text-color);
-                font-size: 12px;
-                line-height: 16px;
-            }
+                .row.secondary {
+                    color: var(--secondary-text-color);
+                    font-size: 12px;
+                    line-height: 16px;
+                }
 
-            /* The icon is a box of its own, so its middle lines up with the middle of the text. */
-            .row.secondary ha-icon {
-                --mdc-icon-size: 16px;
-                flex: 0 0 auto;
-                width: 16px;
-                height: 16px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
+                /* The icon is a box of its own, so its middle lines up with the middle of the text. */
+                .row.secondary ha-icon {
+                    --mdc-icon-size: 16px;
+                    flex: 0 0 auto;
+                    width: 16px;
+                    height: 16px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
 
-            /* The code and its QR button sit at the end of the pickup line, the code covered until it is asked for. */
-            .pickup {
-                margin-left: auto;
-                flex: 0 0 auto;
-                display: inline-flex;
-                align-items: center;
-                gap: 6px;
-            }
+                /* The code and its QR button sit at the end of the pickup line, the code covered until it is asked for. */
+                .pickup {
+                    margin-left: auto;
+                    flex: 0 0 auto;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                }
 
-            .shelf {
-                white-space: nowrap;
-            }
+                .shelf {
+                    white-space: nowrap;
+                }
 
-            .code {
-                cursor: default;
-                display: inline-flex;
-                align-items: center;
-                gap: 2px;
-                font-variant-numeric: tabular-nums;
-                letter-spacing: 0.02em;
-            }
+                .code {
+                    cursor: default;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 2px;
+                    font-variant-numeric: tabular-nums;
+                    letter-spacing: 0.02em;
+                }
 
-            .code ha-icon {
-                --mdc-icon-size: 14px;
-                width: 14px;
-                height: 14px;
-            }
+                .code ha-icon {
+                    --mdc-icon-size: 14px;
+                    width: 14px;
+                    height: 14px;
+                }
 
-            /* A code that covers again when clicked shows it can be clicked, one shown always doesn't. */
-            .code.toggles {
-                cursor: pointer;
-            }
+                /* A code that covers again when clicked shows it can be clicked, one shown always doesn't. */
+                .code.toggles {
+                    cursor: pointer;
+                }
 
-            .code.covered {
-                opacity: 0.7;
-            }
+                .code.covered {
+                    opacity: 0.7;
+                }
 
-            .code.covered:hover {
-                opacity: 1;
-            }
+                .code.covered:hover {
+                    opacity: 1;
+                }
 
-            /* A bit taller than the line, without making it taller, so it is easier to hit. */
-            .qr-button {
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                width: 28px;
-                height: 20px;
-                margin: -2px 0;
-                padding: 0;
-                /* Not the divider colour, which is also the highlight of a package under the pointer. */
-                border: 1px solid var(--secondary-text-color, currentColor);
-                border-radius: 4px;
-                background: none;
-                color: var(--primary-text-color);
-                cursor: pointer;
-            }
+                /* A bit taller than the line, without making it taller, so it is easier to hit. */
+                .qr-button {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 28px;
+                    height: 20px;
+                    margin: -2px 0;
+                    padding: 0;
+                    /* Not the divider colour, which is also the highlight of a package under the pointer. */
+                    border: 1px solid var(--secondary-text-color, currentColor);
+                    border-radius: 4px;
+                    background: none;
+                    color: var(--primary-text-color);
+                    cursor: pointer;
+                }
 
-            .qr-button:hover {
-                background: var(--secondary-background-color, transparent);
-            }
+                .qr-button:hover {
+                    background: var(--secondary-background-color, transparent);
+                }
 
-            .qr-button ha-icon {
-                --mdc-icon-size: 14px;
-                width: 14px;
-                height: 14px;
-            }
+                .qr-button ha-icon {
+                    --mdc-icon-size: 14px;
+                    width: 14px;
+                    height: 14px;
+                }
 
-            dialog.qr {
-                box-sizing: border-box;
-                width: min(384px, calc(100vw - 32px));
-                max-height: calc(100vh - 32px);
-                padding: 0;
-                border: 0;
-                border-radius: var(--ha-dialog-border-radius, 24px);
-                background: var(--ha-dialog-surface-background, var(--card-background-color, #fff));
-                color: var(--primary-text-color);
-                box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
-            }
+                dialog.qr {
+                    box-sizing: border-box;
+                    width: min(384px, calc(100vw - 32px));
+                    max-height: calc(100vh - 32px);
+                    padding: 0;
+                    border: 0;
+                    border-radius: var(--ha-dialog-border-radius, 24px);
+                    background: var(--ha-dialog-surface-background, var(--card-background-color, #fff));
+                    color: var(--primary-text-color);
+                    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+                }
 
-            dialog.qr::backdrop {
-                background: rgba(0, 0, 0, 0.6);
-            }
+                dialog.qr::backdrop {
+                    background: rgba(0, 0, 0, 0.6);
+                }
 
-            .qr-content {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                padding: 12px 24px 24px 24px;
-            }
+                .qr-content {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    padding: 12px 24px 24px 24px;
+                }
 
-            /* The number is centred over the code, with room left on both sides for the close button. */
-            .qr-header {
-                position: relative;
-                align-self: stretch;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                min-height: 44px;
-                padding: 0 44px;
-                margin-bottom: 12px;
-            }
+                /* The number is centred over the code, with room left on both sides for the close button. */
+                .qr-header {
+                    position: relative;
+                    align-self: stretch;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 44px;
+                    padding: 0 44px;
+                    margin-bottom: 12px;
+                }
 
-            .qr-title {
-                font-size: 20px;
-                font-weight: 500;
-                text-align: center;
-                overflow-wrap: anywhere;
-            }
+                .qr-title {
+                    font-size: 20px;
+                    font-weight: 500;
+                    text-align: center;
+                    overflow-wrap: anywhere;
+                }
 
-            .qr-close {
-                position: absolute;
-                top: 0;
-                right: -12px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                width: 44px;
-                height: 44px;
-                padding: 0;
-                border: 0;
-                border-radius: 50%;
-                background: none;
-                color: inherit;
-                cursor: pointer;
-            }
+                .qr-close {
+                    position: absolute;
+                    top: 0;
+                    right: -12px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 44px;
+                    height: 44px;
+                    padding: 0;
+                    border: 0;
+                    border-radius: 50%;
+                    background: none;
+                    color: inherit;
+                    cursor: pointer;
+                }
 
-            .qr-close:hover {
-                background: var(--divider-color, transparent);
-            }
+                .qr-close:hover {
+                    background: var(--divider-color, transparent);
+                }
 
-            /* White around the code whatever the theme, as scanners need it. */
-            .qr-code {
-                display: block;
-                width: 248px;
-                max-width: 100%;
-                height: auto;
-                border-radius: 12px;
-            }
+                /* White around the code whatever the theme, as scanners need it. */
+                .qr-code {
+                    display: block;
+                    width: 248px;
+                    max-width: 100%;
+                    height: auto;
+                    border-radius: 12px;
+                }
 
-            .qr-number {
-                margin-top: 16px;
-                font-size: 36px;
-                font-weight: 700;
-                font-variant-numeric: tabular-nums;
-                letter-spacing: 0.08em;
-                text-align: center;
-                overflow-wrap: anywhere;
-            }
+                .qr-number {
+                    margin-top: 16px;
+                    font-size: 36px;
+                    font-weight: 700;
+                    font-variant-numeric: tabular-nums;
+                    letter-spacing: 0.08em;
+                    text-align: center;
+                    overflow-wrap: anywhere;
+                }
 
-            .qr-detail {
-                margin-top: 4px;
-                font-size: 14px;
-                color: var(--secondary-text-color);
-                text-align: center;
-            }
+                .qr-detail {
+                    margin-top: 4px;
+                    font-size: 14px;
+                    color: var(--secondary-text-color);
+                    text-align: center;
+                }
 
-            /* Long texts are cut short, or wrap in full with wrap_text. */
-            .text-content {
-                min-width: 0;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-            }
+                /* Long texts are cut short, or wrap in full with wrap_text. */
+                .text-content {
+                    min-width: 0;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
 
-            .wrap .text-content {
-                white-space: normal;
-                overflow-wrap: anywhere;
-            }
+                .wrap .text-content {
+                    white-space: normal;
+                    overflow-wrap: anywhere;
+                }
 
-            /* On a narrow card the bar gets a line of its own, with the status under it and its time at the end. */
-            /* The status colours the icon, the bar and the status text of a package. */
-            .item {
-                color: var(--primary-text-color);
-            }
+                /* On a narrow card the bar gets a line of its own, with the status under it and its time at the end. */
+                /* The status colours the icon, the bar and the status text of a package. */
+                .item {
+                    color: var(--primary-text-color);
+                }
 
-            .status-1,
-            .status-2 {
-                color: var(--info-color, cornflowerblue);
-            }
+                .status-1,
+                .status-2 {
+                    color: var(--info-color, cornflowerblue);
+                }
 
-            .status-3,
-            .status-4 {
-                color: var(--state-icon-color, #44739e);
-            }
+                .status-3,
+                .status-4 {
+                    color: var(--state-icon-color, #44739e);
+                }
 
-            .status-5 {
-                color: var(--success-color, #43a047);
-            }
+                .status-5 {
+                    color: var(--success-color, #43a047);
+                }
 
-            .status-0 {
-                color: var(--secondary-text-color);
-            }
+                .status-0 {
+                    color: var(--secondary-text-color);
+                }
 
-            .status-6,
-            .status-7 {
-                color: var(--error-color, #db4437);
-            }
+                .status-6,
+                .status-7 {
+                    color: var(--error-color, #db4437);
+                }
 
-            .item .number,
-            .item .text-content {
-                color: var(--primary-text-color);
-            }
+                .item .number,
+                .item .text-content {
+                    color: var(--primary-text-color);
+                }
 
-            .status-0 .number {
-                color: var(--secondary-text-color);
-            }
-        `;
+                .status-0 .number {
+                    color: var(--secondary-text-color);
+                }
+            `,
+      fadeStyles
+    ];
   }
 };
 __decorateClass([
   n4({ attribute: false })
 ], PackageTrackerCard.prototype, "hass", 2);
+__decorateClass([
+  n4({ attribute: false })
+], PackageTrackerCard.prototype, "layout", 2);
 __decorateClass([
   r5()
 ], PackageTrackerCard.prototype, "config", 2);
@@ -3759,10 +3922,6 @@ function activate(event, action) {
     event.preventDefault();
     action();
   }
-}
-function fadeEdges(list) {
-  list.classList.toggle("fade-top", list.scrollTop > 1);
-  list.classList.toggle("fade-bottom", list.scrollTop + list.clientHeight < list.scrollHeight - 1);
 }
 function placeOf(point) {
   if (!point) {

@@ -1,4 +1,5 @@
 import type { LovelaceCardConfig } from "./hass";
+import type { HeightConfig } from "./height";
 
 /** `hidden` never shows the code, `always` shows it, `toggle` reveals it when clicked. */
 export type PickupCode = "hidden" | "always" | "toggle";
@@ -9,7 +10,7 @@ export type TrackingLink = "row" | "number" | "none";
 /** Every package, only those coming to the user, or only those the user sent. */
 export type Direction = "all" | "incoming" | "outgoing";
 
-export interface PackageTrackerCardConfig extends LovelaceCardConfig {
+export interface PackageTrackerCardConfig extends LovelaceCardConfig, HeightConfig {
     /** One sensor of a tracking integration, or several whose packages are shown together. */
     entity: string | string[];
     /** Shown at the top of the card. `name`, as older versions documented it, is read as the title. */
@@ -22,10 +23,6 @@ export interface PackageTrackerCardConfig extends LovelaceCardConfig {
     /** At most this many incoming packages are listed, and of sent ones at most max_sent_events. */
     max_events?: number;
     max_sent_events?: number;
-    /** A fixed height for the card, in pixels. The list scrolls inside it. */
-    height?: number;
-    /** A height the card never grows past, in pixels. The list scrolls once it is reached. */
-    max_height?: number;
     show_progress?: boolean;
     /** The pickup place and the time that goes with it. */
     show_pickup?: boolean;

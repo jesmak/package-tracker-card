@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { browserLanguage, translate } from "../src/localize/localize";
 import "../src/package-tracker-card";
 import type { PackageTrackerCard } from "../src/package-tracker-card";
 import type { HomeAssistant } from "../src/hass";
@@ -43,8 +44,9 @@ function hass(packages: Record<string, Shipment[]> = { [POSTI]: [WAITING], [MATK
     };
 }
 
-async function card(state: HomeAssistant, config: Partial<PackageTrackerCardConfig> = {}): Promise<PackageTrackerCard> {
+async function card(state: HomeAssistant, config: Partial<PackageTrackerCardConfig> = {}, layout?: string): Promise<PackageTrackerCard> {
     const element = document.createElement("package-tracker-card") as PackageTrackerCard;
+    element.layout = layout;
     element.setConfig({
         type: "custom:package-tracker-card",
         entity: [POSTI, MATKAHUOLTO],
@@ -66,6 +68,110 @@ function shadow(element: PackageTrackerCard): ShadowRoot {
 
 beforeEach(() => {
     document.body.innerHTML = "";
+});
+
+describe("the card's height", () => {
+    it.each([
+        ["its content", undefined, {}, ""],
+        ["a fixed height", undefined, { height: 300 }, "height: 300px"],
+        ["a maximum height", undefined, { max_height: 400 }, "max-height: 400px"],
+        [
+            "the mode chosen over the heights it has",
+            undefined,
+            { height_mode: "max" as const, height: 300, max_height: 400 },
+            "max-height: 400px",
+        ],
+        ["grid rows in a sections view", "grid", { height: 300, grid_options: { rows: 6 } }, "height: 100%"],
+        ["the mode when the grid rows are automatic", "grid", { height: 300, grid_options: { rows: "auto" } }, "height: 300px"],
+    ])("sizes itself by %s", async (_name, layout, extra, style) => {
+        const element = await card(hass(), extra, layout);
+        expect(shadow(element).querySelector("ha-card")?.getAttribute("style") ?? "").toBe(style);
+    });
+
+    it.each([
+        ["the default config", {}, 148, 3],
+        ["a title", { title: "Paketit" }, 193, 4],
+        ["the details line", { show_details: true }, 164, 3],
+        ["neither the bar nor the status", { show_progress: false, show_latest_event: false }, 124, 3],
+        [
+            "only the package's number",
+            {
+                show_progress: false,
+                show_latest_event: false,
+                show_latest_event_message: false,
+                show_latest_event_location: false,
+                show_origin: false,
+                show_destination: false,
+                show_pickup: false,
+            },
+            60,
+            2,
+        ],
+    ])("is never held lower than the title and one whole package need, with %s", async (_name, extra, minimum, rows) => {
+        const element = await card(hass(), { ...extra, height: 50 });
+        expect(element.getGridOptions()).toMatchObject({ rows: "auto", min_rows: rows });
+        expect(shadow(element).querySelector("ha-card")?.getAttribute("style")).toBe(`height: ${minimum}px`);
+    });
+
+    it("puts the title first and the packages in the list after it", async () => {
+        const root = shadow(await card(hass(), { title: "Paketit", height_mode: "fixed", height: 200 }));
+        expect([...(root.querySelector("ha-card")?.children ?? [])].map((child) => child.classList[0])).toEqual(["header", "list"]);
+        expect([...(root.querySelector(".list")?.children ?? [])].map((child) => child.classList[0])).toEqual(["item"]);
+    });
+
+    it.each([
+        ["held to a height", undefined, { height: 300 }, ["fade-bottom"]],
+        ["held up to a limit", undefined, { max_height: 300 }, ["fade-bottom"]],
+        ["held by rows in a sections view", "grid", { grid_options: { rows: 4 } }, ["fade-bottom"]],
+        [
+            "held to a height with automatic rows in a sections view",
+            "grid",
+            { height: 300, grid_options: { rows: "auto" } },
+            ["fade-bottom"],
+        ],
+        ["held by the older layout options' rows in a sections view", "grid", { layout_options: { grid_rows: 4 } }, ["fade-bottom"]],
+        ["never in auto", undefined, {}, []],
+        ["never in auto with automatic rows in a sections view", "grid", { grid_options: { rows: "auto" } }, []],
+        ["never by grid rows outside a sections view", undefined, { grid_options: { rows: 4 } }, []],
+    ])("fades the bottom edge of a list that runs past it when %s", async (_name, layout, extra, expected) => {
+        const element = await card(hass(), extra, layout);
+        const list = shadow(element).querySelector(".list") as HTMLElement;
+        Object.defineProperty(list, "scrollHeight", { value: 600, configurable: true });
+        Object.defineProperty(list, "clientHeight", { value: 200, configurable: true });
+        element.requestUpdate();
+        await element.updateComplete;
+        expect(["fade-top", "fade-bottom"].filter((name) => list.classList.contains(name))).toEqual(expected);
+    });
+
+    it("lets go of the list's fade when the card goes from held to auto, and fades it again when held again", async () => {
+        const element = await card(hass(), { height: 300 });
+        const list = shadow(element).querySelector(".list") as HTMLElement;
+        Object.defineProperty(list, "scrollHeight", { value: 600, configurable: true });
+        Object.defineProperty(list, "clientHeight", { value: 200, configurable: true });
+        element.requestUpdate();
+        await element.updateComplete;
+        expect([...list.classList].filter((name) => name.startsWith("fade"))).toEqual(["fades", "fade-bottom"]);
+        element.setConfig({ type: "custom:package-tracker-card", entity: [POSTI, MATKAHUOLTO] } as never);
+        await element.updateComplete;
+        expect([...list.classList].filter((name) => name.startsWith("fade"))).toEqual([]);
+        element.setConfig({ type: "custom:package-tracker-card", entity: [POSTI, MATKAHUOLTO], height: 300 } as never);
+        await element.updateComplete;
+        expect([...list.classList].filter((name) => name.startsWith("fade"))).toEqual(["fades", "fade-bottom"]);
+    });
+
+    it("refuses a height that isn't a positive number of pixels, and an unknown height mode, with an error about the height", () => {
+        const element = document.createElement("package-tracker-card") as PackageTrackerCard;
+        const config = (extra: Record<string, unknown>) => ({ type: "custom:package-tracker-card", entity: POSTI, ...extra }) as never;
+        const error = translate(browserLanguage(), "common.invalid_height");
+        expect(error).toMatch(/^Invalid height\./);
+        for (const value of ["300px", 0, -10]) {
+            expect(() => element.setConfig(config({ max_height: value }))).toThrow(error);
+            expect(() => element.setConfig(config({ height: value }))).toThrow(error);
+        }
+        expect(() => element.setConfig(config({ height_mode: "tall" }))).toThrow(error);
+        // Left empty in YAML, each is unset.
+        expect(() => element.setConfig(config({ height_mode: null, height: null, max_height: null }))).not.toThrow();
+    });
 });
 
 describe("the list of packages", () => {
