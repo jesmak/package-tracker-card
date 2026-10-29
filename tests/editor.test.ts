@@ -134,7 +134,7 @@ describe("the visual editor", () => {
     it.each<[string, Record<string, unknown>, Record<string, unknown>]>([
         ["empty heights", { height: null, max_height: 300 }, { max_height: 300 }],
         ["the height mode its height already gives", { height_mode: "max", max_height: 300 }, { max_height: 300 }],
-        ["a height mode over another height", { height_mode: "auto", height: 300 }, { height_mode: "auto", height: 300 }],
+        ["the auto height mode, which drops a height left from another mode", { height_mode: "auto", height: 300 }, {}],
     ])("keeps the defaults and the empty fields out of the configuration, with %s", async (_name, heights, saved) => {
         const element = await editor();
         const changes = changesOf(element);
