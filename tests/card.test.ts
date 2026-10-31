@@ -88,29 +88,175 @@ describe("the card's height", () => {
         expect(shadow(element).querySelector("ha-card")?.getAttribute("style") ?? "").toBe(style);
     });
 
-    it.each([
-        ["the default config", {}, 148, 3],
-        ["a title", { title: "Paketit" }, 193, 4],
-        ["the details line", { show_details: true }, 164, 3],
-        ["neither the bar nor the status", { show_progress: false, show_latest_event: false }, 124, 3],
-        [
-            "only the package's number",
-            {
-                show_progress: false,
-                show_latest_event: false,
-                show_latest_event_message: false,
-                show_latest_event_location: false,
-                show_origin: false,
-                show_destination: false,
-                show_pickup: false,
-            },
-            60,
-            2,
-        ],
-    ])("is never held lower than the title and one whole package need, with %s", async (_name, extra, minimum, rows) => {
-        const element = await card(hass(), { ...extra, height: 50 });
-        expect(element.getGridOptions()).toMatchObject({ rows: "auto", min_rows: rows });
+    const ONLY_NUMBER = {
+        show_progress: false,
+        show_latest_event: false,
+        show_latest_event_message: false,
+        show_latest_event_location: false,
+        show_origin: false,
+        show_destination: false,
+        show_pickup: false,
+    };
+
+    // 26 for the card's edges, 41 for the title, 12 for the package's padding, its number's line, its progress line with
+    // 6 around it, and 16 a line, by the class of the width of the card's content.
+    it.each<[string, Record<string, unknown>, number | undefined, number, number]>([
+        ["the default config on a whole section", {}, undefined, 162, 3],
+        ["a title on a whole section", { title: "Paketit" }, undefined, 203, 4],
+        ["the details line on a whole section", { show_details: true }, undefined, 178, 3],
+        ["the status without the bar on a whole section", { show_progress: false }, undefined, 158, 3],
+        ["neither the bar nor the status on a whole section", { show_progress: false, show_latest_event: false }, undefined, 134, 3],
+        ["only the package's number on a whole section", ONLY_NUMBER, undefined, 70, 2],
+        ["the default config on 11 columns", { grid_options: { columns: 11 } }, undefined, 197, 4],
+        ["a title on 9 columns", { title: "Paketit", grid_options: { columns: 9 } }, undefined, 238, 4],
+        ["the bar without the status on 9 columns", { show_latest_event: false, grid_options: { columns: 9 } }, undefined, 175, 3],
+        ["the older layout options' columns", { layout_options: { grid_columns: 3 } }, undefined, 197, 4],
+        ["the default config measured 240 px wide", {}, 264, 197, 4],
+        ["the default config measured 171 px wide", {}, 195, 197, 4],
+        ["the default config measured 170 px wide", {}, 194, 242, 4],
+        ["a title measured 150 px wide", { title: "Paketit" }, 174, 283, 5],
+        ["one way measured 150 px wide", { direction: "incoming" }, 174, 225, 4],
+        ["the status without the bar measured 150 px wide", { show_progress: false }, 174, 232, 4],
+        ["the bar without the status measured 150 px wide", { show_latest_event: false }, 174, 208, 4],
+        ["one way on a whole section", { direction: "incoming" }, undefined, 162, 3],
+        ["one way on 9 columns", { direction: "incoming", grid_options: { columns: 9 } }, undefined, 197, 4],
+        ["the status without the bar on 9 columns", { show_progress: false, grid_options: { columns: 9 } }, undefined, 187, 4],
+        ["nine columns measured wider than they promise, which counts the columns", { grid_options: { columns: 9 } }, 400, 197, 4],
+    ])("is never held lower than the title and one whole package need, with %s", async (_name, extra, width, minimum, rows) => {
+        const element = await card(hass(), { ...extra, height: 50 } as Partial<PackageTrackerCardConfig>);
+        if (width) {
+            measured(element, width);
+            await element.updateComplete;
+        }
+        expect(element.getGridOptions()).toMatchObject({ rows: "auto", min_columns: 9, min_rows: rows });
         expect(shadow(element).querySelector("ha-card")?.getAttribute("style")).toBe(`height: ${minimum}px`);
+    });
+
+    // The last line is the destination's, or the pickup code's when the message line doesn't carry the code: it is there
+    // whenever the configuration lets either show, so the minimum counts it then. 98 px for the card without its lines.
+    it.each<[string, boolean, boolean, boolean, "hidden" | "always" | "toggle", number]>([
+        ["the message and the destination", true, true, true, "hidden", 130],
+        ["the message alone", true, false, false, "hidden", 114],
+        ["the message carrying the code", true, false, false, "always", 114],
+        ["the message carrying the code shown when clicked", true, false, false, "toggle", 114],
+        ["the destination alone", false, true, true, "hidden", 114],
+        ["the pickup deadline alone", false, false, true, "hidden", 114],
+        ["the place alone", false, true, false, "hidden", 114],
+        ["neither", false, false, false, "hidden", 98],
+        ["only the code, always shown", false, false, false, "always", 114],
+        ["only the code, shown when clicked", false, false, false, "toggle", 114],
+        ["the destination carrying the code", false, true, true, "always", 114],
+    ])("counts the destination line with %s", async (_name, message, place, time, code, minimum) => {
+        const element = await card(hass(), {
+            height: 50,
+            show_latest_event_location: false,
+            show_origin: false,
+            show_latest_event_message: message,
+            show_destination: place,
+            show_pickup: time,
+            pickup_code: code,
+        });
+        expect(shadow(element).querySelector("ha-card")?.getAttribute("style")).toBe(`height: ${minimum}px`);
+    });
+
+    /**
+     * Lays the card out with a clientWidth of `width`, 12 px of padding a side, so its content is `width` − 24 px wide, and
+     * measures it.
+     */
+    function measured(element: PackageTrackerCard, width: number): void {
+        const haCard = shadow(element).querySelector("ha-card") as HTMLElement;
+        Object.defineProperty(haCard, "clientWidth", { value: width, configurable: true });
+        vi.spyOn(window, "getComputedStyle").mockReturnValue({ paddingLeft: "12px", paddingRight: "12px" } as CSSStyleDeclaration);
+        (element as unknown as { measureWidth(): void }).measureWidth();
+        vi.restoreAllMocks();
+    }
+
+    it("keeps the title to one line, with the whole of it as a tooltip, only while held", async () => {
+        const held = shadow(await card(hass(), { title: "Paketit", height: 300 }));
+        expect(held.querySelector("ha-card")?.classList.contains("held")).toBe(true);
+        expect(held.querySelector(".header")?.getAttribute("title")).toBe("Paketit");
+        const free = shadow(await card(hass(), { title: "Paketit" }));
+        expect(free.querySelector("ha-card")?.classList.contains("held")).toBe(false);
+        expect(free.querySelector(".header")?.hasAttribute("title")).toBe(false);
+    });
+
+    /** Lays the card out with its top at 0 and its last part ending at `bottom`, and fills its rows. */
+    async function filledRows(element: PackageTrackerCard, bottom: number): Promise<string> {
+        const root = shadow(element);
+        const haCard = root.querySelector("ha-card") as HTMLElement;
+        Object.defineProperty(haCard, "clientWidth", { value: 460, configurable: true });
+        haCard.getBoundingClientRect = () => ({ top: 0 }) as DOMRect;
+        const last = (root.querySelector(".list")?.lastElementChild ?? root.querySelector(".message")) as HTMLElement;
+        last.getBoundingClientRect = () => ({ bottom }) as DOMRect;
+        vi.spyOn(window, "getComputedStyle").mockReturnValue({ paddingBottom: "12px", borderBottomWidth: "1px" } as CSSStyleDeclaration);
+        (element as unknown as { fillRows(): void }).fillRows();
+        vi.restoreAllMocks();
+        await element.updateComplete;
+        return haCard.getAttribute("style") ?? "";
+    }
+
+    // A card is 64k − 8 px tall on k rows: its last part's end, its bottom padding and its border, rounded up.
+    it.each<[string, string | undefined, Record<string, unknown>, number, string]>([
+        ["to the next row", "grid", {}, 150, "min-height: 184px"],
+        ["staying on a row it ends on", "grid", {}, 171, "min-height: 184px"],
+        ["not outside a sections view", undefined, {}, 150, ""],
+        ["not when held to a height", "grid", { height: 300 }, 150, "height: 300px"],
+        ["not when held by rows", "grid", { grid_options: { rows: 6 } }, 150, "height: 100%"],
+    ])("ends on a whole row %s", async (_name, layout, extra, bottom, style) => {
+        expect(await filledRows(await card(hass(), extra as Partial<PackageTrackerCardConfig>, layout), bottom)).toBe(style);
+    });
+
+    it("ends on a whole row with nothing to track, and gives back the rows its packages took", async () => {
+        const element = await card(hass(), { title: "Paketit" }, "grid");
+        expect(await filledRows(element, 290)).toBe("min-height: 312px");
+        element.hass = hass({ [POSTI]: [], [MATKAHUOLTO]: [] });
+        await element.updateComplete;
+        expect(shadow(element).querySelector(".list")?.lastElementChild?.className).toBe("no-packages");
+        expect(await filledRows(element, 90)).toBe("min-height: 120px");
+    });
+
+    it("is measured again when it comes back to the page, such as from another view", async () => {
+        const watched = new Set<Element>();
+        let measured = 0;
+        vi.stubGlobal(
+            "ResizeObserver",
+            class {
+                observe(target: Element) {
+                    watched.add(target);
+                }
+                unobserve(target: Element) {
+                    watched.delete(target);
+                }
+                disconnect() {
+                    watched.clear();
+                }
+            },
+        );
+        vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+            measured++;
+            callback(0);
+            return measured;
+        });
+        try {
+            const element = await card(hass(), {}, "grid");
+            const haCard = shadow(element).querySelector("ha-card");
+            expect(watched.has(haCard!)).toBe(true);
+            element.remove();
+            expect(watched.size).toBe(0);
+            const before = measured;
+            document.body.append(element);
+            await element.updateComplete;
+            expect(watched.has(shadow(element).querySelector("ha-card")!)).toBe(true);
+            expect(measured).toBeGreaterThan(before);
+        } finally {
+            vi.unstubAllGlobals();
+        }
+    });
+
+    it("ends on a whole row with only the message about a missing sensor", async () => {
+        const element = await card(hass({}), {}, "grid");
+        expect(shadow(element).querySelector(".message")).not.toBeNull();
+        expect(await filledRows(element, 40)).toBe("min-height: 56px");
     });
 
     it("puts the title first and the packages in the list after it", async () => {

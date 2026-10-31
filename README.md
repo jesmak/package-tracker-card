@@ -156,10 +156,20 @@ in a sections view, the packages scroll inside the card and the title stays put 
 card never gets lower than the title and one whole package with the lines it shows need. An edge with
 packages scrolled past it fades out, so it's clear there's more.
 
-The card is 12 columns wide by default and at least 6. It follows its own width rather than the column count, so it
-works the same outside the sections view. On a narrow card the bar gets a line of its own. Shipment numbers wrap
-when they don't fit. Other long texts are cut short unless `wrap_text` is on, which shows them in full at the cost of
-a taller card.
+The card is 12 columns wide by default and at least 9. It follows its own width rather than the column count, so it
+works the same outside the sections view. On a narrow card the bar gets a line of its own, and the badges go under the
+shipment number so that the number has the whole width. Shipment numbers wrap when they don't fit. Other long texts
+are cut short unless `wrap_text` is on, which shows them in full at the cost of a taller card.
+
+On automatic rows in a sections view, a card that `height_mode` doesn't keep to `height` or `max_height` ends on a
+whole row, so the cards under it stay on the rows.
+
+Held to a height, by `height_mode` or by rows set in the layout tab, the card keeps its title to one line, cut short
+with an ellipsis when it is longer. The least it gets counts a shipment number as long as Posti's, on the narrowest
+width its columns allow. A height set by `height_mode` is also raised to what the card's own width needs, so a card
+inside another card fits too. A longer number scrolls the rest of the first package with the list. A section's
+background or a theme can make a card narrower than its columns promise, and then rows set in the layout tab may need
+raising by hand.
 
 ## Examples
 

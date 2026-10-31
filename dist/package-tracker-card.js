@@ -3091,6 +3091,16 @@ console.info(
   "color: orange; font-weight: bold; background: black",
   "color: white; font-weight: bold; background: dimgray"
 );
+var CARD_EDGES = 26;
+var TITLE = 41;
+var ITEM_PADDING = 12;
+var PROGRESS_MARGIN = 6;
+var LINE = 16;
+var HELD_MINIMUM = {
+  wide: { line: 32, lineOneBadge: 32, progress: 22, status: 18, bar: 18 },
+  narrow: { line: 49, lineOneBadge: 49, progress: 40, status: 30, bar: 18 },
+  veryNarrow: { line: 82, lineOneBadge: 65, progress: 52, status: 42, bar: 18 }
+};
 var registry = window;
 registry.customCards = registry.customCards ?? [];
 registry.customCards.push({
@@ -3104,6 +3114,8 @@ var PackageTrackerCard = class extends i4 {
   constructor() {
     super();
     this.revealed = /* @__PURE__ */ new Set();
+    this.filled = 0;
+    this.resizes = typeof ResizeObserver === "undefined" ? void 0 : new ResizeObserver(() => this.measureSoon());
     new ScrollFade(this, () => this.heightStyle() ? this.renderRoot.querySelectorAll(".list") : []);
   }
   static getConfigElement() {
@@ -3133,31 +3145,106 @@ var PackageTrackerCard = class extends i4 {
     const packages = this.hass && this.config ? this.shown(this.hass, this.config) : [];
     return heightCardSize(this.config ?? {}, 1 + packages.length * 2, this.minimumHeight());
   }
+  /**
+   * In a sections view the card takes a whole section by default and is never narrower than three quarters of one,
+   * nor lower than its minimum. Home Assistant holds rows set in the layout tab to that minimum.
+   */
   getGridOptions() {
-    return { columns: 12, rows: "auto", min_columns: 6, min_rows: gridMinRows(this.minimumHeight()) };
+    return { columns: 12, rows: "auto", min_columns: 9, min_rows: gridMinRows(this.minimumHeight()) };
   }
   /**
    * Held to a height, the title and one whole package still fit: its number, its progress line and the lines the
-   * configuration shows, each on one line, as measured on a full section's width.
+   * configuration shows, each on one line. At the narrowest its columns can be, or at the width it is measured to
+   * have, whichever needs more: a whole section counts as wide, 11 columns or fewer as narrow. The number is counted
+   * as long as Posti's, and the badge of the service it came from as there, since only the data says whether it is.
+   * A longer number scrolls the rest of the package with the list.
    */
   minimumHeight() {
+    const byColumns = this.minimumFor(this.columns() <= 11 ? "narrow" : "wide");
+    return Math.max(byColumns, this.widthClass ? this.minimumFor(this.widthClass) : 0);
+  }
+  minimumFor(widthClass) {
     const config = this.config;
     if (!config) {
       return 0;
     }
-    const padding = 24;
-    const header = config.title ? 45 : 0;
-    const numberLine = 12 + 24;
-    const progress = config.show_latest_event === false && config.show_progress === false ? 0 : 24;
-    const line = 16;
+    const sizes = HELD_MINIMUM[widthClass];
+    const bar = config.show_progress !== false;
+    const status = config.show_latest_event !== false;
+    const progress = bar && status ? sizes.progress : status ? sizes.status : bar ? sizes.bar : 0;
+    const message = config.show_latest_event_message !== false;
+    const destination = config.show_destination !== false || config.show_pickup !== false || !message && (config.pickup_code ?? "hidden") !== "hidden";
     const lines = [
       config.show_details === true,
-      config.show_latest_event_message !== false,
+      message,
       config.show_latest_event_location !== false,
       config.show_origin !== false,
-      config.show_destination !== false || config.show_pickup !== false
+      destination
     ].filter(Boolean).length;
-    return padding + header + numberLine + progress + lines * line;
+    return CARD_EDGES + (config.title ? TITLE : 0) + ITEM_PADDING + ((config.direction ?? "all") === "all" ? sizes.line : sizes.lineOneBadge) + (progress ? progress + PROGRESS_MARGIN : 0) + lines * LINE;
+  }
+  /** The columns set in the layout tab, in either form Home Assistant has saved them, or a whole section. */
+  columns() {
+    const config = this.config;
+    const columns = config?.grid_options ? config.grid_options.columns : typeof config?.layout_options?.grid_columns === "number" ? config.layout_options.grid_columns * 3 : void 0;
+    return typeof columns === "number" ? columns : 12;
+  }
+  /** Back on the page, such as from another view, the card is followed and measured again without waiting for its data. */
+  connectedCallback() {
+    super.connectedCallback();
+    if (this.hasUpdated) {
+      this.requestUpdate();
+    }
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.resizes?.disconnect();
+    this.observed = void 0;
+    cancelAnimationFrame(this.frame ?? 0);
+  }
+  measureSoon() {
+    cancelAnimationFrame(this.frame ?? 0);
+    this.frame = requestAnimationFrame(() => {
+      this.measureWidth();
+      this.fillRows();
+    });
+  }
+  /**
+   * Keeps the width class of the card's content, as its container query switches, read in a frame rather than in the
+   * observer's callback, where a change would resize the card while the observer still runs. A hidden card keeps the
+   * last.
+   */
+  measureWidth() {
+    const card = this.renderRoot.querySelector("ha-card");
+    if (!card?.clientWidth) {
+      return;
+    }
+    const style = getComputedStyle(card);
+    const width = card.clientWidth - (parseFloat(style.paddingLeft) || 0) - (parseFloat(style.paddingRight) || 0);
+    const widthClass = width <= 170 ? "veryNarrow" : width <= 240 ? "narrow" : "wide";
+    if (widthClass !== this.widthClass) {
+      this.widthClass = widthClass;
+    }
+  }
+  /**
+   * On automatic rows in a sections view, the card takes the whole rows its content needs, so the cards under it stay
+   * on the rows. Measured to the end of the list's last package, as the list grows to whatever height the card is given.
+   */
+  fillRows() {
+    const card = this.renderRoot.querySelector("ha-card");
+    const last = card && (card.querySelector(".list")?.lastElementChild ?? card.querySelector(".message"));
+    if (!card || !last || !card.clientWidth || this.layout !== "grid" || this.heightStyle()) {
+      if (this.filled) {
+        this.filled = 0;
+      }
+      return;
+    }
+    const style = getComputedStyle(card);
+    const content = last.getBoundingClientRect().bottom - card.getBoundingClientRect().top + (parseFloat(style.paddingBottom) || 0) + (parseFloat(style.borderBottomWidth) || 0);
+    const filled = gridMinRows(Math.round(content)) * 64 - 8;
+    if (filled !== this.filled) {
+      this.filled = filled;
+    }
   }
   shouldUpdate(changed) {
     if (!this.config || [...changed.keys()].some((key) => key !== "hass")) {
@@ -3175,16 +3262,17 @@ var PackageTrackerCard = class extends i4 {
     }
     const missing = missingEntities(this.hass, this.config.entity);
     if (missing.length === entities(this.config.entity).length) {
-      return b2`<ha-card style="${this.heightStyle()}"
+      return b2`<ha-card style="${this.cardStyle()}"
                 ><div class="message">${this.text("common.no_entity")} ${missing.join(", ")}</div></ha-card
             >`;
     }
     const packages = this.shown(this.hass, this.config);
     const marked = (this.config.direction ?? "all") === "all";
     const title = this.config.title;
+    const held = !!this.heightStyle();
     return b2`
-            <ha-card class="${this.config.wrap_text ? "wrap" : ""}" style="${this.heightStyle()}">
-                ${title ? b2`<div class="header">${title}</div>` : A}
+            <ha-card class="${this.config.wrap_text ? "wrap" : ""} ${held ? "held" : ""}" style="${this.cardStyle()}">
+                ${title ? b2`<div class="header" title="${held ? title : A}">${title}</div>` : A}
                 <div class="list">
                     ${packages.length === 0 ? b2`<div class="no-packages">${this.text("common.no_packages")}</div>` : c4(
       packages,
@@ -3200,9 +3288,26 @@ var PackageTrackerCard = class extends i4 {
     if (changed.has("qr") && this.qr) {
       this.renderRoot.querySelector("dialog.qr")?.showModal();
     }
+    if (!this.isConnected) {
+      return;
+    }
+    const card = this.renderRoot.querySelector("ha-card") ?? void 0;
+    if (card !== this.observed) {
+      if (this.observed) {
+        this.resizes?.unobserve(this.observed);
+      }
+      if (card) {
+        this.resizes?.observe(card);
+      }
+      this.observed = card;
+    }
+    this.measureSoon();
   }
   heightStyle() {
     return heightStyle(this.config ?? {}, this.layout, this.minimumHeight());
+  }
+  cardStyle() {
+    return this.heightStyle() || (this.filled ? `min-height: ${this.filled}px` : "");
   }
   /** The packages listed: the chosen ones in order, up to the most of each direction. */
   shown(hass, config) {
@@ -3261,9 +3366,10 @@ var PackageTrackerCard = class extends i4 {
     if (!marked && !item.source) {
       return A;
     }
+    const direction = this.text(isOutgoing(item) ? "direction.outgoing" : "direction.incoming");
     return b2`
             <span class="badges">
-                ${marked ? b2`<span class="badge direction">${this.text(isOutgoing(item) ? "direction.outgoing" : "direction.incoming")}</span>` : A}
+                ${marked ? b2`<span class="badge direction">${direction}</span>` : A}
                 ${item.source ? b2`<span class="badge source">${item.source}</span>` : A}
             </span>
         `;
@@ -3511,6 +3617,12 @@ var PackageTrackerCard = class extends i4 {
                     padding: 4px 4px 12px 4px;
                 }
 
+                .held .header {
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+
                 .list {
                     flex: 1 1 auto;
                     min-height: 0;
@@ -3559,7 +3671,8 @@ var PackageTrackerCard = class extends i4 {
                     text-decoration: underline;
                 }
 
-                /* Reached by keyboard, the number and the code show where the focus is, inside their edges so the scrolling list doesn't clip it. */
+                /* Reached by keyboard, the number and the code show where the focus is, inside their edges so the scrolling list
+               doesn't clip it. */
                 .number:focus-visible,
                 .code:focus-visible,
                 .qr-button:focus-visible {
@@ -3574,10 +3687,10 @@ var PackageTrackerCard = class extends i4 {
                     min-width: 0;
                 }
 
-                /* The number is never cut short, and gives way last: the badges beside it go one above the other first, and
-               only when the line is still too short does the number wrap. The badges' far larger share of the shrinking
-               keeps it whole until then. Both shares stay above 1, since shares that add up to less than 1 take only that
-               part of the missing room, and the rest would stick out of the card. */
+                /* When the card's content is wider than 240 px, the number is never cut short, and gives way last: the badges
+               beside it go one above the other first, and only when the line is still too short does the number wrap. The badges' far
+               larger share of the shrinking keeps it whole until then. Both shares stay above 1, since shares that add up
+               to less than 1 take only that part of the missing room, and the rest would stick out of the card. */
                 .number {
                     flex: 0 1 auto;
                     min-width: 0;
@@ -3587,7 +3700,7 @@ var PackageTrackerCard = class extends i4 {
 
                 /* Which way the package goes and which service it came from, small and out of the way. */
                 /* Side by side while the line has room for them and the whole number, one above the other when it hasn't, as
-               the room runs out rather than at a set width. */
+               the room runs out. A narrow card gives them a line of their own below. */
                 .badges {
                     margin-left: auto;
                     flex: 0 1000 auto;
@@ -3596,6 +3709,24 @@ var PackageTrackerCard = class extends i4 {
                     flex-wrap: wrap;
                     justify-content: flex-end;
                     gap: 2px 4px;
+                }
+
+                /* On a narrow card the badges would leave the number no room at all, so they get a line of their own under it
+               and the number takes the whole width beside its icon. */
+                @container (max-width: 240px) {
+                    .line {
+                        flex-wrap: wrap;
+                        row-gap: 2px;
+                    }
+
+                    .number {
+                        flex: 1 1 0;
+                    }
+
+                    .badges {
+                        flex: 1 1 100%;
+                        min-width: 0;
+                    }
                 }
 
                 .badge {
@@ -3650,8 +3781,10 @@ var PackageTrackerCard = class extends i4 {
                     margin-left: auto;
                 }
 
+                /* A status is a phrase, so on the narrowest card it wraps between its words rather than running past the edge. */
                 .status-text {
-                    flex: 0 0 auto;
+                    flex: 0 1 auto;
+                    min-width: 0;
                     font-size: 12px;
                     line-height: 1;
                     font-weight: 600;
@@ -3859,7 +3992,6 @@ var PackageTrackerCard = class extends i4 {
                     overflow-wrap: anywhere;
                 }
 
-                /* On a narrow card the bar gets a line of its own, with the status under it and its time at the end. */
                 /* The status colours the icon, the bar and the status text of a package. */
                 .item {
                     color: var(--primary-text-color);
@@ -3916,6 +4048,12 @@ __decorateClass([
 __decorateClass([
   r5()
 ], PackageTrackerCard.prototype, "qr", 2);
+__decorateClass([
+  r5()
+], PackageTrackerCard.prototype, "filled", 2);
+__decorateClass([
+  r5()
+], PackageTrackerCard.prototype, "widthClass", 2);
 PackageTrackerCard = __decorateClass([
   t3("package-tracker-card")
 ], PackageTrackerCard);
