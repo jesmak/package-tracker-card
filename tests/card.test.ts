@@ -520,6 +520,29 @@ describe("when there is nothing to track", () => {
     });
 });
 
+describe("show_sensors", () => {
+    it.each([
+        ["on by default, names both with nothing to list", undefined, false, ["Posti", "Matkahuolto · ei käytettävissä"]],
+        ["on, names both with nothing to list", true, false, ["Posti", "Matkahuolto · ei käytettävissä"]],
+        ["off, still names the one that doesn't answer", false, false, ["Matkahuolto · ei käytettävissä"]],
+        ["on by default, names only the one down above packages", undefined, true, ["Matkahuolto · ei käytettävissä"]],
+        ["on, names only the one down above packages", true, true, ["Matkahuolto · ei käytettävissä"]],
+        ["off, names the one down above packages too", false, true, ["Matkahuolto · ei käytettävissä"]],
+    ])("%s", async (_name, show, listed, lines) => {
+        const state = hass({ [POSTI]: listed ? [WAITING] : [], [MATKAHUOLTO]: [] });
+        state.states[POSTI]!.attributes.friendly_name = "Posti";
+        state.states[MATKAHUOLTO] = {
+            entity_id: MATKAHUOLTO,
+            state: "unavailable",
+            last_changed: "2026-09-16",
+            attributes: { friendly_name: "Matkahuolto" },
+        };
+        const root = shadow(await card(state, show === undefined ? {} : { show_sensors: show }));
+        expect([...root.querySelectorAll(".sensor")].map((line) => line.textContent?.trim())).toEqual(lines);
+        expect(root.querySelectorAll(".item")).toHaveLength(listed ? 1 : 0);
+    });
+});
+
 describe("a sensor that doesn't answer", () => {
     it("is named above the packages of the others, which are still listed", async () => {
         const state = hass();

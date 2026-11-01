@@ -869,6 +869,8 @@ var en_default = {
     show_pickup_helper: "Adds the pickup deadline to that row, or the estimated delivery while the package is still on its way.",
     show_details: "Weight and parcels",
     show_details_helper: "The package's weight and how many parcels it has.",
+    show_sensors: "Show the package sensors' status when there's nothing to list",
+    show_sensors_helper: "Each package sensor, and when it last checked for packages. A sensor that doesn't answer gets a warning.",
     wrap_text: "Wrap long texts",
     wrap_text_helper: "When this is off, overlong texts are cut short instead of wrapping.",
     pickup_code: "Pickup code",
@@ -953,6 +955,8 @@ var fi_default = {
     show_pickup_helper: "Lis\xE4\xE4 samalle riville noudon m\xE4\xE4r\xE4ajan, tai arvioidun toimituksen kun paketti on viel\xE4 matkalla.",
     show_details: "Paino ja kollit",
     show_details_helper: "Paketin paino ja kollien m\xE4\xE4r\xE4.",
+    show_sensors: "N\xE4yt\xE4 pakettisensorien tila, kun paketteja ei ole",
+    show_sensors_helper: "Jokainen pakettisensori, ja milloin viimeksi se tarkisti paketit. Sensoreista, jotka eiv\xE4t vastaa, n\xE4ytet\xE4\xE4n varoitus.",
     wrap_text: "Rivit\xE4 pitk\xE4t tekstit",
     wrap_text_helper: "Kun asetus on pois p\xE4\xE4lt\xE4, ylipitk\xE4t tekstit lyhennet\xE4\xE4n rivitt\xE4misen sijaan.",
     pickup_code: "Noutokoodi",
@@ -997,6 +1001,7 @@ var DEFAULTS = {
   show_progress: true,
   show_pickup: true,
   show_details: false,
+  show_sensors: true,
   wrap_text: false,
   pickup_code: "hidden",
   tracking_link: "row",
@@ -1092,7 +1097,8 @@ function schema(hass, config, text) {
         { name: "show_latest_event_location", selector: { boolean: {} } },
         { name: "show_origin", selector: { boolean: {} } },
         { name: "show_destination", selector: { boolean: {} } },
-        { name: "show_pickup", selector: { boolean: {} } }
+        { name: "show_pickup", selector: { boolean: {} } },
+        { name: "show_sensors", selector: { boolean: {} } }
       ]
     }
   ];
@@ -3348,13 +3354,16 @@ var PackageTrackerCard = class extends i4 {
   }
   /**
    * With nothing to list, the card says so and shows that each of its sensors still answers, so an empty card can be
-   * told apart from a broken one. Held to a height, an icon fills some of the room, centred with the rest.
+   * told apart from a broken one. With `show_sensors` off, only a sensor that doesn't answer is named. Held to a
+   * height, an icon fills some of the room, centred with the rest.
    */
   empty(sensors, held) {
     return b2`<div class="empty">
             ${held ? b2`<ha-icon class="empty-icon" icon="mdi:package-variant-closed-check"></ha-icon>` : A}
             <div class="no-packages">${this.text("common.no_packages")}</div>
-            ${sensors.map((sensor) => this.sensor(sensor))}
+            ${(this.config?.show_sensors === false ? sensors.filter((sensor) => !sensor.available) : sensors).map(
+      (sensor) => this.sensor(sensor)
+    )}
         </div>`;
   }
   /** A sensor's name, and when it last read its packages, or that it doesn't answer. */

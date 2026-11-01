@@ -66,6 +66,8 @@
         "show_pickup_helper": "Adds the pickup deadline to that row, or the estimated delivery while the package is still on its way.",
         "show_details": "Weight and parcels",
         "show_details_helper": "The package's weight and how many parcels it has.",
+        "show_sensors": "Show the package sensors' status when there's nothing to list",
+        "show_sensors_helper": "Each package sensor, and when it last checked for packages. A sensor that doesn't answer gets a warning.",
         "wrap_text": "Wrap long texts",
         "wrap_text_helper": "When this is off, overlong texts are cut short instead of wrapping.",
         "pickup_code": "Pickup code",

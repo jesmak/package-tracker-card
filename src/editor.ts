@@ -20,6 +20,7 @@ const DEFAULTS: Record<string, unknown> = {
     show_progress: true,
     show_pickup: true,
     show_details: false,
+    show_sensors: true,
     wrap_text: false,
     pickup_code: "hidden",
     tracking_link: "row",
@@ -126,6 +127,7 @@ function schema(hass: HomeAssistant, config: PackageTrackerCardConfig, text: (ke
                 { name: "show_origin", selector: { boolean: {} } },
                 { name: "show_destination", selector: { boolean: {} } },
                 { name: "show_pickup", selector: { boolean: {} } },
+                { name: "show_sensors", selector: { boolean: {} } },
             ],
         },
     ];

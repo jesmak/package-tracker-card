@@ -70,6 +70,7 @@ hand.
 | `show_destination`           | boolean        | Show where it is going, or where it is picked up                                                                                                                                                                                            | `true`                                                                          |
 | `show_pickup`                | boolean        | Add the pickup deadline, or the estimate, to that line                                                                                                                                                                                      | `true`                                                                          |
 | `show_details`               | boolean        | Show the weight and how many parcels the shipment has                                                                                                                                                                                       | `false`                                                                         |
+| `show_sensors`               | boolean        | With nothing to list, name each sensor and when it last checked                                                                                                                                                                             | `true`                                                                          |
 | `wrap_text`                  | boolean        | Wrap long texts over several lines instead of cutting them short                                                                                                                                                                            | `false`                                                                         |
 | `pickup_code`                | string         | `hidden`, `always`, or `toggle` to reveal it when clicked                                                                                                                                                                                   | `hidden`                                                                        |
 | `tracking_link`              | string         | `row`, `number`, or `none`, what opens the tracking page                                                                                                                                                                                    | `row`                                                                           |
@@ -110,8 +111,8 @@ code, whatever `pickup_code` says, since those are the recipient's.
 
 With nothing to list, the card says so and names each of its sensors, with when it last checked for packages, so an
 empty card can be told apart from one whose integration has stopped working. A sensor that is unavailable is marked
-**not available**, and is named above the packages of the others when they have some. Held to a height, an empty card
-also shows a package icon.
+**not available**, and is named above the packages of the others when they have some. With `show_sensors` off, an
+empty card names only a sensor that isn't available. Held to a height, an empty card also shows a package icon.
 
 ### The destination line
 

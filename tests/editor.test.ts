@@ -78,6 +78,7 @@ describe("the visual editor", () => {
         expect(names).toContain("show_progress");
         expect(names).toContain("show_pickup");
         expect(names).toContain("show_details");
+        expect(names).toContain("show_sensors");
         expect(names).toContain("pickup_code");
         expect(names).toContain("statuses");
         expect(names).toContain("tracking_link");

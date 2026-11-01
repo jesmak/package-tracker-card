@@ -368,13 +368,16 @@ export class PackageTrackerCard extends LitElement {
 
     /**
      * With nothing to list, the card says so and shows that each of its sensors still answers, so an empty card can be
-     * told apart from a broken one. Held to a height, an icon fills some of the room, centred with the rest.
+     * told apart from a broken one. With `show_sensors` off, only a sensor that doesn't answer is named. Held to a
+     * height, an icon fills some of the room, centred with the rest.
      */
     private empty(sensors: Sensor[], held: boolean): TemplateResult {
         return html`<div class="empty">
             ${held ? html`<ha-icon class="empty-icon" icon="mdi:package-variant-closed-check"></ha-icon>` : nothing}
             <div class="no-packages">${this.text("common.no_packages")}</div>
-            ${sensors.map((sensor) => this.sensor(sensor))}
+            ${(this.config?.show_sensors === false ? sensors.filter((sensor) => !sensor.available) : sensors).map((sensor) =>
+                this.sensor(sensor),
+            )}
         </div>`;
     }
 

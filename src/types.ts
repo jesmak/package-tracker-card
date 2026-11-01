@@ -28,6 +28,8 @@ export interface PackageTrackerCardConfig extends LovelaceCardConfig, HeightConf
     show_pickup?: boolean;
     /** The weight and how many parcels the shipment has. */
     show_details?: boolean;
+    /** With nothing to list, each sensor and when it last checked. A sensor that doesn't answer is named either way. */
+    show_sensors?: boolean;
     /** Long texts wrap over several lines instead of being cut short. */
     wrap_text?: boolean;
     /** `hidden`, `always`, or `toggle` for a field that reveals the code when clicked. */

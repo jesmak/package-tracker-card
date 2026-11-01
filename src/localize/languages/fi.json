@@ -66,6 +66,8 @@
         "show_pickup_helper": "Lisää samalle riville noudon määräajan, tai arvioidun toimituksen kun paketti on vielä matkalla.",
         "show_details": "Paino ja kollit",
         "show_details_helper": "Paketin paino ja kollien määrä.",
+        "show_sensors": "Näytä pakettisensorien tila, kun paketteja ei ole",
+        "show_sensors_helper": "Jokainen pakettisensori, ja milloin viimeksi se tarkisti paketit. Sensoreista, jotka eivät vastaa, näytetään varoitus.",
         "wrap_text": "Rivitä pitkät tekstit",
         "wrap_text_helper": "Kun asetus on pois päältä, ylipitkät tekstit lyhennetään rivittämisen sijaan.",
         "pickup_code": "Noutokoodi",
