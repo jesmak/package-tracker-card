@@ -808,6 +808,9 @@ var en_default = {
     description: "Package tracker card for tracking parcels",
     name: "Package tracker card",
     no_packages: "No packages to track at the moment",
+    checked: "checked",
+    just_now: "just now",
+    unavailable: "not available",
     no_entity: "No such entity:",
     pickup_by: "Pick up by",
     estimated: "Estimated",
@@ -889,6 +892,9 @@ var fi_default = {
     description: "Kortti pakettil\xE4hetysten seuraamiseen",
     name: "L\xE4hetysten seuranta",
     no_packages: "Ei seurattavia paketteja t\xE4ll\xE4 hetkell\xE4",
+    checked: "tarkistettu",
+    just_now: "juuri nyt",
+    unavailable: "ei k\xE4ytett\xE4viss\xE4",
     no_entity: "Entiteetti\xE4 ei ole:",
     pickup_by: "Nouda viimeist\xE4\xE4n",
     estimated: "Arvio",
@@ -1300,6 +1306,30 @@ function packagesOf(hass, entity) {
   return [...found.values()];
 }
 var lastDropped = 0;
+function sensorsOf(hass, entity) {
+  return entities(entity).map((id) => {
+    const state = hass.states[id];
+    const name = state?.attributes?.friendly_name;
+    const checked = state?.attributes?.last_checked;
+    return {
+      name: typeof name === "string" && name !== "" ? name : id,
+      available: !!state && state.state !== "unavailable",
+      checked: typeof checked === "string" && !Number.isNaN(Date.parse(checked)) ? checked : void 0
+    };
+  });
+}
+function ago(iso, language, now = Date.now()) {
+  const minutes = Math.floor((now - Date.parse(iso)) / 6e4);
+  if (!(minutes >= 1)) {
+    return void 0;
+  }
+  const format = new Intl.RelativeTimeFormat(language, { numeric: "always", style: "short" });
+  if (minutes < 60) {
+    return format.format(-minutes, "minute");
+  }
+  const hours = Math.floor(minutes / 60);
+  return hours < 48 ? format.format(-hours, "hour") : format.format(-Math.floor(hours / 24), "day");
+}
 var TEXTS = [
   "shipment_date",
   "raw_status",
@@ -3153,11 +3183,11 @@ var PackageTrackerCard = class extends i4 {
     return { columns: 12, rows: "auto", min_columns: 9, min_rows: gridMinRows(this.minimumHeight()) };
   }
   /**
-   * Held to a height, the title and one whole package still fit: its number, its progress line and the lines the
-   * configuration shows, each on one line. At the narrowest its columns can be, or at the width it is measured to
-   * have, whichever needs more: a whole section counts as wide, 11 columns or fewer as narrow. The number is counted
-   * as long as Posti's, and the badge of the service it came from as there, since only the data says whether it is.
-   * A longer number scrolls the rest of the package with the list.
+   * Held to a height, the title and one whole package still fit while every sensor answers: its number, its progress
+   * line and the lines the configuration shows, each on one line. At the narrowest its columns can be, or at the width
+   * it is measured to have, whichever needs more: a whole section counts as wide, 11 columns or fewer as narrow. The
+   * number is counted as long as Posti's, and the badge of the service it came from as there, since only the data
+   * says whether it is. A longer number scrolls the rest of the package with the list.
    */
   minimumHeight() {
     const byColumns = this.minimumFor(this.columns() <= 11 ? "narrow" : "wide");
@@ -3195,9 +3225,15 @@ var PackageTrackerCard = class extends i4 {
     if (this.hasUpdated) {
       this.requestUpdate();
     }
+    this.clock = setInterval(() => {
+      if (this.renderRoot.querySelector(".sensor")) {
+        this.requestUpdate();
+      }
+    }, 6e4);
   }
   disconnectedCallback() {
     super.disconnectedCallback();
+    clearInterval(this.clock);
     this.resizes?.disconnect();
     this.observed = void 0;
     cancelAnimationFrame(this.frame ?? 0);
@@ -3228,7 +3264,7 @@ var PackageTrackerCard = class extends i4 {
   }
   /**
    * On automatic rows in a sections view, the card takes the whole rows its content needs, so the cards under it stay
-   * on the rows. Measured to the end of the list's last package, as the list grows to whatever height the card is given.
+   * on the rows. Measured to the end of the list's last child, as the list grows to whatever height the card is given.
    */
   fillRows() {
     const card = this.renderRoot.querySelector("ha-card");
@@ -3267,6 +3303,7 @@ var PackageTrackerCard = class extends i4 {
             >`;
     }
     const packages = this.shown(this.hass, this.config);
+    const sensors = sensorsOf(this.hass, this.config.entity);
     const marked = (this.config.direction ?? "all") === "all";
     const title = this.config.title;
     const held = !!this.heightStyle();
@@ -3274,11 +3311,11 @@ var PackageTrackerCard = class extends i4 {
             <ha-card class="${this.config.wrap_text ? "wrap" : ""} ${held ? "held" : ""}" style="${this.cardStyle()}">
                 ${title ? b2`<div class="header" title="${held ? title : A}">${title}</div>` : A}
                 <div class="list">
-                    ${packages.length === 0 ? b2`<div class="no-packages">${this.text("common.no_packages")}</div>` : c4(
+                    ${packages.length === 0 ? this.empty(sensors, held) : b2`${sensors.filter((sensor) => !sensor.available).map((sensor) => this.sensor(sensor))}${c4(
       packages,
       (item) => item.shipment_number,
       (item) => this.shipment(item, marked)
-    )}
+    )}`}
                 </div>
                 ${this.qrDialog()}
             </ha-card>
@@ -3308,6 +3345,25 @@ var PackageTrackerCard = class extends i4 {
   }
   cardStyle() {
     return this.heightStyle() || (this.filled ? `min-height: ${this.filled}px` : "");
+  }
+  /**
+   * With nothing to list, the card says so and shows that each of its sensors still answers, so an empty card can be
+   * told apart from a broken one. Held to a height, an icon fills some of the room, centred with the rest.
+   */
+  empty(sensors, held) {
+    return b2`<div class="empty">
+            ${held ? b2`<ha-icon class="empty-icon" icon="mdi:package-variant-closed-check"></ha-icon>` : A}
+            <div class="no-packages">${this.text("common.no_packages")}</div>
+            ${sensors.map((sensor) => this.sensor(sensor))}
+        </div>`;
+  }
+  /** A sensor's name, and when it last read its packages, or that it doesn't answer. */
+  sensor(sensor) {
+    const state = !sensor.available ? this.text("common.unavailable") : sensor.checked ? `${this.text("common.checked")} ${ago(sensor.checked, this.language()) ?? this.text("common.just_now")}` : "";
+    return b2`<div class="sensor ${sensor.available ? "" : "down"}">
+            <ha-icon icon="${sensor.available ? "mdi:check-circle-outline" : "mdi:alert-circle-outline"}"></ha-icon>
+            <span>${state ? `${sensor.name} \xB7 ${state}` : sensor.name}</span>
+        </div>`;
   }
   /** The packages listed: the chosen ones in order, up to the most of each direction. */
   shown(hass, config) {
@@ -3632,6 +3688,45 @@ var PackageTrackerCard = class extends i4 {
                     display: flex;
                     flex-direction: column;
                     gap: 10px;
+                }
+
+                .empty {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 4px;
+                    text-align: center;
+                }
+
+                .held .empty {
+                    flex: 1 0 auto;
+                }
+
+                .empty-icon {
+                    --mdc-icon-size: 48px;
+                    color: var(--secondary-text-color);
+                    opacity: 0.5;
+                }
+
+                .sensor {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    min-width: 0;
+                    font-size: 12px;
+                    line-height: 16px;
+                    color: var(--secondary-text-color);
+                    overflow-wrap: anywhere;
+                }
+
+                .sensor ha-icon {
+                    --mdc-icon-size: 16px;
+                    flex: none;
+                }
+
+                .sensor.down {
+                    color: var(--warning-color, #ffa600);
                 }
 
                 .no-packages,

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+    ago,
     entities,
     formatDateTime,
     iconFor,
@@ -195,5 +196,29 @@ describe("which way a package goes", () => {
         expect(withDirection(all, "incoming")).toEqual([coming, unknown]);
         expect(withDirection(all, "all")).toEqual(all);
         expect(withDirection(all, undefined)).toEqual(all);
+    });
+});
+
+describe("how long ago a sensor last checked", () => {
+    const NOW = Date.parse("2026-11-01T08:00:00Z");
+    const before = (seconds: number) => new Date(NOW - seconds * 1000).toISOString();
+
+    it.each([
+        ["59 seconds as now", before(59), "fi", undefined],
+        ["a time ahead of the clock as now", before(-120), "fi", undefined],
+        ["a minute", before(60), "fi", "1 min sitten"],
+        ["59 minutes in minutes", before(59 * 60), "fi", "59 min sitten"],
+        ["an hour in hours", before(60 * 60), "fi", "1 t sitten"],
+        ["47 hours in hours", before(47 * 3600), "fi", "47 t sitten"],
+        ["48 hours in days", before(48 * 3600), "fi", "2 pv sitten"],
+        ["the shape the integrations write", "2026-11-01T07:55:40.362580+00:00", "fi", "4 min sitten"],
+        ["59 min 59 s in minutes, rounded down", before(3599), "fi", "59 min sitten"],
+        ["a second under 48 hours in hours", before(48 * 3600 - 1), "fi", "47 t sitten"],
+        ["71 hours in whole days", before(71 * 3600), "fi", "2 pv sitten"],
+        ["in English", before(5 * 60), "en", "5 min. ago"],
+        ["hours in English", before(3 * 3600), "en", "3 hr. ago"],
+        ["days in English", before(72 * 3600), "en", "3 days ago"],
+    ])("writes %s", (_name, iso, language, text) => {
+        expect(ago(iso, language, NOW)).toBe(text);
     });
 });

@@ -54,6 +54,44 @@ export function packagesOf(hass: HomeAssistant, entity: string | string[]): Ship
 
 let lastDropped = 0;
 
+/** A sensor the card was given: its name, whether it answers, and when it last read its packages, if it tells. */
+export interface Sensor {
+    name: string;
+    available: boolean;
+    checked?: string;
+}
+
+/** Every sensor the card was given, in its order. One Home Assistant doesn't have, or that is unavailable, doesn't answer. */
+export function sensorsOf(hass: HomeAssistant, entity: string | string[]): Sensor[] {
+    return entities(entity).map((id) => {
+        const state = hass.states[id];
+        const name = state?.attributes?.friendly_name;
+        const checked = state?.attributes?.last_checked;
+        return {
+            name: typeof name === "string" && name !== "" ? name : id,
+            available: !!state && state.state !== "unavailable",
+            checked: typeof checked === "string" && !Number.isNaN(Date.parse(checked)) ? checked : undefined,
+        };
+    });
+}
+
+/**
+ * How long ago a time was, in minutes, hours or days, as short as the language writes it: "5 min. ago", "3 hr. ago".
+ * Under a minute, and a time ahead of the clock, is `undefined`, for the caller's own word for now.
+ */
+export function ago(iso: string, language: string, now: number = Date.now()): string | undefined {
+    const minutes = Math.floor((now - Date.parse(iso)) / 60_000);
+    if (!(minutes >= 1)) {
+        return undefined;
+    }
+    const format = new Intl.RelativeTimeFormat(language, { numeric: "always", style: "short" });
+    if (minutes < 60) {
+        return format.format(-minutes, "minute");
+    }
+    const hours = Math.floor(minutes / 60);
+    return hours < 48 ? format.format(-hours, "hour") : format.format(-Math.floor(hours / 24), "day");
+}
+
 const TEXTS = [
     "shipment_date",
     "raw_status",

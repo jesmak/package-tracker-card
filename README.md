@@ -108,6 +108,11 @@ give counts as incoming.
 A package you sent names its recipient where a received one names its sender. It never shows a pickup code or a QR
 code, whatever `pickup_code` says, since those are the recipient's.
 
+With nothing to list, the card says so and names each of its sensors, with when it last checked for packages, so an
+empty card can be told apart from one whose integration has stopped working. A sensor that is unavailable is marked
+**not available**, and is named above the packages of the others when they have some. Held to a height, an empty card
+also shows a package icon.
+
 ### The destination line
 
 One line says where the package is going and by when. The **pickup point** stands in for the destination whenever the
@@ -239,6 +244,9 @@ The packages come from the tracking integrations the card is given. The card its
 The card lists the packages of every sensor it is given, from the sensor's `packages` attribute, a list with one
 object per package. Only `shipment_number` and `status` are required. Anything else may be left out or `null`, and
 the line that would show it is left out too.
+
+A sensor may also have a `last_checked` attribute, the ISO 8601 time its integration last read the packages, whether
+or not anything had changed. The card shows it when there is nothing to list.
 
 | Key                  | Type   | What the card does with it                                                                                                                                                                     |
 | -------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

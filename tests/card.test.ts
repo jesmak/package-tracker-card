@@ -211,7 +211,7 @@ describe("the card's height", () => {
         expect(await filledRows(element, 290)).toBe("min-height: 312px");
         element.hass = hass({ [POSTI]: [], [MATKAHUOLTO]: [] });
         await element.updateComplete;
-        expect(shadow(element).querySelector(".list")?.lastElementChild?.className).toBe("no-packages");
+        expect(shadow(element).querySelector(".list")?.lastElementChild?.className).toBe("empty");
         expect(await filledRows(element, 90)).toBe("min-height: 120px");
     });
 
@@ -400,6 +400,144 @@ describe("when there is nothing to track", () => {
     it("says so", async () => {
         const root = shadow(await card(hass({ [POSTI]: [], [MATKAHUOLTO]: [] })));
         expect(root.querySelector(".no-packages")?.textContent).toContain("Ei seurattavia paketteja");
+    });
+
+    const NOW = Date.parse("2026-09-16T09:00:00Z");
+
+    function sensor(id: string, state: string, attributes: Record<string, unknown>): HomeAssistant["states"][string] {
+        return { entity_id: id, state, last_changed: "2026-09-16", attributes: { packages: [], ...attributes } };
+    }
+
+    it.each([
+        [
+            "when it last read its packages",
+            sensor(POSTI, "2026-09-10T08:00:00+00:00", { friendly_name: "Posti", last_checked: "2026-09-16T08:55:00Z" }),
+            "Posti · tarkistettu 5 min sitten",
+            false,
+        ],
+        [
+            "how many hours ago it last read them",
+            sensor(POSTI, "unknown", { friendly_name: "Posti", last_checked: "2026-09-16T06:00:00Z" }),
+            "Posti · tarkistettu 3 t sitten",
+            false,
+        ],
+        [
+            "under a minute ago as now",
+            sensor(POSTI, "unknown", { friendly_name: "Posti", last_checked: "2026-09-16T08:59:30Z" }),
+            "Posti · tarkistettu juuri nyt",
+            false,
+        ],
+        ["its name alone when it doesn't tell the time", sensor(POSTI, "unknown", { friendly_name: "Posti" }), "Posti", false],
+        ["its entity ID without a name", sensor(POSTI, "unknown", {}), POSTI, false],
+        [
+            "that it doesn't answer",
+            sensor(POSTI, "unavailable", { friendly_name: "Posti", restored: true }),
+            "Posti · ei käytettävissä",
+            true,
+        ],
+        [
+            "that it doesn't answer, without the time it last had",
+            sensor(POSTI, "unavailable", { friendly_name: "Posti", last_checked: "2026-09-16T08:55:00Z" }),
+            "Posti · ei käytettävissä",
+            true,
+        ],
+        [
+            "its name alone when the time can't be read",
+            sensor(POSTI, "unknown", { friendly_name: "Posti", last_checked: "never" }),
+            "Posti",
+            false,
+        ],
+        ["that Home Assistant doesn't have it", undefined, `${POSTI} · ei käytettävissä`, true],
+    ])("shows each sensor and %s", async (_name, posti, text, down) => {
+        vi.useFakeTimers({ now: NOW, toFake: ["Date"] });
+        try {
+            const states = {
+                [MATKAHUOLTO]: sensor(MATKAHUOLTO, "unknown", { friendly_name: "Matkahuolto" }),
+                ...(posti ? { [POSTI]: posti } : {}),
+            };
+            const root = shadow(await card({ locale: { language: "fi" }, states }));
+            const lines = [...root.querySelectorAll(".empty .sensor")];
+            expect(lines.map((line) => line.textContent?.trim())).toEqual([text, "Matkahuolto"]);
+            expect(lines[0].classList.contains("down")).toBe(down);
+            expect(lines[0].querySelector("ha-icon")?.getAttribute("icon")).toBe(
+                down ? "mdi:alert-circle-outline" : "mdi:check-circle-outline",
+            );
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("keeps the time current between the sensors' updates, and stops once off the page", async () => {
+        vi.useFakeTimers({ now: NOW, toFake: ["Date", "setInterval", "clearInterval"] });
+        try {
+            const states = { [POSTI]: sensor(POSTI, "unknown", { friendly_name: "Posti", last_checked: "2026-09-16T08:59:30Z" }) };
+            const element = await card({ locale: { language: "fi" }, states }, { entity: POSTI });
+            const line = () => shadow(element).querySelector(".sensor")?.textContent?.trim();
+            expect(line()).toBe("Posti · tarkistettu juuri nyt");
+            vi.advanceTimersByTime(60_000);
+            await element.updateComplete;
+            expect(line()).toBe("Posti · tarkistettu 1 min sitten");
+            element.remove();
+            vi.advanceTimersByTime(120_000);
+            await element.updateComplete;
+            expect(line()).toBe("Posti · tarkistettu 1 min sitten");
+            // Back on the page, such as from another view, the clock runs again.
+            document.body.append(element);
+            await element.updateComplete;
+            expect(line()).toBe("Posti · tarkistettu 3 min sitten");
+            vi.advanceTimersByTime(60_000);
+            await element.updateComplete;
+            expect(line()).toBe("Posti · tarkistettu 4 min sitten");
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("names the sensors in Home Assistant's language", async () => {
+        vi.useFakeTimers({ now: NOW, toFake: ["Date"] });
+        try {
+            const states = {
+                [POSTI]: sensor(POSTI, "unknown", { friendly_name: "Posti", last_checked: "2026-09-16T08:55:00Z" }),
+                [MATKAHUOLTO]: sensor(MATKAHUOLTO, "unknown", { friendly_name: "Matkahuolto", last_checked: "2026-09-16T08:59:30Z" }),
+            };
+            const root = shadow(await card({ locale: { language: "en" }, states }));
+            expect([...root.querySelectorAll(".sensor")].map((line) => line.textContent?.trim())).toEqual([
+                "Posti · checked 5 min. ago",
+                "Matkahuolto · checked just now",
+            ]);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it.each([
+        ["on automatic rows", {}, undefined, false],
+        ["held by its own height", { height: 300 }, undefined, true],
+        ["held by rows", { grid_options: { rows: 6 } }, "grid", true],
+    ])("shows its icon only when held: %s", async (_name, extra, layout, icon) => {
+        const root = shadow(await card(hass({ [POSTI]: [], [MATKAHUOLTO]: [] }), extra as Partial<PackageTrackerCardConfig>, layout));
+        expect(root.querySelector(".empty-icon") !== null).toBe(icon);
+    });
+});
+
+describe("a sensor that doesn't answer", () => {
+    it("is named above the packages of the others, which are still listed", async () => {
+        const state = hass();
+        state.states[MATKAHUOLTO] = {
+            entity_id: MATKAHUOLTO,
+            state: "unavailable",
+            last_changed: "2026-09-16",
+            attributes: { friendly_name: "Matkahuolto" },
+        };
+        const root = shadow(await card(state));
+        const list = root.querySelector(".list");
+        expect(list?.firstElementChild?.textContent?.trim()).toBe("Matkahuolto · ei käytettävissä");
+        expect(root.querySelectorAll(".item")).toHaveLength(1);
+    });
+
+    it("is not named while every sensor answers", async () => {
+        const root = shadow(await card(hass()));
+        expect(root.querySelector(".sensor")).toBeNull();
     });
 });
 

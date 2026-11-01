@@ -19,6 +19,7 @@ import type { HomeAssistant } from "./hass";
 import { gridMinRows, heightCardSize, heightStyle, validHeight } from "./height";
 import { browserLanguage, translate } from "./localize/localize";
 import {
+    ago,
     entities,
     formatDateTime,
     iconFor,
@@ -26,6 +27,8 @@ import {
     missingEntities,
     packagesOf,
     progressOf,
+    type Sensor,
+    sensorsOf,
     sortPackages,
     trackingUrl,
     withDirection,
@@ -102,6 +105,8 @@ export class PackageTrackerCard extends LitElement {
     private readonly resizes = typeof ResizeObserver === "undefined" ? undefined : new ResizeObserver(() => this.measureSoon());
     /** The ha-card the observer follows. The host is inline, so its own box never changes size for an observer. */
     private observed?: Element;
+    /** Keeps the times of the sensors' checks current between their updates. */
+    private clock?: ReturnType<typeof setInterval>;
 
     constructor() {
         super();
@@ -151,11 +156,11 @@ export class PackageTrackerCard extends LitElement {
     }
 
     /**
-     * Held to a height, the title and one whole package still fit: its number, its progress line and the lines the
-     * configuration shows, each on one line. At the narrowest its columns can be, or at the width it is measured to
-     * have, whichever needs more: a whole section counts as wide, 11 columns or fewer as narrow. The number is counted
-     * as long as Posti's, and the badge of the service it came from as there, since only the data says whether it is.
-     * A longer number scrolls the rest of the package with the list.
+     * Held to a height, the title and one whole package still fit while every sensor answers: its number, its progress
+     * line and the lines the configuration shows, each on one line. At the narrowest its columns can be, or at the width
+     * it is measured to have, whichever needs more: a whole section counts as wide, 11 columns or fewer as narrow. The
+     * number is counted as long as Posti's, and the badge of the service it came from as there, since only the data
+     * says whether it is. A longer number scrolls the rest of the package with the list.
      */
     private minimumHeight(): number {
         const byColumns = this.minimumFor(this.columns() <= 11 ? "narrow" : "wide");
@@ -211,10 +216,16 @@ export class PackageTrackerCard extends LitElement {
         if (this.hasUpdated) {
             this.requestUpdate();
         }
+        this.clock = setInterval(() => {
+            if (this.renderRoot.querySelector(".sensor")) {
+                this.requestUpdate();
+            }
+        }, 60_000);
     }
 
     public disconnectedCallback(): void {
         super.disconnectedCallback();
+        clearInterval(this.clock);
         this.resizes?.disconnect();
         this.observed = undefined;
         cancelAnimationFrame(this.frame ?? 0);
@@ -248,7 +259,7 @@ export class PackageTrackerCard extends LitElement {
 
     /**
      * On automatic rows in a sections view, the card takes the whole rows its content needs, so the cards under it stay
-     * on the rows. Measured to the end of the list's last package, as the list grows to whatever height the card is given.
+     * on the rows. Measured to the end of the list's last child, as the list grows to whatever height the card is given.
      */
     private fillRows(): void {
         const card = this.renderRoot.querySelector<HTMLElement>("ha-card");
@@ -296,6 +307,7 @@ export class PackageTrackerCard extends LitElement {
         }
 
         const packages = this.shown(this.hass, this.config);
+        const sensors = sensorsOf(this.hass, this.config.entity);
 
         // Each package says which way it goes when the card is set to list both ways, whatever the packages happen to be.
         // A card set to one way has nothing to tell apart.
@@ -310,12 +322,12 @@ export class PackageTrackerCard extends LitElement {
                 <div class="list">
                     ${
                         packages.length === 0
-                            ? html`<div class="no-packages">${this.text("common.no_packages")}</div>`
-                            : repeat(
+                            ? this.empty(sensors, held)
+                            : html`${sensors.filter((sensor) => !sensor.available).map((sensor) => this.sensor(sensor))}${repeat(
                                   packages,
                                   (item) => item.shipment_number,
                                   (item) => this.shipment(item, marked),
-                              )
+                              )}`
                     }
                 </div>
                 ${this.qrDialog()}
@@ -352,6 +364,31 @@ export class PackageTrackerCard extends LitElement {
 
     private cardStyle(): string {
         return this.heightStyle() || (this.filled ? `min-height: ${this.filled}px` : "");
+    }
+
+    /**
+     * With nothing to list, the card says so and shows that each of its sensors still answers, so an empty card can be
+     * told apart from a broken one. Held to a height, an icon fills some of the room, centred with the rest.
+     */
+    private empty(sensors: Sensor[], held: boolean): TemplateResult {
+        return html`<div class="empty">
+            ${held ? html`<ha-icon class="empty-icon" icon="mdi:package-variant-closed-check"></ha-icon>` : nothing}
+            <div class="no-packages">${this.text("common.no_packages")}</div>
+            ${sensors.map((sensor) => this.sensor(sensor))}
+        </div>`;
+    }
+
+    /** A sensor's name, and when it last read its packages, or that it doesn't answer. */
+    private sensor(sensor: Sensor): TemplateResult {
+        const state = !sensor.available
+            ? this.text("common.unavailable")
+            : sensor.checked
+              ? `${this.text("common.checked")} ${ago(sensor.checked, this.language()) ?? this.text("common.just_now")}`
+              : "";
+        return html`<div class="sensor ${sensor.available ? "" : "down"}">
+            <ha-icon icon="${sensor.available ? "mdi:check-circle-outline" : "mdi:alert-circle-outline"}"></ha-icon>
+            <span>${state ? `${sensor.name} · ${state}` : sensor.name}</span>
+        </div>`;
     }
 
     /** The packages listed: the chosen ones in order, up to the most of each direction. */
@@ -737,6 +774,45 @@ export class PackageTrackerCard extends LitElement {
                     display: flex;
                     flex-direction: column;
                     gap: 10px;
+                }
+
+                .empty {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 4px;
+                    text-align: center;
+                }
+
+                .held .empty {
+                    flex: 1 0 auto;
+                }
+
+                .empty-icon {
+                    --mdc-icon-size: 48px;
+                    color: var(--secondary-text-color);
+                    opacity: 0.5;
+                }
+
+                .sensor {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    min-width: 0;
+                    font-size: 12px;
+                    line-height: 16px;
+                    color: var(--secondary-text-color);
+                    overflow-wrap: anywhere;
+                }
+
+                .sensor ha-icon {
+                    --mdc-icon-size: 16px;
+                    flex: none;
+                }
+
+                .sensor.down {
+                    color: var(--warning-color, #ffa600);
                 }
 
                 .no-packages,
