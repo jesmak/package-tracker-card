@@ -2,6 +2,7 @@
     "common": {
         "invalid_configuration": "Virheellinen konfiguraatio",
         "invalid_height": "Virheellinen korkeus. Korkeuksien (height ja max_height) on oltava positiivisia lukuja pikseleinä, ja korkeustilan (height_mode) auto, fixed tai max.",
+        "invalid_row_step": "Virheellinen pyöristys. Pyöristyksen (row_step) on oltava full tai half.",
         "description": "Kortti pakettilähetysten seuraamiseen",
         "name": "Lähetysten seuranta",
         "no_packages": "Ei seurattavia paketteja tällä hetkellä",
@@ -55,6 +56,10 @@
         "height_helper": "Kortti on aina näin korkea, ja lista vierii sen sisällä.",
         "max_height": "Enimmäiskorkeus",
         "max_height_helper": "Kortti kasvaa sisältönsä mukana tähän korkeuteen asti, ja sen jälkeen lista vierii.",
+        "row_step": "Pyöristys osioihin jaetussa näkymässä",
+        "row_step_helper": "Automaattisella rivikorkeudella kortin korkeus pyöristetään ylöspäin kokonaisiin riveihin, tai tilan säästämiseksi puolikkaisiin riveihin.",
+        "row_step_full": "Kokonaisiin riveihin",
+        "row_step_half": "Puolikkaisiin riveihin",
         "show_progress": "Edistymispalkki",
         "show_latest_event": "Tila ja aika",
         "show_latest_event_message": "Viimeisin tapahtuma",

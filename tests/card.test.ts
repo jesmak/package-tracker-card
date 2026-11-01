@@ -192,8 +192,24 @@ describe("the card's height", () => {
         (element as unknown as { fillRows(): void }).fillRows();
         vi.restoreAllMocks();
         await element.updateComplete;
-        return haCard.getAttribute("style") ?? "";
+        // The height alone; the spare room carried alongside it has a test of its own.
+        return (haCard.getAttribute("style") ?? "").replace(/; --package-tracker-spare: \d+px$/, "");
     }
+
+    it.each([
+        ["between the title and the list, what a whole row leaves over", {}, 150, "min-height: 184px; --package-tracker-spare: 21px"],
+        [
+            "nothing with half rows when the content ends on a half row",
+            { row_step: "half" },
+            139,
+            "min-height: 152px; --package-tracker-spare: 0px",
+        ],
+    ])("puts %s", async (_name, extra, bottom, style) => {
+        const element = await card(hass(), extra as Partial<PackageTrackerCardConfig>, "grid");
+        const haCard = shadow(element).querySelector("ha-card") as HTMLElement;
+        await filledRows(element, bottom);
+        expect(haCard.getAttribute("style")).toBe(style);
+    });
 
     // A card is 64k − 8 px tall on k rows: its last part's end, its bottom padding and its border, rounded up.
     it.each<[string, string | undefined, Record<string, unknown>, number, string]>([
@@ -317,6 +333,16 @@ describe("the card's height", () => {
         expect(() => element.setConfig(config({ height_mode: "tall" }))).toThrow(error);
         // Left empty in YAML, each is unset.
         expect(() => element.setConfig(config({ height_mode: null, height: null, max_height: null }))).not.toThrow();
+    });
+
+    it("refuses a row step other than whole or half rows, with an error about the rounding", () => {
+        const element = document.createElement("package-tracker-card") as PackageTrackerCard;
+        const config = (extra: Record<string, unknown>) => ({ type: "custom:package-tracker-card", entity: POSTI, ...extra }) as never;
+        const error = translate(browserLanguage(), "common.invalid_row_step");
+        expect(error).toMatch(/^Invalid rounding\./);
+        expect(() => element.setConfig(config({ row_step: "quarter" }))).toThrow(error);
+        expect(() => element.setConfig(config({ row_step: "half" }))).not.toThrow();
+        expect(() => element.setConfig(config({ row_step: null }))).not.toThrow();
     });
 });
 

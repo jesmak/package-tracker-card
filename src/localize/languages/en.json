@@ -2,6 +2,7 @@
     "common": {
         "invalid_configuration": "Invalid configuration",
         "invalid_height": "Invalid height. height and max_height must be positive numbers of pixels, and height_mode auto, fixed or max.",
+        "invalid_row_step": "Invalid rounding. row_step must be full or half.",
         "description": "Package tracker card for tracking parcels",
         "name": "Package tracker card",
         "no_packages": "No packages to track at the moment",
@@ -55,6 +56,10 @@
         "height_helper": "The card is always this tall, and the list scrolls inside it.",
         "max_height": "Maximum height",
         "max_height_helper": "The card grows with its content up to this height, and then the list scrolls.",
+        "row_step": "Rounding in a sections view",
+        "row_step_helper": "With automatic row height, the card's height is rounded up to whole rows, or to half rows to save space.",
+        "row_step_full": "Whole rows",
+        "row_step_half": "Half rows",
         "show_progress": "Progress bar",
         "show_latest_event": "Status and time",
         "show_latest_event_message": "Latest event",

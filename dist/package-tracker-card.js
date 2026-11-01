@@ -800,11 +800,47 @@ function tidyHeight(config) {
   return tidied;
 }
 
+// src/rows.ts
+var ROW_STEPS = ["full", "half"];
+var ROW_PX = 64;
+var ROW_GAP_PX = 8;
+function validRowStep(config) {
+  return config.row_step === void 0 || config.row_step === null || ROW_STEPS.includes(config.row_step);
+}
+function filledHeight(content, config) {
+  const step = config.row_step === "half" ? ROW_PX / 2 : ROW_PX;
+  return Math.max(1, Math.ceil((content + ROW_GAP_PX) / step)) * step - ROW_GAP_PX;
+}
+function rowStepSchema(config, text) {
+  if (heightMode(config) !== "auto") {
+    return [];
+  }
+  return [
+    {
+      name: "row_step",
+      selector: {
+        select: { mode: "dropdown", options: ROW_STEPS.map((value) => ({ value, label: text(`editor.row_step_${value}`) })) }
+      }
+    }
+  ];
+}
+function rowStepData(config) {
+  return { ...config, row_step: config.row_step ?? "full" };
+}
+function tidyRowStep(config) {
+  const tidied = { ...config };
+  if (tidied.row_step !== "half" || heightMode(tidied) !== "auto") {
+    delete tidied.row_step;
+  }
+  return tidied;
+}
+
 // src/localize/languages/en.json
 var en_default = {
   common: {
     invalid_configuration: "Invalid configuration",
     invalid_height: "Invalid height. height and max_height must be positive numbers of pixels, and height_mode auto, fixed or max.",
+    invalid_row_step: "Invalid rounding. row_step must be full or half.",
     description: "Package tracker card for tracking parcels",
     name: "Package tracker card",
     no_packages: "No packages to track at the moment",
@@ -858,6 +894,10 @@ var en_default = {
     height_helper: "The card is always this tall, and the list scrolls inside it.",
     max_height: "Maximum height",
     max_height_helper: "The card grows with its content up to this height, and then the list scrolls.",
+    row_step: "Rounding in a sections view",
+    row_step_helper: "With automatic row height, the card's height is rounded up to whole rows, or to half rows to save space.",
+    row_step_full: "Whole rows",
+    row_step_half: "Half rows",
     show_progress: "Progress bar",
     show_latest_event: "Status and time",
     show_latest_event_message: "Latest event",
@@ -891,6 +931,7 @@ var fi_default = {
   common: {
     invalid_configuration: "Virheellinen konfiguraatio",
     invalid_height: "Virheellinen korkeus. Korkeuksien (height ja max_height) on oltava positiivisia lukuja pikselein\xE4, ja korkeustilan (height_mode) auto, fixed tai max.",
+    invalid_row_step: "Virheellinen py\xF6ristys. Py\xF6ristyksen (row_step) on oltava full tai half.",
     description: "Kortti pakettil\xE4hetysten seuraamiseen",
     name: "L\xE4hetysten seuranta",
     no_packages: "Ei seurattavia paketteja t\xE4ll\xE4 hetkell\xE4",
@@ -944,6 +985,10 @@ var fi_default = {
     height_helper: "Kortti on aina n\xE4in korkea, ja lista vierii sen sis\xE4ll\xE4.",
     max_height: "Enimm\xE4iskorkeus",
     max_height_helper: "Kortti kasvaa sis\xE4lt\xF6ns\xE4 mukana t\xE4h\xE4n korkeuteen asti, ja sen j\xE4lkeen lista vierii.",
+    row_step: "Py\xF6ristys osioihin jaetussa n\xE4kym\xE4ss\xE4",
+    row_step_helper: "Automaattisella rivikorkeudella kortin korkeus py\xF6ristet\xE4\xE4n yl\xF6sp\xE4in kokonaisiin riveihin, tai tilan s\xE4\xE4st\xE4miseksi puolikkaisiin riveihin.",
+    row_step_full: "Kokonaisiin riveihin",
+    row_step_half: "Puolikkaisiin riveihin",
     show_progress: "Edistymispalkki",
     show_latest_event: "Tila ja aika",
     show_latest_event_message: "Viimeisin tapahtuma",
@@ -1059,6 +1104,7 @@ function schema(hass, config, text) {
       ]
     },
     ...heightSchema(config, text),
+    ...rowStepSchema(config, text),
     {
       name: "pickup_code",
       selector: {
@@ -1120,7 +1166,7 @@ var PackageTrackerCardEditor = class extends i4 {
     return b2`
             <ha-form
                 .hass=${this.hass}
-                .data=${{ ...DEFAULTS, ...heightData(this.config), entity, statuses }}
+                .data=${{ ...DEFAULTS, ...rowStepData(heightData(this.config)), entity, statuses }}
                 .schema=${schema(this.hass, this.config, (key) => this.text(key))}
                 .computeLabel=${(entry) => this.text(`editor.${entry.name}`)}
                 .computeHelper=${(entry) => this.helper(entry.name)}
@@ -1129,7 +1175,7 @@ var PackageTrackerCardEditor = class extends i4 {
         `;
   }
   valueChanged(event) {
-    const config = tidyHeight(event.detail.value);
+    const config = tidyRowStep(tidyHeight(event.detail.value));
     const chosen = (config.statuses ?? []).map(Number);
     const statuses = STATUSES.filter((status) => chosen.includes(status));
     if (statuses.length === 0 || statuses.length === STATUSES.length) {
@@ -3151,6 +3197,7 @@ var PackageTrackerCard = class extends i4 {
     super();
     this.revealed = /* @__PURE__ */ new Set();
     this.filled = 0;
+    this.spare = 0;
     this.resizes = typeof ResizeObserver === "undefined" ? void 0 : new ResizeObserver(() => this.measureSoon());
     new ScrollFade(this, () => this.heightStyle() ? this.renderRoot.querySelectorAll(".list") : []);
   }
@@ -3174,6 +3221,9 @@ var PackageTrackerCard = class extends i4 {
     }
     if (!validHeight(config)) {
       throw new Error(translate(browserLanguage(), "common.invalid_height"));
+    }
+    if (!validRowStep(config)) {
+      throw new Error(translate(browserLanguage(), "common.invalid_row_step"));
     }
     this.config = withTitle(config);
   }
@@ -3269,23 +3319,33 @@ var PackageTrackerCard = class extends i4 {
     }
   }
   /**
-   * On automatic rows in a sections view, the card takes the whole rows its content needs, so the cards under it stay
-   * on the rows. Measured to the end of the list's last child, as the list grows to whatever height the card is given.
+   * On automatic rows in a sections view, the card takes the whole rows its content needs, or the half rows with
+   * `row_step: half`, so the cards under it stay on the rows. Measured to the end of the list's last child, as the list
+   * grows to whatever height the card is given. What a whole row leaves over goes above the list, under the title, as
+   * its top margin, which the measure leaves out again each time.
    */
   fillRows() {
     const card = this.renderRoot.querySelector("ha-card");
-    const last = card && (card.querySelector(".list")?.lastElementChild ?? card.querySelector(".message"));
+    const list = card?.querySelector(".list");
+    const last = card && (list?.lastElementChild ?? card.querySelector(".message"));
     if (!card || !last || !card.clientWidth || this.layout !== "grid" || this.heightStyle()) {
       if (this.filled) {
         this.filled = 0;
       }
+      if (this.spare) {
+        this.spare = 0;
+      }
       return;
     }
     const style = getComputedStyle(card);
-    const content = last.getBoundingClientRect().bottom - card.getBoundingClientRect().top + (parseFloat(style.paddingBottom) || 0) + (parseFloat(style.borderBottomWidth) || 0);
-    const filled = gridMinRows(Math.round(content)) * 64 - 8;
+    const content = last.getBoundingClientRect().bottom - card.getBoundingClientRect().top + (parseFloat(style.paddingBottom) || 0) + (parseFloat(style.borderBottomWidth) || 0) - (list ? Math.max(0, parseFloat(getComputedStyle(list).marginTop) || 0) : 0);
+    const filled = filledHeight(Math.round(content), this.config ?? {});
+    const spare = list ? Math.max(0, Math.floor(filled - content)) : 0;
     if (filled !== this.filled) {
       this.filled = filled;
+    }
+    if (spare !== this.spare) {
+      this.spare = spare;
     }
   }
   shouldUpdate(changed) {
@@ -3350,7 +3410,7 @@ var PackageTrackerCard = class extends i4 {
     return heightStyle(this.config ?? {}, this.layout, this.minimumHeight());
   }
   cardStyle() {
-    return this.heightStyle() || (this.filled ? `min-height: ${this.filled}px` : "");
+    return this.heightStyle() || (this.filled ? `min-height: ${this.filled}px; --package-tracker-spare: ${this.spare}px` : "");
   }
   /**
    * With nothing to list, the card says so and shows that each of its sensors still answers, so an empty card can be
@@ -3688,7 +3748,9 @@ var PackageTrackerCard = class extends i4 {
                     text-overflow: ellipsis;
                 }
 
+                /* The room a whole row leaves over, when there is any, goes above the list, under the title. */
                 .list {
+                    margin-top: var(--package-tracker-spare, 0px);
                     flex: 1 1 auto;
                     min-height: 0;
                     overflow-y: auto;
@@ -4154,6 +4216,9 @@ __decorateClass([
 __decorateClass([
   r5()
 ], PackageTrackerCard.prototype, "filled", 2);
+__decorateClass([
+  r5()
+], PackageTrackerCard.prototype, "spare", 2);
 __decorateClass([
   r5()
 ], PackageTrackerCard.prototype, "widthClass", 2);

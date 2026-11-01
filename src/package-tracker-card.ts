@@ -17,6 +17,7 @@ import { trackingEntities, withTitle } from "./editor";
 import { ScrollFade, fadeStyles } from "./fade";
 import type { HomeAssistant } from "./hass";
 import { gridMinRows, heightCardSize, heightStyle, validHeight } from "./height";
+import { filledHeight, validRowStep } from "./rows";
 import { browserLanguage, translate } from "./localize/localize";
 import {
     ago,
@@ -99,6 +100,8 @@ export class PackageTrackerCard extends LitElement {
     @state() private qr?: Shipment;
     /** On automatic rows in a sections view, the height that ends the card on a whole row; 0 when it isn't set. */
     @state() private filled = 0;
+    /** The room a whole row leaves over, put under the title rather than under the list. */
+    @state() private spare = 0;
     /** The layout the card's measured width gives it, as its container query switches; unknown before it is measured. */
     @state() private widthClass?: WidthClass;
     private frame?: number;
@@ -138,6 +141,9 @@ export class PackageTrackerCard extends LitElement {
         }
         if (!validHeight(config)) {
             throw new Error(translate(browserLanguage(), "common.invalid_height"));
+        }
+        if (!validRowStep(config)) {
+            throw new Error(translate(browserLanguage(), "common.invalid_row_step"));
         }
         this.config = withTitle(config);
     }
@@ -258,15 +264,21 @@ export class PackageTrackerCard extends LitElement {
     }
 
     /**
-     * On automatic rows in a sections view, the card takes the whole rows its content needs, so the cards under it stay
-     * on the rows. Measured to the end of the list's last child, as the list grows to whatever height the card is given.
+     * On automatic rows in a sections view, the card takes the whole rows its content needs, or the half rows with
+     * `row_step: half`, so the cards under it stay on the rows. Measured to the end of the list's last child, as the list
+     * grows to whatever height the card is given. What a whole row leaves over goes above the list, under the title, as
+     * its top margin, which the measure leaves out again each time.
      */
     private fillRows(): void {
         const card = this.renderRoot.querySelector<HTMLElement>("ha-card");
-        const last = card && (card.querySelector(".list")?.lastElementChild ?? card.querySelector(".message"));
+        const list = card?.querySelector<HTMLElement>(".list");
+        const last = card && (list?.lastElementChild ?? card.querySelector(".message"));
         if (!card || !last || !card.clientWidth || this.layout !== "grid" || this.heightStyle()) {
             if (this.filled) {
                 this.filled = 0;
+            }
+            if (this.spare) {
+                this.spare = 0;
             }
             return;
         }
@@ -275,10 +287,15 @@ export class PackageTrackerCard extends LitElement {
             last.getBoundingClientRect().bottom -
             card.getBoundingClientRect().top +
             (parseFloat(style.paddingBottom) || 0) +
-            (parseFloat(style.borderBottomWidth) || 0);
-        const filled = gridMinRows(Math.round(content)) * 64 - 8;
+            (parseFloat(style.borderBottomWidth) || 0) -
+            (list ? Math.max(0, parseFloat(getComputedStyle(list).marginTop) || 0) : 0);
+        const filled = filledHeight(Math.round(content), this.config ?? {});
+        const spare = list ? Math.max(0, Math.floor(filled - content)) : 0;
         if (filled !== this.filled) {
             this.filled = filled;
+        }
+        if (spare !== this.spare) {
+            this.spare = spare;
         }
     }
 
@@ -363,7 +380,7 @@ export class PackageTrackerCard extends LitElement {
     }
 
     private cardStyle(): string {
-        return this.heightStyle() || (this.filled ? `min-height: ${this.filled}px` : "");
+        return this.heightStyle() || (this.filled ? `min-height: ${this.filled}px; --package-tracker-spare: ${this.spare}px` : "");
     }
 
     /**
@@ -768,7 +785,9 @@ export class PackageTrackerCard extends LitElement {
                     text-overflow: ellipsis;
                 }
 
+                /* The room a whole row leaves over, when there is any, goes above the list, under the title. */
                 .list {
+                    margin-top: var(--package-tracker-spare, 0px);
                     flex: 1 1 auto;
                     min-height: 0;
                     overflow-y: auto;

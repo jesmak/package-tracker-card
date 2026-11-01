@@ -9,6 +9,7 @@ import { customElement, property, state } from "lit/decorators.js";
 import { STATUSES } from "./const";
 import type { HomeAssistant } from "./hass";
 import { heightData, heightSchema, tidyHeight } from "./height";
+import { rowStepData, rowStepSchema, tidyRowStep } from "./rows";
 import { browserLanguage, translate } from "./localize/localize";
 import type { PackageTrackerCardConfig } from "./types";
 
@@ -88,6 +89,7 @@ function schema(hass: HomeAssistant, config: PackageTrackerCardConfig, text: (ke
             ],
         },
         ...heightSchema(config, text),
+        ...rowStepSchema(config, text),
         {
             name: "pickup_code",
             selector: {
@@ -153,7 +155,7 @@ export class PackageTrackerCardEditor extends LitElement {
         return html`
             <ha-form
                 .hass=${this.hass}
-                .data=${{ ...DEFAULTS, ...heightData(this.config), entity, statuses }}
+                .data=${{ ...DEFAULTS, ...rowStepData(heightData(this.config)), entity, statuses }}
                 .schema=${schema(this.hass, this.config, (key) => this.text(key))}
                 .computeLabel=${(entry: SchemaEntry) => this.text(`editor.${entry.name}`)}
                 .computeHelper=${(entry: SchemaEntry) => this.helper(entry.name)}
@@ -163,7 +165,7 @@ export class PackageTrackerCardEditor extends LitElement {
     }
 
     private valueChanged(event: CustomEvent<{ value: PackageTrackerCardConfig }>): void {
-        const config: PackageTrackerCardConfig = tidyHeight(event.detail.value);
+        const config: PackageTrackerCardConfig = tidyRowStep(tidyHeight(event.detail.value));
 
         // Every status, or none at all, is the same as showing them all, which needs no setting.
         const chosen = (config.statuses ?? []).map(Number);
