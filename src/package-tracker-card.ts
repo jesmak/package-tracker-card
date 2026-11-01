@@ -772,7 +772,6 @@ export class PackageTrackerCard extends LitElement {
                     flex: 1 1 auto;
                     min-height: 0;
                     overflow-y: auto;
-                    overscroll-behavior: contain;
                     scrollbar-width: thin;
                     display: flex;
                     flex-direction: column;
