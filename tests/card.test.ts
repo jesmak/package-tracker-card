@@ -1140,3 +1140,106 @@ describe("a counter shelf", () => {
         expect(root.querySelector(".code")?.textContent).toContain("B12 · 123456");
     });
 });
+
+describe("the badges beside the number", () => {
+    const LONG: Shipment = { ...WAITING, shipment_number: "JJFI0002", latest_event_date: "2026-09-16T09:00:00Z" };
+
+    interface Widths {
+        /** The number at its longest word, and whole on one line. */
+        number: [number, number];
+        /** The badges at their narrowest, one above the other, and side by side. */
+        badges: [number, number];
+    }
+
+    /**
+     * Lays each package's number line out `line` px wide after a 24 px icon with 6 px gaps and a 2 px row gap, so the
+     * number and the badges have 264 px beside each other. A number is 24 px tall at its whole width or wider and 48 px
+     * narrower, the badges `badgesWhole` px tall side by side and 37 px narrower. `widths` gives each package's widths by
+     * its number.
+     */
+    function laidOut(element: PackageTrackerCard, widths: Record<string, Widths>, badgesWhole = 17, line = 300): void {
+        const root = shadow(element);
+        const haCard = root.querySelector("ha-card") as HTMLElement;
+        Object.defineProperty(haCard, "clientWidth", { value: line + 24, configurable: true });
+        const rect = (width: () => number) => () => ({ width: width(), height: 0, top: 0, bottom: 0, left: 0, right: 0 }) as DOMRect;
+        haCard.getBoundingClientRect = rect(() => line + 26);
+        const styles = new Map<Element, () => Record<string, string>>([
+            [haCard, () => ({ width: `${line + 26}px`, paddingLeft: "12px", paddingRight: "12px" })],
+        ]);
+        const index = (measuring: string) => (haCard.classList.contains(measuring) ? 0 : 1);
+        for (const row of root.querySelectorAll<HTMLElement>(".line")) {
+            const { number: numberWidths, badges: badgesWidths } = widths[row.dataset.number!];
+            const number = row.querySelector<HTMLElement>(".number")!;
+            const badges = row.querySelector<HTMLElement>(".badges")!;
+            const icon = row.querySelector<HTMLElement>("ha-icon")!;
+            row.getBoundingClientRect = rect(() => line);
+            icon.getBoundingClientRect = rect(() => 24);
+            number.getBoundingClientRect = rect(() => numberWidths[index("measuring")]);
+            badges.getBoundingClientRect = rect(() => badgesWidths[index("measuring")]);
+            styles.set(row, () => ({ columnGap: "6px", rowGap: "2px", height: "24px" }));
+            styles.set(icon, () => ({ height: "24px" }));
+            styles.set(number, () => ({ height: px(number.style.width) >= numberWidths[1] ? "24px" : "48px" }));
+            styles.set(badges, () => ({ height: px(badges.style.width) >= badgesWidths[1] ? `${badgesWhole}px` : "37px" }));
+        }
+        vi.spyOn(window, "getComputedStyle").mockImplementation(
+            (target) => (styles.get(target)?.() ?? {}) as unknown as CSSStyleDeclaration,
+        );
+    }
+
+    function px(value: string): number {
+        return Number.parseFloat(value) || 0;
+    }
+
+    async function measure(element: PackageTrackerCard): Promise<Record<string, boolean>> {
+        const internals = element as unknown as { measureWidth(): void; measureSplits(): void };
+        internals.measureWidth();
+        internals.measureSplits();
+        vi.restoreAllMocks();
+        await element.updateComplete;
+        return Object.fromEntries(
+            [...shadow(element).querySelectorAll<HTMLElement>(".line")].map((line) => [
+                line.dataset.number,
+                line.classList.contains("split"),
+            ]),
+        );
+    }
+
+    const two = () => hass({ [POSTI]: [WAITING, LONG] });
+
+    // 264 px for the number and the badges beside each other.
+    it.each<[string, Widths, boolean]>([
+        [
+            "keeps the badges beside a number that fits whole beside them one above the other",
+            { number: [204, 204], badges: [60, 130] },
+            false,
+        ],
+        ["puts the badges under a number whose longest word doesn't fit beside them", { number: [205, 205], badges: [60, 130] }, true],
+    ])("%s", async (_name, widths, split) => {
+        const element = await card(two());
+        laidOut(element, { JJFI0001: { number: [100, 100], badges: [60, 130] }, JJFI0002: widths });
+        // Only the package that doesn't fit is split.
+        expect(await measure(element)).toEqual({ JJFI0001: false, JJFI0002: split });
+    });
+
+    // A number of words, 250 px whole, beside the 60 px badges is 48 px tall. Under them it is 24 px, and with the 2 px gap
+    // and the badges side by side the line is 47 or 48 px: a tie stays beside.
+    it.each<[string, number, boolean]>([
+        ["keeps the badges beside a number no taller there", 22, false],
+        ["puts the badges under a number taller beside them", 21, true],
+    ])("%s", async (_name, badgesWhole, split) => {
+        const element = await card(two());
+        const words: Widths = { number: [100, 250], badges: [60, 130] };
+        laidOut(element, { JJFI0001: words, JJFI0002: words }, badgesWhole);
+        expect(await measure(element)).toEqual({ JJFI0001: split, JJFI0002: split });
+    });
+
+    // Held, the least height is measured with the badges under the number up to 240 px of content, whatever the number.
+    it.each<[string, number, Widths, boolean]>([
+        ["puts the badges under any number on a held card up to 240 px of content", 240, { number: [10, 10], badges: [60, 130] }, true],
+        ["keeps them beside any number on a held card past it", 241, { number: [500, 500], badges: [60, 130] }, false],
+    ])("%s", async (_name, content, widths, split) => {
+        const element = await card(hass(), { height: 300 });
+        laidOut(element, { JJFI0001: widths }, 17, content);
+        expect(await measure(element)).toEqual({ JJFI0001: split });
+    });
+});

@@ -3183,6 +3183,23 @@ var HELD_MINIMUM = {
   narrow: { line: 49, lineOneBadge: 49, progress: 40, status: 30, bar: 18 },
   veryNarrow: { line: 82, lineOneBadge: 65, progress: 52, status: 42, bar: 18 }
 };
+var SLACK_PX = 0.01;
+function drawnScale(card) {
+  const layout = px(getComputedStyle(card).width);
+  const drawn = card.getBoundingClientRect().width;
+  return layout > 0 && drawn > 0 ? drawn / layout : 1;
+}
+function heightAt(element, width) {
+  element.style.flex = "none";
+  element.style.width = `${width}px`;
+  const height = px(getComputedStyle(element).height);
+  element.style.flex = "";
+  element.style.width = "";
+  return height;
+}
+function px(value) {
+  return Number.parseFloat(value ?? "") || 0;
+}
 var registry = window;
 registry.customCards = registry.customCards ?? [];
 registry.customCards.push({
@@ -3198,6 +3215,7 @@ var PackageTrackerCard = class extends i4 {
     this.revealed = /* @__PURE__ */ new Set();
     this.filled = 0;
     this.spare = 0;
+    this.splits = /* @__PURE__ */ new Set();
     this.resizes = typeof ResizeObserver === "undefined" ? void 0 : new ResizeObserver(() => this.measureSoon());
     new ScrollFade(this, () => this.heightStyle() ? this.renderRoot.querySelectorAll(".list") : []);
   }
@@ -3298,11 +3316,71 @@ var PackageTrackerCard = class extends i4 {
     cancelAnimationFrame(this.frame ?? 0);
     this.frame = requestAnimationFrame(() => {
       this.measureWidth();
+      this.measureSplits();
       this.fillRows();
     });
   }
   /**
-   * Keeps the width class of the card's content, as its container query switches, read in a frame rather than in the
+   * Puts a package's badges on a line of their own under its number only when they don't fit beside it: when the
+   * number's longest word wouldn't fit beside the badges at their narrowest, one above the other, or the line would be
+   * taller there than with the badges under the number. Beside the number, the badges take what the whole number
+   * leaves them, never less than their narrowest. Each line is held to its drawn height meanwhile, its overflow
+   * clipped so that a part laid out wider than it gives the list no scrollbar, so nothing around it moves. Held, the
+   * card keeps the width its least height is measured for instead (see `render`), so nothing is measured.
+   */
+  measureSplits() {
+    const card = this.renderRoot.querySelector("ha-card");
+    const lines = card ? [...card.querySelectorAll(".line[data-number]")].filter((line) => line.querySelector(".badges")) : [];
+    if (!card?.clientWidth || this.heightStyle() || !lines.length) {
+      return;
+    }
+    const scale = drawnScale(card);
+    const width = (element) => element.getBoundingClientRect().width / scale;
+    const parts = lines.map((line) => ({
+      line,
+      number: line.querySelector(".number"),
+      badges: line.querySelector(".badges"),
+      icon: line.querySelector("ha-icon")
+    }));
+    const list = card.querySelector(".list");
+    const heights = lines.map((line) => Math.round(px(getComputedStyle(line).height) * 64) / 64);
+    lines.forEach((line, index) => {
+      line.style.height = `${heights[index]}px`;
+      line.style.overflow = "hidden";
+    });
+    list?.style.setProperty("overflow-anchor", "none");
+    card.classList.add("measuring");
+    const least = parts.map(({ number, badges }) => ({ number: width(number), badges: width(badges) }));
+    card.classList.replace("measuring", "measuring-whole");
+    const whole = parts.map(({ number }) => width(number));
+    card.classList.remove("measuring-whole");
+    const next = /* @__PURE__ */ new Set();
+    parts.forEach(({ line, number, badges, icon }, index) => {
+      const style = getComputedStyle(line);
+      const gap = px(style.columnGap);
+      const lineWidth = width(line);
+      const iconWidth = icon ? width(icon) : 0;
+      const iconHeight = icon ? px(getComputedStyle(icon).height) : 0;
+      const room = lineWidth - iconWidth - 2 * gap;
+      const fits = least[index].number + least[index].badges <= room + SLACK_PX;
+      const badgesBeside = Math.max(room - whole[index], least[index].badges);
+      const beside = Math.max(iconHeight, heightAt(number, room - badgesBeside), heightAt(badges, badgesBeside));
+      const under = Math.max(iconHeight, heightAt(number, lineWidth - iconWidth - gap)) + px(style.rowGap) + heightAt(badges, lineWidth);
+      if (!fits || beside > under + SLACK_PX) {
+        next.add(line.dataset.number);
+      }
+    });
+    lines.forEach((line) => {
+      line.style.height = "";
+      line.style.overflow = "";
+    });
+    list?.style.removeProperty("overflow-anchor");
+    if (next.size !== this.splits.size || [...next].some((number) => !this.splits.has(number))) {
+      this.splits = next;
+    }
+  }
+  /**
+   * Keeps the width class of the card's content, as a held card's lines switch, read in a frame rather than in the
    * observer's callback, where a change would resize the card while the observer still runs. A hidden card keeps the
    * last.
    */
@@ -3380,7 +3458,7 @@ var PackageTrackerCard = class extends i4 {
                     ${packages.length === 0 ? this.empty(sensors, held) : b2`${sensors.filter((sensor) => !sensor.available).map((sensor) => this.sensor(sensor))}${c4(
       packages,
       (item) => item.shipment_number,
-      (item) => this.shipment(item, marked)
+      (item) => this.shipment(item, marked, held)
     )}`}
                 </div>
                 ${this.qrDialog()}
@@ -3442,8 +3520,9 @@ var PackageTrackerCard = class extends i4 {
   chosen(hass, config) {
     return withDirection(withStatuses(packagesOf(hass, config.entity), config.statuses), config.direction);
   }
-  shipment(item, marked) {
+  shipment(item, marked, held) {
     const moving = !FINISHED.includes(item.status);
+    const split = held ? !!this.widthClass && this.widthClass !== "wide" : this.splits.has(item.shipment_number);
     const message = this.config?.show_latest_event_message !== false && moving && !!item.latest_event;
     const link = this.config?.tracking_link ?? "row";
     const url = link === "none" ? void 0 : trackingUrl(item);
@@ -3456,7 +3535,7 @@ var PackageTrackerCard = class extends i4 {
                 title="${row ? url : ""}"
                 @click=${() => row && this.openTracking(url)}
             >
-                <div class="line">
+                <div class="line${split ? " split" : ""}" data-number="${item.shipment_number}">
                     <ha-icon icon="${iconFor(item.status)}"></ha-icon>
                     <span
                         class="number ${url && !row ? "link" : ""}"
@@ -3845,17 +3924,17 @@ var PackageTrackerCard = class extends i4 {
                     outline-offset: -2px;
                 }
 
+                /* The row gap is the split line's, so the line measures the same split or not. */
                 .line {
                     display: flex;
                     align-items: center;
-                    gap: 6px;
+                    gap: 2px 6px;
                     min-width: 0;
                 }
 
-                /* When the card's content is wider than 240 px, the number is never cut short, and gives way last: the badges
-               beside it go one above the other first, and only when the line is still too short does the number wrap. The badges' far
-               larger share of the shrinking keeps it whole until then. Both shares stay above 1, since shares that add up
-               to less than 1 take only that part of the missing room, and the rest would stick out of the card. */
+                /* The number is never cut short, and gives way last: the badges beside it take only what the whole number leaves
+               them, going one above the other as that runs out, and when even then the number would break, they go under
+               it, as measured. A held card keeps them beside it past 240 px of content, and there the number wraps. */
                 .number {
                     flex: 0 1 auto;
                     min-width: 0;
@@ -3865,10 +3944,10 @@ var PackageTrackerCard = class extends i4 {
 
                 /* Which way the package goes and which service it came from, small and out of the way. */
                 /* Side by side while the line has room for them and the whole number, one above the other when it hasn't, as
-               the room runs out. A narrow card gives them a line of their own below. */
+               the room runs out, and on a line of their own below when even that isn't enough. Growing from nothing, they
+               leave the number its whole width while their widest badge fits beside it, and never shrink below that. */
                 .badges {
-                    margin-left: auto;
-                    flex: 0 1000 auto;
+                    flex: 1 0 0;
                     min-width: min-content;
                     display: flex;
                     flex-wrap: wrap;
@@ -3876,22 +3955,32 @@ var PackageTrackerCard = class extends i4 {
                     gap: 2px 4px;
                 }
 
-                /* On a narrow card the badges would leave the number no room at all, so they get a line of their own under it
-               and the number takes the whole width beside its icon. */
-                @container (max-width: 240px) {
-                    .line {
-                        flex-wrap: wrap;
-                        row-gap: 2px;
-                    }
+                /* The badges on a line of their own under the number when they don't fit beside it, as measured, and on a held
+               card up to 240 px of content (266 px of card), and the number takes the whole width beside its icon. */
+                .line.split {
+                    flex-wrap: wrap;
+                }
 
-                    .number {
-                        flex: 1 1 0;
-                    }
+                .line.split .number {
+                    flex: 1 1 0;
+                }
 
-                    .badges {
-                        flex: 1 1 100%;
-                        min-width: 0;
-                    }
+                .line.split .badges {
+                    flex: 1 1 100%;
+                    min-width: 0;
+                }
+
+                /* Measuring: the number at its longest word, never broken inside one, and the badges at their narrowest, then
+               the number whole on one line. */
+                ha-card.measuring .line :is(.number, .badges) {
+                    flex: none;
+                    width: min-content;
+                    overflow-wrap: normal;
+                }
+
+                ha-card.measuring-whole .line .number {
+                    flex: none;
+                    width: max-content;
                 }
 
                 .badge {
@@ -3943,7 +4032,7 @@ var PackageTrackerCard = class extends i4 {
                 }
 
                 .latest .when {
-                    margin-left: auto;
+                    margin-inline-start: auto;
                 }
 
                 /* A status is a phrase, so on the narrowest card it wraps between its words rather than running past the edge. */
@@ -3989,7 +4078,7 @@ var PackageTrackerCard = class extends i4 {
 
                 /* The code and its QR button sit at the end of the pickup line, the code covered until it is asked for. */
                 .pickup {
-                    margin-left: auto;
+                    margin-inline-start: auto;
                     flex: 0 0 auto;
                     display: inline-flex;
                     align-items: center;
@@ -4222,6 +4311,9 @@ __decorateClass([
 __decorateClass([
   r5()
 ], PackageTrackerCard.prototype, "widthClass", 2);
+__decorateClass([
+  r5()
+], PackageTrackerCard.prototype, "splits", 2);
 PackageTrackerCard = __decorateClass([
   t3("package-tracker-card")
 ], PackageTrackerCard);

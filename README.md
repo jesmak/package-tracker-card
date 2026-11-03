@@ -165,7 +165,8 @@ packages scrolled past it fades out, so it's clear there's more.
 
 The card is 12 columns wide by default and at least 9. It follows its own width rather than the column count, so it
 works the same outside the sections view. On a narrow card the bar gets a line of its own, and the badges go under the
-shipment number so that the number has the whole width. Shipment numbers wrap when they don't fit. Other long texts
+shipment number when the number wouldn't fit whole beside them, or on a card held to a height, below 266 px of card.
+Shipment numbers wrap when they don't fit. Other long texts
 are cut short unless `wrap_text` is on, which shows them in full at the cost of a taller card.
 
 On automatic rows in a sections view, a card that `height_mode` doesn't keep to `height` or `max_height` ends on a
