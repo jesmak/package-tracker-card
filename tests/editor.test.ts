@@ -74,7 +74,10 @@ describe("the visual editor", () => {
         const names = schema.flatMap((entry) =>
             Array.isArray(entry.schema) ? (entry.schema as Array<{ name: string }>).map((inner) => inner.name) : [entry.name],
         );
-        expect(names).toContain("height_mode");
+        // The height mode is set in YAML only, as the layout tab sets the card's height in a sections view.
+        expect(names).not.toContain("height_mode");
+        expect(names).not.toContain("height");
+        expect(names).not.toContain("max_height");
         expect(names).toContain("show_progress");
         expect(names).toContain("show_pickup");
         expect(names).toContain("show_details");
@@ -85,14 +88,12 @@ describe("the visual editor", () => {
     });
 
     it.each([
-        ["no height", {}, "auto", []],
-        ["a fixed height", { height: 300 }, "fixed", ["height"]],
-        ["a maximum height", { max_height: 400 }, "max", ["max_height"]],
-    ])("shows the height mode of %s, with the height it uses", async (_name, config, mode, fields) => {
-        const element = form(await editor(config));
-        expect(element.data.height_mode).toBe(mode);
-        const names = element.schema.map((entry) => entry.name);
-        expect(names.filter((name) => name === "height" || name === "max_height")).toEqual(fields);
+        ["no height", {}, true],
+        ["a fixed height", { height: 300 }, false],
+        ["a maximum height", { max_height: 400 }, true],
+    ])("offers the rounding to rows with %s only when the card isn't held to a fixed height", async (_name, config, offered) => {
+        const names = form(await editor(config)).schema.map((entry) => entry.name);
+        expect(names.includes("row_step")).toBe(offered);
     });
 
     it("shows every status chosen when the configuration names none", async () => {
@@ -133,9 +134,9 @@ describe("the visual editor", () => {
     });
 
     it.each<[string, Record<string, unknown>, Record<string, unknown>]>([
-        ["empty heights", { height: null, max_height: 300 }, { max_height: 300 }],
-        ["the height mode its height already gives", { height_mode: "max", max_height: 300 }, { max_height: 300 }],
-        ["the auto height mode, which drops a height left from another mode", { height_mode: "auto", height: 300 }, {}],
+        ["no heights", {}, {}],
+        ["a fixed height set in YAML, kept as it is", { height_mode: "fixed", height: 300 }, { height_mode: "fixed", height: 300 }],
+        ["a maximum height set in YAML, kept as it is", { max_height: 300 }, { max_height: 300 }],
     ])("keeps the defaults and the empty fields out of the configuration, with %s", async (_name, heights, saved) => {
         const element = await editor();
         const changes = changesOf(element);

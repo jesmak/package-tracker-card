@@ -218,6 +218,15 @@ describe("the card's height", () => {
         ["not outside a sections view", undefined, {}, 150, ""],
         ["not when held to a height", "grid", { height: 300 }, 150, "height: 300px"],
         ["not when held by rows", "grid", { grid_options: { rows: 6 } }, 150, "height: 100%"],
+        ["up to a limit, under it", "grid", { max_height: 400 }, 150, "max-height: 376px; min-height: 184px"],
+        [
+            "up to a limit, over it, on the limit rounded down to the rows",
+            "grid",
+            { max_height: 400 },
+            600,
+            "max-height: 376px; min-height: 376px",
+        ],
+        ["up to a limit as set outside a sections view", undefined, { max_height: 400 }, 150, "max-height: 400px"],
     ])("ends on a whole row %s", async (_name, layout, extra, bottom, style) => {
         expect(await filledRows(await card(hass(), extra as Partial<PackageTrackerCardConfig>, layout), bottom)).toBe(style);
     });

@@ -1,6 +1,7 @@
 /**
  * The card's visual editor: the tracking sensors, the title, which packages and
- * how many of them are listed, the card's height, and which lines a package shows.
+ * how many of them are listed, how the card rounds its height to the rows of a sections view, and which lines a
+ * package shows. Its height mode is set in YAML only.
  */
 import { LitElement, html, nothing } from "lit";
 import type { TemplateResult } from "lit";
@@ -8,7 +9,6 @@ import { customElement, property, state } from "lit/decorators.js";
 
 import { STATUSES } from "./const";
 import type { HomeAssistant } from "./hass";
-import { heightData, heightSchema, tidyHeight } from "./height";
 import { rowStepData, rowStepSchema, tidyRowStep } from "./rows";
 import { browserLanguage, translate } from "./localize/localize";
 import type { PackageTrackerCardConfig } from "./types";
@@ -88,7 +88,6 @@ function schema(hass: HomeAssistant, config: PackageTrackerCardConfig, text: (ke
                 { name: "max_sent_events", selector: { number: { min: 1, max: 50, step: 1, mode: "box" } } },
             ],
         },
-        ...heightSchema(config, text),
         ...rowStepSchema(config, text),
         {
             name: "pickup_code",
@@ -155,7 +154,7 @@ export class PackageTrackerCardEditor extends LitElement {
         return html`
             <ha-form
                 .hass=${this.hass}
-                .data=${{ ...DEFAULTS, ...rowStepData(heightData(this.config)), entity, statuses }}
+                .data=${{ ...DEFAULTS, ...rowStepData(this.config), entity, statuses }}
                 .schema=${schema(this.hass, this.config, (key) => this.text(key))}
                 .computeLabel=${(entry: SchemaEntry) => this.text(`editor.${entry.name}`)}
                 .computeHelper=${(entry: SchemaEntry) => this.helper(entry.name)}
@@ -165,7 +164,7 @@ export class PackageTrackerCardEditor extends LitElement {
     }
 
     private valueChanged(event: CustomEvent<{ value: PackageTrackerCardConfig }>): void {
-        const config: PackageTrackerCardConfig = tidyRowStep(tidyHeight(event.detail.value));
+        const config: PackageTrackerCardConfig = tidyRowStep(event.detail.value);
 
         // Every status, or none at all, is the same as showing them all, which needs no setting.
         const chosen = (config.statuses ?? []).map(Number);
