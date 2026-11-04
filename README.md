@@ -2,7 +2,7 @@
 
 Home Assistant dashboard card that lists the packages coming to you, from any package tracking integration.
 
-[![GitHub Release][releases-shield]][releases] [![GitHub Release Date][release-date-shield]][releases] [![HACS][hacs-shield]][hacs] [![License][license-shield]](LICENSE)
+[![GitHub Release][releases-shield]][releases] [![GitHub Release Date][release-date-shield]][releases] [![Marketplace][marketplace-shield]][marketplace] [![License][license-shield]](LICENSE)
 
 <p>
 <img src="https://raw.githubusercontent.com/jesmak/package-tracker-card/main/docs/images/packages-light.png#gh-light-mode-only" width="400" alt="Five packages from two carriers, four coming and one sent, each marked which way it goes, one ready for pickup, three on their way and one delivered, each with a progress bar, its status and its latest event">
@@ -31,10 +31,10 @@ more. If you make one, give its repository the topic too.
 
 ## Installation
 
-### With HACS
+### With the Marketplace
 
-1. Add this repository to HACS custom repositories with type **Dashboard**
-2. Search for Package tracker card in HACS and download it
+1. Open Settings › Marketplace, choose Add from link and paste `https://github.com/jesmak/package-tracker-card`
+2. Open Package tracker card in the Marketplace and choose Install
 3. Refresh your browser
 
 ### Manual
@@ -329,7 +329,7 @@ npm run check
 ```
 
 `npm run check` typechecks, lints, checks formatting, runs the tests and builds `dist/package-tracker-card.js`, which
-is the file HACS installs and is committed to the repository. The screenshots above come from `docs/screenshots.json`,
+is the file the Marketplace installs and is committed to the repository. The screenshots above come from `docs/screenshots.json`,
 whose packages are made up.
 
 | Path                          | What it contains                                       |
@@ -359,6 +359,6 @@ MIT, see [LICENSE](LICENSE).
 [releases-shield]: https://img.shields.io/github/release/jesmak/package-tracker-card.svg?style=for-the-badge
 [release-date-shield]: https://img.shields.io/github/release-date/jesmak/package-tracker-card?style=for-the-badge
 [releases]: https://github.com/jesmak/package-tracker-card/releases
-[hacs-shield]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
-[hacs]: https://hacs.xyz/docs/faq/custom_repositories/
+[marketplace-shield]: https://img.shields.io/badge/Marketplace-Custom-orange.svg?style=for-the-badge
+[marketplace]: https://my.home-assistant.io/redirect/marketplace_repository/?owner=jesmak&repository=package-tracker-card&category=plugin
 [license-shield]: https://img.shields.io/github/license/jesmak/package-tracker-card.svg?style=for-the-badge
