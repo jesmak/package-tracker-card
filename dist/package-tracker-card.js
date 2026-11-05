@@ -3285,9 +3285,9 @@ var PackageTrackerCard = class extends i4 {
   measureSoon() {
     cancelAnimationFrame(this.frame ?? 0);
     this.frame = requestAnimationFrame(() => {
-      this.measureWidth();
-      this.measureSplits();
-      this.fillRows();
+      if (this.measureWidth() && this.measureSplits()) {
+        this.fillRows();
+      }
     });
   }
   /**
@@ -3297,12 +3297,13 @@ var PackageTrackerCard = class extends i4 {
    * leaves them, never less than their narrowest. Each line is held to its drawn height meanwhile, its overflow
    * clipped so that a part laid out wider than it gives the list no scrollbar, so nothing around it moves. Held, the
    * card keeps the width its least height is measured for instead (see `render`), so nothing is measured.
+   * Returns false when the layout changed.
    */
   measureSplits() {
     const card = this.renderRoot.querySelector("ha-card");
     const lines = card ? [...card.querySelectorAll(".line[data-number]")].filter((line) => line.querySelector(".badges")) : [];
     if (!card?.clientWidth || this.heightStyle() || !lines.length) {
-      return;
+      return true;
     }
     const scale = drawnScale(card);
     const width = (element) => element.getBoundingClientRect().width / scale;
@@ -3345,26 +3346,26 @@ var PackageTrackerCard = class extends i4 {
       line.style.overflow = "";
     });
     list?.style.removeProperty("overflow-anchor");
-    if (next.size !== this.splits.size || [...next].some((number) => !this.splits.has(number))) {
-      this.splits = next;
-    }
+    if (next.size === this.splits.size && [...next].every((number) => this.splits.has(number))) return true;
+    this.splits = next;
+    return false;
   }
   /**
    * Keeps the width class of the card's content, as a held card's lines switch, read in a frame rather than in the
    * observer's callback, where a change would resize the card while the observer still runs. A hidden card keeps the
-   * last.
+   * last. Returns false when the layout changed.
    */
   measureWidth() {
     const card = this.renderRoot.querySelector("ha-card");
     if (!card?.clientWidth) {
-      return;
+      return true;
     }
     const style = getComputedStyle(card);
     const width = card.clientWidth - (parseFloat(style.paddingLeft) || 0) - (parseFloat(style.paddingRight) || 0);
     const widthClass = width <= 170 ? "veryNarrow" : width <= 240 ? "narrow" : "wide";
-    if (widthClass !== this.widthClass) {
-      this.widthClass = widthClass;
-    }
+    if (widthClass === this.widthClass) return true;
+    this.widthClass = widthClass;
+    return false;
   }
   /**
    * On automatic rows in a sections view, the card takes the whole rows its content needs, or the half rows with
@@ -3779,6 +3780,8 @@ var PackageTrackerCard = class extends i4 {
                height, by its options or by the rows of a sections view, never spills its text outside.
                The card is the container its layout measures, so it follows its own width wherever it is. */
                 ha-card {
+                    /* ha-card's own transition covers every property, so a change in the rows filled would animate. */
+                    transition: none;
                     display: flex;
                     flex-direction: column;
                     box-sizing: border-box;
