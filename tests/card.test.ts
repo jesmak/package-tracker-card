@@ -180,15 +180,22 @@ describe("the card's height", () => {
         expect(free.querySelector(".header")?.hasAttribute("title")).toBe(false);
     });
 
-    /** Lays the card out with its top at 0 and its last part ending at `bottom`, and fills its rows. */
-    async function filledRows(element: PackageTrackerCard, bottom: number): Promise<string> {
+    /**
+     * Lays the card out with its top at 0 and its last part ending at `bottom`, drawn at `scale` as a dialog opening draws
+     * it, and fills its rows.
+     */
+    async function filledRows(element: PackageTrackerCard, bottom: number, scale = 1): Promise<string> {
         const root = shadow(element);
         const haCard = root.querySelector("ha-card") as HTMLElement;
         Object.defineProperty(haCard, "clientWidth", { value: 460, configurable: true });
-        haCard.getBoundingClientRect = () => ({ top: 0 }) as DOMRect;
+        haCard.getBoundingClientRect = () => ({ top: 0, width: 460 * scale }) as DOMRect;
         const last = (root.querySelector(".list")?.lastElementChild ?? root.querySelector(".message")) as HTMLElement;
-        last.getBoundingClientRect = () => ({ bottom }) as DOMRect;
-        vi.spyOn(window, "getComputedStyle").mockReturnValue({ paddingBottom: "12px", borderBottomWidth: "1px" } as CSSStyleDeclaration);
+        last.getBoundingClientRect = () => ({ bottom: bottom * scale }) as DOMRect;
+        vi.spyOn(window, "getComputedStyle").mockReturnValue({
+            paddingBottom: "12px",
+            borderBottomWidth: "1px",
+            width: "460px",
+        } as CSSStyleDeclaration);
         (element as unknown as { fillRows(): void }).fillRows();
         vi.restoreAllMocks();
         await element.updateComplete;
@@ -208,6 +215,17 @@ describe("the card's height", () => {
         const element = await card(hass(), extra as Partial<PackageTrackerCardConfig>, "grid");
         const haCard = shadow(element).querySelector("ha-card") as HTMLElement;
         await filledRows(element, bottom);
+        expect(haCard.getAttribute("style")).toBe(style);
+    });
+
+    // The content is 120.4 px, a fraction over two rows, and then 216 px drawn at 0.8.
+    it.each([
+        ["a fraction of a pixel over a row, on the next one", 107.4, 1, "min-height: 184px; --package-tracker-spare: 63px"],
+        ["drawn scaled, in the layout's pixels", 203, 0.8, "min-height: 248px; --package-tracker-spare: 32px"],
+    ])("ends %s", async (_name, bottom, scale, style) => {
+        const element = await card(hass(), {}, "grid");
+        const haCard = shadow(element).querySelector("ha-card") as HTMLElement;
+        await filledRows(element, bottom, scale);
         expect(haCard.getAttribute("style")).toBe(style);
     });
 

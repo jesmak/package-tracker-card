@@ -17,7 +17,7 @@ import { trackingEntities, withTitle } from "./editor";
 import { ScrollFade, fadeStyles } from "./fade";
 import type { HomeAssistant } from "./hass";
 import { gridMinRows, heightCardSize, heightStyle, validHeight } from "./height";
-import { fillLimit, filledHeight, filledStyle, validRowStep } from "./rows";
+import { drawnScale, fillLimit, filledHeight, filledStyle, spareRoom, validRowStep } from "./rows";
 import { browserLanguage, translate } from "./localize/localize";
 import {
     ago,
@@ -83,16 +83,6 @@ type WidthClass = keyof typeof HELD_MINIMUM;
  * unscaled with floating-point noise counts as the whole pixels it is. Smaller than the 1/64 px a browser lays out in.
  */
 const SLACK_PX = 0.01;
-
-/**
- * How much the card is drawn scaled, 1 unless something scales it, such as a dialog's opening animation (0.8 to 1).
- * Drawn widths are scaled while computed styles are not, so drawn measures are divided by it.
- */
-function drawnScale(card: HTMLElement): number {
-    const layout = px(getComputedStyle(card).width);
-    const drawn = card.getBoundingClientRect().width;
-    return layout > 0 && drawn > 0 ? drawn / layout : 1;
-}
 
 /** An element's height laid out at a width of the layout's pixels, its own width and flex left as they were after. */
 function heightAt(element: HTMLElement, width: number): number {
@@ -390,14 +380,14 @@ export class PackageTrackerCard extends LitElement {
             return;
         }
         const style = getComputedStyle(card);
+        // The drawn distance unscaled, as the padding, border and margin added to it are the layout's.
         const content =
-            last.getBoundingClientRect().bottom -
-            card.getBoundingClientRect().top +
+            (last.getBoundingClientRect().bottom - card.getBoundingClientRect().top) / drawnScale(card) +
             (parseFloat(style.paddingBottom) || 0) +
             (parseFloat(style.borderBottomWidth) || 0) -
             (list ? Math.max(0, parseFloat(getComputedStyle(list).marginTop) || 0) : 0);
-        const filled = filledHeight(Math.round(content), this.config ?? {}, limit);
-        const spare = list ? Math.max(0, Math.floor(filled - content)) : 0;
+        const filled = filledHeight(content, this.config ?? {}, limit);
+        const spare = list ? spareRoom(filled, content) : 0;
         if (filled !== this.filled) {
             this.filled = filled;
         }

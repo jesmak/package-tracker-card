@@ -1,4 +1,4 @@
-/*! package-tracker-card 2.5.0 | MIT License | includes QR Code Generator, Copyright (c) 2009 Kazuhiko Arase, MIT License */
+/*! package-tracker-card 2.5.1 | MIT License | includes QR Code Generator, Copyright (c) 2009 Kazuhiko Arase, MIT License */
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __decorateClass = (decorators, target, key, kind) => {
@@ -711,7 +711,7 @@ var c4 = e5(class extends i5 {
 });
 
 // src/const.ts
-var CARD_VERSION = "2.5.0";
+var CARD_VERSION = "2.5.1";
 var DELIVERED = 0;
 var WAITING = 1;
 var RECEIVED = 2;
@@ -775,8 +775,17 @@ function validRowStep(config) {
   return config.row_step === void 0 || config.row_step === null || ROW_STEPS.includes(config.row_step);
 }
 var step = (config) => config.row_step === "half" ? ROW_PX / 2 : ROW_PX;
+var SLACK_PX = 0.01;
+function drawnScale(card) {
+  const layout = Number.parseFloat(getComputedStyle(card).width) || 0;
+  const drawn = card.getBoundingClientRect().width;
+  return layout > 0 && drawn > 0 ? drawn / layout : 1;
+}
 function filledHeight(content, config, limit = Infinity) {
-  return Math.min(Math.max(1, Math.ceil((content + ROW_GAP_PX) / step(config))) * step(config) - ROW_GAP_PX, limit);
+  return Math.min(Math.max(1, Math.ceil((content - SLACK_PX + ROW_GAP_PX) / step(config))) * step(config) - ROW_GAP_PX, limit);
+}
+function spareRoom(filled, content) {
+  return Math.max(0, Math.floor(filled - content + SLACK_PX));
 }
 function fillLimit(config, layout, minimum = 0) {
   const rows = config.grid_options ? config.grid_options.rows : config.layout_options?.grid_rows;
@@ -3153,12 +3162,7 @@ var HELD_MINIMUM = {
   narrow: { line: 49, lineOneBadge: 49, progress: 40, status: 30, bar: 18 },
   veryNarrow: { line: 82, lineOneBadge: 65, progress: 52, status: 42, bar: 18 }
 };
-var SLACK_PX = 0.01;
-function drawnScale(card) {
-  const layout = px(getComputedStyle(card).width);
-  const drawn = card.getBoundingClientRect().width;
-  return layout > 0 && drawn > 0 ? drawn / layout : 1;
-}
+var SLACK_PX2 = 0.01;
 function heightAt(element, width) {
   element.style.flex = "none";
   element.style.width = `${width}px`;
@@ -3335,11 +3339,11 @@ var PackageTrackerCard = class extends i4 {
       const iconWidth = icon ? width(icon) : 0;
       const iconHeight = icon ? px(getComputedStyle(icon).height) : 0;
       const room = lineWidth - iconWidth - 2 * gap;
-      const fits = least[index].number + least[index].badges <= room + SLACK_PX;
+      const fits = least[index].number + least[index].badges <= room + SLACK_PX2;
       const badgesBeside = Math.max(room - whole[index], least[index].badges);
       const beside = Math.max(iconHeight, heightAt(number, room - badgesBeside), heightAt(badges, badgesBeside));
       const under = Math.max(iconHeight, heightAt(number, lineWidth - iconWidth - gap)) + px(style.rowGap) + heightAt(badges, lineWidth);
-      if (!fits || beside > under + SLACK_PX) {
+      if (!fits || beside > under + SLACK_PX2) {
         next.add(line.dataset.number);
       }
     });
@@ -3390,9 +3394,9 @@ var PackageTrackerCard = class extends i4 {
       return;
     }
     const style = getComputedStyle(card);
-    const content = last.getBoundingClientRect().bottom - card.getBoundingClientRect().top + (parseFloat(style.paddingBottom) || 0) + (parseFloat(style.borderBottomWidth) || 0) - (list ? Math.max(0, parseFloat(getComputedStyle(list).marginTop) || 0) : 0);
-    const filled = filledHeight(Math.round(content), this.config ?? {}, limit);
-    const spare = list ? Math.max(0, Math.floor(filled - content)) : 0;
+    const content = (last.getBoundingClientRect().bottom - card.getBoundingClientRect().top) / drawnScale(card) + (parseFloat(style.paddingBottom) || 0) + (parseFloat(style.borderBottomWidth) || 0) - (list ? Math.max(0, parseFloat(getComputedStyle(list).marginTop) || 0) : 0);
+    const filled = filledHeight(content, this.config ?? {}, limit);
+    const spare = list ? spareRoom(filled, content) : 0;
     if (filled !== this.filled) {
       this.filled = filled;
     }
