@@ -2,7 +2,7 @@
 
 Home Assistant dashboard card that lists the packages coming to you, from any package tracking integration.
 
-[![GitHub Release][releases-shield]][releases] [![GitHub Release Date][release-date-shield]][releases] [![Marketplace][marketplace-shield]][marketplace] [![License][license-shield]](LICENSE)
+[![GitHub Release][releases-shield]][releases] [![GitHub Release Date][release-date-shield]][releases] [![Downloads][downloads-shield]][releases] [![Marketplace][marketplace-shield]][marketplace] [![License][license-shield]](LICENSE)
 
 <p>
 <img src="https://raw.githubusercontent.com/jesmak/package-tracker-card/main/docs/images/packages-light.png#gh-light-mode-only" width="400" alt="Five packages from two carriers, four coming and one sent, each marked which way it goes, one ready for pickup, three on their way and one delivered, each with a progress bar, its status and its latest event">
@@ -359,6 +359,7 @@ MIT, see [LICENSE](LICENSE).
 [releases-shield]: https://img.shields.io/github/release/jesmak/package-tracker-card.svg?style=for-the-badge
 [release-date-shield]: https://img.shields.io/github/release-date/jesmak/package-tracker-card?style=for-the-badge
 [releases]: https://github.com/jesmak/package-tracker-card/releases
+[downloads-shield]: https://img.shields.io/github/downloads/jesmak/package-tracker-card/total.svg?style=for-the-badge
 [marketplace-shield]: https://img.shields.io/badge/Marketplace-Custom-orange.svg?style=for-the-badge
 [marketplace]: https://my.home-assistant.io/redirect/marketplace_repository/?owner=jesmak&repository=package-tracker-card&category=plugin
 [license-shield]: https://img.shields.io/github/license/jesmak/package-tracker-card.svg?style=for-the-badge
