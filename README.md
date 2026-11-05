@@ -59,8 +59,8 @@ inside, even in a sections view.
 | `title`                      | string         | Shown at the top of the card                                                                                                                                                                                                                                       |                                                                                 |
 | `statuses`                   | list           | List only the packages with these [statuses](#data)                                                                                                                                                                                                                | all                                                                             |
 | `direction`                  | string         | `all`, `incoming` or `outgoing`, the packages sent by the user                                                                                                                                                                                                     | `all`                                                                           |
-| `max_events`                 | number         | List at most this many incoming packages. Above 0                                                                                                                                                                                                                  | all                                                                             |
-| `max_sent_events`            | number         | List at most this many sent packages. Above 0                                                                                                                                                                                                                      | all                                                                             |
+| `max_events`                 | number         | List at most this many incoming packages. A whole number above 0                                                                                                                                                                                                   | all                                                                             |
+| `max_sent_events`            | number         | List at most this many sent packages. A whole number above 0                                                                                                                                                                                                       | all                                                                             |
 | `height_mode`                | string         | How tall the card is. `auto` fits its content, `fixed` keeps it at `height`, `max` lets it grow up to `max_height`. In `fixed` and `max` the list scrolls. A height in grid rows, set in the layout tab of a sections view, is used instead                        | `fixed` when `height` is set, `max` when only `max_height` is, otherwise `auto` |
 | `height`                     | number         | The card's height in pixels, for `fixed`                                                                                                                                                                                                                           |                                                                                 |
 | `max_height`                 | number         | The card's greatest height in pixels, for `max`                                                                                                                                                                                                                    |                                                                                 |
@@ -167,7 +167,7 @@ packages scrolled past it fades out, so it's clear there's more.
 
 The card is 12 columns wide by default and at least 9. It follows its own width rather than the column count, so it
 works the same outside the sections view. On a narrow card the bar gets a line of its own, and the badges go under the
-shipment number when the number wouldn't fit whole beside them, or on a card held to a height, below 266 px of card.
+shipment number when the number wouldn't fit whole beside them, or on a card held to a height, at 266 px of card and under.
 Shipment numbers wrap when they don't fit. Other long texts
 are cut short unless `wrap_text` is on, which shows them in full at the cost of a taller card.
 
@@ -185,7 +185,7 @@ raising by hand.
 
 ## Examples
 
-Packages from two accounts in one card, at most five, with the codes revealed when clicked:
+Packages from two accounts in one card, at most five incoming ones, with the codes revealed when clicked:
 
 ```yaml
 type: custom:package-tracker-card

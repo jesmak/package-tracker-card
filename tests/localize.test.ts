@@ -27,9 +27,8 @@ describe("languages", () => {
         expect(LANGUAGE_CODES).toContain("en");
     });
 
-    it.each(LANGUAGE_CODES.filter((code) => code !== "en"))("%s has no keys that English lacks", (code) => {
-        const english = new Set(keys(language("en")));
-        expect(keys(language(code)).filter((key) => !english.has(key))).toEqual([]);
+    it.each(LANGUAGE_CODES.filter((code) => code !== "en"))("%s has the same keys as English", (code) => {
+        expect(keys(language(code)).sort()).toEqual(keys(language("en")).sort());
     });
 
     it("fall back to English for a text a language lacks, and to the key for one nobody has", () => {

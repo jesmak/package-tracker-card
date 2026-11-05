@@ -884,7 +884,7 @@ var en_default = {
     show_latest_event_location: "Latest location",
     show_origin: "Sender",
     show_destination: "Destination",
-    show_destination_helper: "Where the package is going \u2014 the pickup point when the carrier names one.",
+    show_destination_helper: "Where the package is going. The pickup point when the carrier names one.",
     show_pickup: "Pickup time",
     show_pickup_helper: "Adds the pickup deadline to that row, or the estimated delivery while the package is still on its way.",
     show_details: "Weight and parcels",
@@ -966,7 +966,7 @@ var fi_default = {
     show_latest_event_location: "Viimeisin sijainti",
     show_origin: "L\xE4hett\xE4j\xE4",
     show_destination: "M\xE4\xE4r\xE4np\xE4\xE4",
-    show_destination_helper: "Minne paketti on menossa \u2013 noutopaikka, jos kuljetusyhti\xF6 kertoo sen.",
+    show_destination_helper: "Minne paketti on menossa. Noutopaikka, jos kuljetusyhti\xF6 kertoo sen.",
     show_pickup: "Noutoaika",
     show_pickup_helper: "Lis\xE4\xE4 samalle riville noudon m\xE4\xE4r\xE4ajan, tai arvioidun toimituksen kun paketti on viel\xE4 matkalla.",
     show_details: "Paino ja kollit",
@@ -1331,7 +1331,7 @@ var lastDropped = 0;
 function sensorsOf(hass, entity) {
   return entities(entity).map((id) => {
     const state = hass.states[id];
-    const name = state?.attributes?.friendly_name;
+    const name = state && hass.formatEntityName?.(state, [{ type: "device" }, { type: "entity" }]) || state?.attributes?.friendly_name;
     const checked = state?.attributes?.last_checked;
     return {
       name: typeof name === "string" && name !== "" ? name : id,
@@ -3197,14 +3197,16 @@ var PackageTrackerCard = class extends i4 {
     return { entity: hass ? trackingEntities(hass) : [] };
   }
   setConfig(config) {
-    const noEntity = !config || !config.entity || Array.isArray(config.entity) && config.entity.length === 0;
+    const entity = config?.entity;
+    const noEntity = !entity || typeof entity !== "string" && !(Array.isArray(entity) && entity.length > 0 && entity.every((id) => typeof id === "string" && id !== ""));
     const badCount = [config?.max_events, config?.max_sent_events].some(
       (limit) => limit != null && !(Number.isInteger(limit) && limit > 0)
     );
     const badStatuses = config?.statuses != null && !(Array.isArray(config.statuses) && config.statuses.every((status) => STATUSES.includes(status)));
     const badLink = config?.tracking_link != null && !["row", "number", "none"].includes(config.tracking_link);
     const badDirection = config?.direction != null && !["all", "incoming", "outgoing"].includes(config.direction);
-    if (noEntity || badCount || badStatuses || badLink || badDirection) {
+    const badCode = config?.pickup_code != null && !["hidden", "always", "toggle"].includes(config.pickup_code);
+    if (noEntity || badCount || badStatuses || badLink || badDirection || badCode) {
       throw new Error(translate(browserLanguage(), "common.invalid_configuration"));
     }
     if (!validHeight(config)) {
@@ -3594,10 +3596,11 @@ var PackageTrackerCard = class extends i4 {
     if (!place && !time && code === A) {
       return A;
     }
+    const text = [place, time ? `${label} ${formatDateTime(time)}` : ""].filter(Boolean).join(" \xB7 ");
     return b2`
             <div class="row secondary">
                 <ha-icon icon="${item.pickup_point ? "mdi:map-marker-radius" : "mdi:arrow-down-bold-box"}"></ha-icon>
-                <div class="text-content">${[place, time ? `${label} ${formatDateTime(time)}` : ""].filter(Boolean).join(" \xB7 ")}</div>
+                <div class="text-content" title="${text}">${text}</div>
                 ${code}
             </div>
         `;
@@ -3738,10 +3741,11 @@ var PackageTrackerCard = class extends i4 {
     if (parts.length === 0) {
       return A;
     }
+    const text = parts.join(" \xB7 ");
     return b2`
             <div class="row secondary">
                 <ha-icon icon="mdi:weight-kilogram"></ha-icon>
-                <div class="text-content">${parts.join(" \xB7 ")}</div>
+                <div class="text-content" title="${text}">${text}</div>
             </div>
         `;
   }
@@ -3757,7 +3761,7 @@ var PackageTrackerCard = class extends i4 {
     return b2`
             <div class="row secondary">
                 <ha-icon icon="${icon}"></ha-icon>
-                <div class="text-content">${text}</div>
+                <div class="text-content" title="${text}">${text}</div>
                 ${extra}
             </div>
         `;

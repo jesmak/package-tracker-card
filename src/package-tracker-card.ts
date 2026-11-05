@@ -159,7 +159,11 @@ export class PackageTrackerCard extends LitElement {
     }
 
     public setConfig(config: PackageTrackerCardConfig): void {
-        const noEntity = !config || !config.entity || (Array.isArray(config.entity) && config.entity.length === 0);
+        const entity: unknown = config?.entity;
+        const noEntity =
+            !entity ||
+            (typeof entity !== "string" &&
+                !(Array.isArray(entity) && entity.length > 0 && entity.every((id) => typeof id === "string" && id !== "")));
         // An empty `max_events:` in YAML is null, which means no limit, as leaving it out does.
         const badCount = [config?.max_events, config?.max_sent_events].some(
             (limit) => limit != null && !(Number.isInteger(limit) && limit > 0),
@@ -168,7 +172,8 @@ export class PackageTrackerCard extends LitElement {
             config?.statuses != null && !(Array.isArray(config.statuses) && config.statuses.every((status) => STATUSES.includes(status)));
         const badLink = config?.tracking_link != null && !["row", "number", "none"].includes(config.tracking_link);
         const badDirection = config?.direction != null && !["all", "incoming", "outgoing"].includes(config.direction);
-        if (noEntity || badCount || badStatuses || badLink || badDirection) {
+        const badCode = config?.pickup_code != null && !["hidden", "always", "toggle"].includes(config.pickup_code);
+        if (noEntity || badCount || badStatuses || badLink || badDirection || badCode) {
             throw new Error(translate(browserLanguage(), "common.invalid_configuration"));
         }
         if (!validHeight(config)) {
@@ -655,10 +660,11 @@ export class PackageTrackerCard extends LitElement {
         if (!place && !time && code === nothing) {
             return nothing;
         }
+        const text = [place, time ? `${label} ${formatDateTime(time)}` : ""].filter(Boolean).join(" · ");
         return html`
             <div class="row secondary">
                 <ha-icon icon="${item.pickup_point ? "mdi:map-marker-radius" : "mdi:arrow-down-bold-box"}"></ha-icon>
-                <div class="text-content">${[place, time ? `${label} ${formatDateTime(time)}` : ""].filter(Boolean).join(" · ")}</div>
+                <div class="text-content" title="${text}">${text}</div>
                 ${code}
             </div>
         `;
@@ -817,10 +823,11 @@ export class PackageTrackerCard extends LitElement {
         if (parts.length === 0) {
             return nothing;
         }
+        const text = parts.join(" · ");
         return html`
             <div class="row secondary">
                 <ha-icon icon="mdi:weight-kilogram"></ha-icon>
-                <div class="text-content">${parts.join(" · ")}</div>
+                <div class="text-content" title="${text}">${text}</div>
             </div>
         `;
     }
@@ -844,7 +851,7 @@ export class PackageTrackerCard extends LitElement {
         return html`
             <div class="row secondary">
                 <ha-icon icon="${icon}"></ha-icon>
-                <div class="text-content">${text}</div>
+                <div class="text-content" title="${text}">${text}</div>
                 ${extra}
             </div>
         `;

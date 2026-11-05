@@ -65,7 +65,9 @@ export interface Sensor {
 export function sensorsOf(hass: HomeAssistant, entity: string | string[]): Sensor[] {
     return entities(entity).map((id) => {
         const state = hass.states[id];
-        const name = state?.attributes?.friendly_name;
+        // The name Home Assistant composes from the device's and the entity's own, where its frontend has that.
+        const name =
+            (state && hass.formatEntityName?.(state, [{ type: "device" }, { type: "entity" }])) || state?.attributes?.friendly_name;
         const checked = state?.attributes?.last_checked;
         return {
             name: typeof name === "string" && name !== "" ? name : id,

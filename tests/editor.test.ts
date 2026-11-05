@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { trackingEntities } from "../src/editor";
@@ -78,13 +81,12 @@ describe("the visual editor", () => {
         expect(names).not.toContain("height_mode");
         expect(names).not.toContain("height");
         expect(names).not.toContain("max_height");
-        expect(names).toContain("show_progress");
-        expect(names).toContain("show_pickup");
-        expect(names).toContain("show_details");
-        expect(names).toContain("show_sensors");
-        expect(names).toContain("pickup_code");
-        expect(names).toContain("statuses");
-        expect(names).toContain("tracking_link");
+        // Every other option in the README's table is in the editor.
+        const readme = readFileSync(join(process.cwd(), "README.md"), "utf8");
+        const table = readme.slice(readme.indexOf("## Options"), readme.indexOf("\n## ", readme.indexOf("## Options") + 1));
+        const options = [...table.matchAll(/^\| `([a-z_]+)`/gm)].map((match) => match[1]);
+        const yamlOnly = ["type", "height_mode", "height", "max_height"];
+        expect([...new Set(names)].sort()).toEqual(options.filter((option) => !yamlOnly.includes(option)).sort());
     });
 
     it.each([

@@ -57,7 +57,7 @@
         "show_latest_event_location": "Viimeisin sijainti",
         "show_origin": "Lähettäjä",
         "show_destination": "Määränpää",
-        "show_destination_helper": "Minne paketti on menossa – noutopaikka, jos kuljetusyhtiö kertoo sen.",
+        "show_destination_helper": "Minne paketti on menossa. Noutopaikka, jos kuljetusyhtiö kertoo sen.",
         "show_pickup": "Noutoaika",
         "show_pickup_helper": "Lisää samalle riville noudon määräajan, tai arvioidun toimituksen kun paketti on vielä matkalla.",
         "show_details": "Paino ja kollit",

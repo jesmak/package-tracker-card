@@ -414,11 +414,23 @@ describe("the list of packages", () => {
         expect(root.textContent).toContain("Example Shop");
     });
 
-    it("leaves out a line the package has nothing for", async () => {
-        // This package has no place for its latest event, and the row would be empty.
+    it("gives every line that may be cut short its whole text as a tooltip", async () => {
         const root = shadow(await card(hass()));
+        const lines = [...root.querySelectorAll(".item .text-content")];
+        expect(lines.length).toBeGreaterThan(0);
+        for (const line of lines) {
+            expect(line.getAttribute("title")).toBe(line.textContent);
+        }
+    });
+
+    it("leaves out a line the package has nothing for", async () => {
+        // On its way, so the place of its latest event is a line it would have, but it has no place for it.
+        const root = shadow(await card(hass({ [POSTI]: [{ ...WAITING, status: 3, latest_event_city: null }] })));
+        expect(root.querySelector('ha-icon[icon="mdi:map-marker"]')).toBeNull();
         expect(root.textContent).not.toContain("null");
         expect(root.textContent).not.toContain("undefined");
+        const withPlace = shadow(await card(hass({ [POSTI]: [{ ...WAITING, status: 3, latest_event_city: "Lappeenranta" }] })));
+        expect(withPlace.querySelector('ha-icon[icon="mdi:map-marker"]')).not.toBeNull();
     });
 });
 
@@ -500,6 +512,20 @@ describe("when there is nothing to track", () => {
         } finally {
             vi.useRealTimers();
         }
+    });
+
+    it("names a sensor as Home Assistant composes its name, when it can", async () => {
+        const states = { [POSTI]: sensor(POSTI, "unknown", { friendly_name: "Old name" }) };
+        const formatEntityName = vi.fn(() => "Posti matti.meikalainen@example.com");
+        const root = shadow(await card({ locale: { language: "fi" }, states, formatEntityName }, { entity: POSTI }));
+        expect(root.querySelector(".empty .sensor")?.textContent?.trim()).toBe("Posti matti.meikalainen@example.com");
+        expect(formatEntityName).toHaveBeenCalledWith(states[POSTI], [{ type: "device" }, { type: "entity" }]);
+    });
+
+    it("names a sensor by its friendly name when Home Assistant composes none", async () => {
+        const states = { [POSTI]: sensor(POSTI, "unknown", { friendly_name: "Posti" }) };
+        const root = shadow(await card({ locale: { language: "fi" }, states, formatEntityName: () => "" }, { entity: POSTI }));
+        expect(root.querySelector(".empty .sensor")?.textContent?.trim()).toBe("Posti");
     });
 
     it("keeps the time current between the sensors' updates, and stops once off the page", async () => {
@@ -621,6 +647,9 @@ describe("when the configuration is wrong", () => {
         ["a status as text", { statuses: ["5"] }],
         ["statuses that aren't a list", { statuses: 5 }],
         ["an unknown tracking link", { tracking_link: "title" }],
+        ["an unknown pickup code setting", { pickup_code: "yes" }],
+        ["an entity that isn't an ID", { entity: 5 }],
+        ["an entity list with something else than IDs in it", { entity: [POSTI, { id: 1 }] }],
     ])("refuses %s", (_what, config) => {
         const element = document.createElement("package-tracker-card") as PackageTrackerCard;
         expect(() => element.setConfig({ type: "custom:package-tracker-card", entity: POSTI, ...config } as never)).toThrow();

@@ -7,10 +7,17 @@ export interface HassEntity {
     attributes: Record<string, unknown>;
 }
 
+/** One part of an entity's name, as `formatEntityName` puts them together. */
+export interface NamePart {
+    type: "entity" | "device" | "area" | "floor";
+}
+
 export interface HomeAssistant {
     states: Record<string, HassEntity | undefined>;
     language?: string;
     locale?: { language?: string };
+    /** Missing in older versions of Home Assistant. */
+    formatEntityName?(state: HassEntity, parts: NamePart[]): string;
 }
 
 export interface LovelaceCardConfig {
