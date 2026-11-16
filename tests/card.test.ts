@@ -647,7 +647,15 @@ describe("when the configuration is wrong", () => {
     it("refuses a configuration without an entity", () => {
         const element = document.createElement("package-tracker-card") as PackageTrackerCard;
         expect(() => element.setConfig({ type: "custom:package-tracker-card" } as never)).toThrow();
-        expect(() => element.setConfig({ type: "custom:package-tracker-card", entity: [] } as never)).toThrow();
+        expect(() => element.setConfig({ type: "custom:package-tracker-card", entity: [""] } as never)).toThrow();
+    });
+
+    it("shows its picker stub with no tracking sensor as a hint", async () => {
+        const state = { ...hass(), states: {} };
+        const stub = (customElements.get("package-tracker-card") as unknown as typeof PackageTrackerCard).getStubConfig(state);
+        expect(stub).toEqual({ entity: [] });
+        const root = shadow(await card(state, stub as Partial<PackageTrackerCardConfig>));
+        expect(root.querySelector(".message")?.textContent?.trim()).toBe("Ei vielä seurantasensoreita. Lisää sensori kortin asetuksista.");
     });
 
     it("takes an empty max_events as no limit", async () => {

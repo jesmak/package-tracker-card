@@ -1,4 +1,4 @@
-/*! package-tracker-card 2.5.1 | MIT License | includes QR Code Generator, Copyright (c) 2009 Kazuhiko Arase, MIT License */
+/*! package-tracker-card 2.5.2 | MIT License | includes QR Code Generator, Copyright (c) 2009 Kazuhiko Arase, MIT License */
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __decorateClass = (decorators, target, key, kind) => {
@@ -711,7 +711,7 @@ var c4 = e5(class extends i5 {
 });
 
 // src/const.ts
-var CARD_VERSION = "2.5.1";
+var CARD_VERSION = "2.5.2";
 var DELIVERED = 0;
 var WAITING = 1;
 var RECEIVED = 2;
@@ -846,6 +846,7 @@ var en_default = {
     just_now: "just now",
     unavailable: "not available",
     no_entity: "No such entity:",
+    no_entities: "No tracking sensors yet. Add one in the card's settings.",
     pickup_by: "Pick up by",
     estimated: "Estimated",
     show_code: "Show the pickup code",
@@ -928,6 +929,7 @@ var fi_default = {
     just_now: "juuri nyt",
     unavailable: "ei k\xE4ytett\xE4viss\xE4",
     no_entity: "Entiteetti\xE4 ei ole:",
+    no_entities: "Ei viel\xE4 seurantasensoreita. Lis\xE4\xE4 sensori kortin asetuksista.",
     pickup_by: "Nouda viimeist\xE4\xE4n",
     estimated: "Arvio",
     show_code: "N\xE4yt\xE4 noutokoodi",
@@ -3202,7 +3204,7 @@ var PackageTrackerCard = class extends i4 {
   }
   setConfig(config) {
     const entity = config?.entity;
-    const noEntity = !entity || typeof entity !== "string" && !(Array.isArray(entity) && entity.length > 0 && entity.every((id) => typeof id === "string" && id !== ""));
+    const noEntity = !entity || typeof entity !== "string" && !(Array.isArray(entity) && entity.every((id) => typeof id === "string" && id !== ""));
     const badCount = [config?.max_events, config?.max_sent_events].some(
       (limit) => limit != null && !(Number.isInteger(limit) && limit > 0)
     );
@@ -3417,6 +3419,9 @@ var PackageTrackerCard = class extends i4 {
   render() {
     if (!this.hass || !this.config) {
       return A;
+    }
+    if (entities(this.config.entity).length === 0) {
+      return b2`<ha-card style="${this.cardStyle()}"><div class="message">${this.text("common.no_entities")}</div></ha-card>`;
     }
     const missing = missingEntities(this.hass, this.config.entity);
     if (missing.length === entities(this.config.entity).length) {

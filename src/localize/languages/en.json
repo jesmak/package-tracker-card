@@ -10,6 +10,7 @@
         "just_now": "just now",
         "unavailable": "not available",
         "no_entity": "No such entity:",
+        "no_entities": "No tracking sensors yet. Add one in the card's settings.",
         "pickup_by": "Pick up by",
         "estimated": "Estimated",
         "show_code": "Show the pickup code",

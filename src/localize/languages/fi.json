@@ -10,6 +10,7 @@
         "just_now": "juuri nyt",
         "unavailable": "ei käytettävissä",
         "no_entity": "Entiteettiä ei ole:",
+        "no_entities": "Ei vielä seurantasensoreita. Lisää sensori kortin asetuksista.",
         "pickup_by": "Nouda viimeistään",
         "estimated": "Arvio",
         "show_code": "Näytä noutokoodi",

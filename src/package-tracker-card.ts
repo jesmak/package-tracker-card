@@ -150,10 +150,10 @@ export class PackageTrackerCard extends LitElement {
 
     public setConfig(config: PackageTrackerCardConfig): void {
         const entity: unknown = config?.entity;
+        // An empty list is the picker's stub when there is no tracking sensor yet, and the card says so.
         const noEntity =
             !entity ||
-            (typeof entity !== "string" &&
-                !(Array.isArray(entity) && entity.length > 0 && entity.every((id) => typeof id === "string" && id !== "")));
+            (typeof entity !== "string" && !(Array.isArray(entity) && entity.every((id) => typeof id === "string" && id !== "")));
         // An empty `max_events:` in YAML is null, which means no limit, as leaving it out does.
         const badCount = [config?.max_events, config?.max_sent_events].some(
             (limit) => limit != null && !(Number.isInteger(limit) && limit > 0),
@@ -411,6 +411,10 @@ export class PackageTrackerCard extends LitElement {
     protected render(): TemplateResult | typeof nothing {
         if (!this.hass || !this.config) {
             return nothing;
+        }
+
+        if (entities(this.config.entity).length === 0) {
+            return html`<ha-card style="${this.cardStyle()}"><div class="message">${this.text("common.no_entities")}</div></ha-card>`;
         }
 
         const missing = missingEntities(this.hass, this.config.entity);
