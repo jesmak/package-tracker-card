@@ -17,7 +17,7 @@ import { trackingEntities, withTitle } from "./editor";
 import { ScrollFade, fadeStyles } from "./fade";
 import type { HomeAssistant } from "./hass";
 import { gridMinRows, heightCardSize, heightStyle, validHeight } from "./height";
-import { drawnScale, fillLimit, filledHeight, filledStyle, spareRoom, validRowStep } from "./rows";
+import { drawnScale, fillLimit, filledHeight, filledStyle, heldSpare, spareRoom, validRowStep } from "./rows";
 import { browserLanguage, translate } from "./localize/localize";
 import {
     ago,
@@ -120,7 +120,10 @@ export class PackageTrackerCard extends LitElement {
     @state() private qr?: Shipment;
     /** On automatic rows in a sections view, the height that ends the card on a whole row; 0 when it isn't set. */
     @state() private filled = 0;
-    /** The room a whole row leaves over, put under the title rather than under the list. */
+    /**
+     * The room a whole row leaves over, or a held card's when it is less than a row, put under the title rather than
+     * under the list, or split above and below it without a title.
+     */
     @state() private spare = 0;
     /** The layout the card's measured width gives it, as a held card's lines switch; unknown before it is measured. */
     @state() private widthClass?: WidthClass;
@@ -362,15 +365,18 @@ export class PackageTrackerCard extends LitElement {
     /**
      * On automatic rows in a sections view, the card takes the whole rows its content needs, or the half rows with
      * `row_step: half`, so the cards under it stay on the rows, up to the limit of a card that grows up to one. Measured to the end of the list's last child, as the list
-     * grows to whatever height the card is given. What a whole row leaves over goes above the list, under the title, as
-     * its top margin, which the measure leaves out again each time.
+     * grows to whatever height the card is given, however far it is scrolled. What a whole row leaves over goes above the
+     * list, under the title, as its top margin, or without a title the upper half of it, as the list is centred. The
+     * measure leaves it out again each time. A card held to a height that leaves less than a row over its content spreads
+     * that room the same way.
      */
     private fillRows(): void {
         const card = this.renderRoot.querySelector<HTMLElement>("ha-card");
         const list = card?.querySelector<HTMLElement>(".list");
         const last = card && (list?.lastElementChild ?? card.querySelector(".message"));
         const limit = fillLimit(this.config ?? {}, this.layout, this.minimumHeight());
-        if (!card || !last || !card.clientWidth || !limit) {
+        const held = !limit && Boolean(this.heightStyle());
+        if (!card || !last || !card.clientWidth || (!limit && !held)) {
             if (this.filled) {
                 this.filled = 0;
             }
@@ -380,12 +386,24 @@ export class PackageTrackerCard extends LitElement {
             return;
         }
         const style = getComputedStyle(card);
-        // The drawn distance unscaled, as the padding, border and margin added to it are the layout's.
+        const scale = drawnScale(card);
+        // The drawn distance unscaled, as the padding, border, scroll and margin added to it are the layout's.
         const content =
-            (last.getBoundingClientRect().bottom - card.getBoundingClientRect().top) / drawnScale(card) +
+            (last.getBoundingClientRect().bottom - card.getBoundingClientRect().top) / scale +
+            (list?.scrollTop ?? 0) +
             (parseFloat(style.paddingBottom) || 0) +
             (parseFloat(style.borderBottomWidth) || 0) -
             (list ? Math.max(0, parseFloat(getComputedStyle(list).marginTop) || 0) : 0);
+        if (held) {
+            const spare = list ? heldSpare(card.getBoundingClientRect().height / scale, content) : 0;
+            if (this.filled) {
+                this.filled = 0;
+            }
+            if (spare !== this.spare) {
+                this.spare = spare;
+            }
+            return;
+        }
         const filled = filledHeight(content, this.config ?? {}, limit);
         const spare = list ? spareRoom(filled, content) : 0;
         if (filled !== this.filled) {
@@ -480,10 +498,14 @@ export class PackageTrackerCard extends LitElement {
         return heightStyle(this.config ?? {}, this.layout, this.minimumHeight());
     }
 
-    /** The card's inline style: the height it is held to, or the rows it fills up to any limit, with their spare room under the title. */
+    /**
+     * The card's inline style: the height it is held to, or the rows it fills up to any limit, with their spare room under
+     * the title, or without one the upper half of it, as the list is centred.
+     */
     private cardStyle(): string {
         const style = filledStyle(this.config ?? {}, this.layout, this.minimumHeight(), this.filled);
-        return this.filled ? `${style}; --package-tracker-spare: ${this.spare}px` : style;
+        const spare = this.config?.title ? this.spare : Math.floor(this.spare / 2);
+        return spare ? [style, `--package-tracker-spare: ${spare}px`].filter(Boolean).join("; ") : style;
     }
 
     /**
@@ -895,7 +917,7 @@ export class PackageTrackerCard extends LitElement {
                     text-overflow: ellipsis;
                 }
 
-                /* The room a whole row leaves over, when there is any, goes above the list, under the title. */
+                /* The room left over, when there is any, goes above the list, under the title, or half of it without one. */
                 .list {
                     margin-top: var(--package-tracker-spare, 0px);
                     flex: 1 1 auto;

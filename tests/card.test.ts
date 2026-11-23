@@ -204,13 +204,14 @@ describe("the card's height", () => {
     }
 
     it.each([
-        ["between the title and the list, what a whole row leaves over", {}, 150, "min-height: 184px; --package-tracker-spare: 21px"],
         [
-            "nothing with half rows when the content ends on a half row",
-            { row_step: "half" },
-            139,
-            "min-height: 152px; --package-tracker-spare: 0px",
+            "between the title and the list, what a whole row leaves over",
+            { title: "Paketit" },
+            150,
+            "min-height: 184px; --package-tracker-spare: 21px",
         ],
+        ["half of it above the list without a title, centring it", {}, 150, "min-height: 184px; --package-tracker-spare: 10px"],
+        ["nothing with half rows when the content ends on a half row", { row_step: "half" }, 139, "min-height: 152px"],
     ])("puts %s", async (_name, extra, bottom, style) => {
         const element = await card(hass(), extra as Partial<PackageTrackerCardConfig>, "grid");
         const haCard = shadow(element).querySelector("ha-card") as HTMLElement;
@@ -223,9 +224,36 @@ describe("the card's height", () => {
         ["a fraction of a pixel over a row, on the next one", 107.4, 1, "min-height: 184px; --package-tracker-spare: 63px"],
         ["drawn scaled, in the layout's pixels", 203, 0.8, "min-height: 248px; --package-tracker-spare: 32px"],
     ])("ends %s", async (_name, bottom, scale, style) => {
-        const element = await card(hass(), {}, "grid");
+        const element = await card(hass(), { title: "Paketit" }, "grid");
         const haCard = shadow(element).querySelector("ha-card") as HTMLElement;
         await filledRows(element, bottom, scale);
+        expect(haCard.getAttribute("style")).toBe(style);
+    });
+
+    // Held to 300 px, the room left over is spread as on filled rows while it is less than a row, and otherwise left under
+    // the list. A scrolled list counts at its whole length.
+    it.each<[string, Record<string, unknown>, number, number, string]>([
+        ["a little room under the title", { title: "Paketit" }, 260, 0, "height: 300px; --package-tracker-spare: 27px"],
+        ["a little room around the list without a title", {}, 260, 0, "height: 300px; --package-tracker-spare: 13px"],
+        ["a row or more under the list", { title: "Paketit" }, 200, 0, "height: 300px"],
+        ["nothing for a scrolled list longer than the card", { title: "Paketit" }, 280, 100, "height: 300px"],
+    ])("held to a height, spreads %s", async (_name, extra, bottom, scrolled, style) => {
+        const element = await card(hass(), { ...extra, height: 300 } as Partial<PackageTrackerCardConfig>, "grid");
+        const root = shadow(element);
+        const haCard = root.querySelector("ha-card") as HTMLElement;
+        Object.defineProperty(haCard, "clientWidth", { value: 460, configurable: true });
+        haCard.getBoundingClientRect = () => ({ top: 0, width: 460, height: 300 }) as DOMRect;
+        const list = root.querySelector(".list") as HTMLElement;
+        Object.defineProperty(list, "scrollTop", { value: scrolled, configurable: true });
+        (list.lastElementChild as HTMLElement).getBoundingClientRect = () => ({ bottom }) as DOMRect;
+        vi.spyOn(window, "getComputedStyle").mockReturnValue({
+            paddingBottom: "12px",
+            borderBottomWidth: "1px",
+            width: "460px",
+        } as CSSStyleDeclaration);
+        (element as unknown as { fillRows(): void }).fillRows();
+        vi.restoreAllMocks();
+        await element.updateComplete;
         expect(haCard.getAttribute("style")).toBe(style);
     });
 
