@@ -23,7 +23,6 @@ integrations write it:
 
 - [Posti package tracking](https://github.com/jesmak/posti_tracking)
 - [Matkahuolto package tracking](https://github.com/jesmak/matkahuolto_tracking)
-- [PostNord package tracking](https://github.com/jesmak/postnord_tracking)
 
 Integrations that write the format carry the GitHub topic
 [`package-tracker-card-source`](https://github.com/topics/package-tracker-card-source), so that's where to look for
