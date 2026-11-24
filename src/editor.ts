@@ -1,13 +1,14 @@
 /**
  * The card's visual editor: the tracking sensors, the title, which packages and
- * how many of them are listed, how the card rounds its height to the rows of a sections view, and which lines a
- * package shows. Its height mode is set in YAML only.
+ * how many of them are listed, how the card rounds its height to the rows of a sections view, how the list shows
+ * that there is more when it scrolls, and which lines a package shows. Its height mode is set in YAML only.
  */
 import { LitElement, html, nothing } from "lit";
 import type { TemplateResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 
-import { STATUSES } from "./const";
+import { DEFAULT_SCROLL_INDICATOR, STATUSES } from "./const";
+import { scrollIndicatorData, scrollIndicatorSchema, tidyScrollIndicator } from "./fade";
 import type { HomeAssistant } from "./hass";
 import { rowStepData, rowStepSchema, tidyRowStep } from "./rows";
 import { browserLanguage, translate } from "./localize/localize";
@@ -89,6 +90,7 @@ function schema(hass: HomeAssistant, config: PackageTrackerCardConfig, text: (ke
             ],
         },
         ...rowStepSchema(config, text),
+        ...scrollIndicatorSchema(text),
         {
             name: "pickup_code",
             selector: {
@@ -154,7 +156,7 @@ export class PackageTrackerCardEditor extends LitElement {
         return html`
             <ha-form
                 .hass=${this.hass}
-                .data=${{ ...DEFAULTS, ...rowStepData(this.config), entity, statuses }}
+                .data=${{ ...DEFAULTS, ...scrollIndicatorData(rowStepData(this.config), DEFAULT_SCROLL_INDICATOR), entity, statuses }}
                 .schema=${schema(this.hass, this.config, (key) => this.text(key))}
                 .computeLabel=${(entry: SchemaEntry) => this.text(`editor.${entry.name}`)}
                 .computeHelper=${(entry: SchemaEntry) => this.helper(entry.name)}
@@ -164,7 +166,7 @@ export class PackageTrackerCardEditor extends LitElement {
     }
 
     private valueChanged(event: CustomEvent<{ value: PackageTrackerCardConfig }>): void {
-        const config: PackageTrackerCardConfig = tidyRowStep(event.detail.value);
+        const config: PackageTrackerCardConfig = tidyScrollIndicator(tidyRowStep(event.detail.value), DEFAULT_SCROLL_INDICATOR);
 
         // Every status, or none at all, is the same as showing them all, which needs no setting.
         const chosen = (config.statuses ?? []).map(Number);

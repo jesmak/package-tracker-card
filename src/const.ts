@@ -1,7 +1,12 @@
+import type { ScrollIndicator } from "./fade";
+
 /** Replaced at build time with the version in package.json. */
 declare const __CARD_VERSION__: string;
 
 export const CARD_VERSION = __CARD_VERSION__;
+
+/** A held card's list shows both its fading edges and a thin scrollbar. */
+export const DEFAULT_SCROLL_INDICATOR: ScrollIndicator = "both";
 
 /** The statuses the tracking integrations give a package. */
 export const DELIVERED = 0;

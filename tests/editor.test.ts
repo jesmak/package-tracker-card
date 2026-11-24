@@ -206,4 +206,21 @@ describe("the visual editor", () => {
         ]);
         expect(form(element).schema.map((entry) => entry.name)).toContain("direction");
     });
+
+    it("shows the scroll indicator in force, keeps the default out and a chosen one in", async () => {
+        const element = await editor();
+        expect(form(element).data.scroll_indicator).toBe("both");
+        const changes = changesOf(element);
+        for (const scroll_indicator of ["both", "fade"]) {
+            form(element).dispatchEvent(
+                new CustomEvent("value-changed", {
+                    detail: { value: { type: "custom:package-tracker-card", entity: ["sensor.posti_omaposti"], scroll_indicator } },
+                }),
+            );
+        }
+        expect(changes).toEqual([
+            { type: "custom:package-tracker-card", entity: ["sensor.posti_omaposti"] },
+            { type: "custom:package-tracker-card", entity: ["sensor.posti_omaposti"], scroll_indicator: "fade" },
+        ]);
+    });
 });
